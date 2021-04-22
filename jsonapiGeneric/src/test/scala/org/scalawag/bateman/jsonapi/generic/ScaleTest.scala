@@ -359,4 +359,119 @@ class ScaleTest extends AnyFunSpec with Matchers with ParserTestUtils {
       .shouldSucceed shouldBe MyClass("ID", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
 //    ResourceObjectDecoder[MyClass](MyClass.codec).decode(ro, null)
   }
+
+  it("should handle twenty optional attributes (codec)") {
+    final case class MyClass(
+        id: String @@ IdTag,
+        f01: Option[Int] @@ AttributeTag = None,
+        f02: Option[Int] @@ AttributeTag = None,
+        f03: Option[Int] @@ AttributeTag = None,
+        f04: Option[Int] @@ AttributeTag = None,
+        f05: Option[Int] @@ AttributeTag = None,
+        f06: Option[Int] @@ AttributeTag = None,
+        f07: Option[Int] @@ AttributeTag = None,
+        f08: Option[Int] @@ AttributeTag = None,
+        f09: Option[Int] @@ AttributeTag = None,
+        f10: Option[Int] @@ AttributeTag = None,
+        f11: Option[Int] @@ AttributeTag = None,
+        f12: Option[Int] @@ AttributeTag = None,
+        f13: Option[Int] @@ AttributeTag = None,
+        f14: Option[Int] @@ AttributeTag = None,
+        f15: Option[Int] @@ AttributeTag = None,
+        f16: Option[Int] @@ AttributeTag = None,
+        f17: Option[Int] @@ AttributeTag = None,
+        f18: Option[Int] @@ AttributeTag = None,
+        f19: Option[Int] @@ AttributeTag = None,
+        f20: Option[Int] @@ AttributeTag = None,
+    )
+
+    implicit val codec = semiauto.unchecked.deriveResourceObjectCodecForCaseClass[MyClass]("my_class")
+
+    val ro = parseAs[ResourceObject]("""
+      {
+        "type": "my_class",
+        "id": "ID"
+      }
+    """)
+
+    ResourceObjectDecoder[MyClass].decode(ro, null).shouldSucceed shouldBe MyClass("ID")
+  }
+
+  it("should handle twenty optional metas (codec)") {
+    final case class MyClass(
+        id: String @@ IdTag,
+        f01: Option[Int] @@ MetaTag = None,
+        f02: Option[Int] @@ MetaTag = None,
+        f03: Option[Int] @@ MetaTag = None,
+        f04: Option[Int] @@ MetaTag = None,
+        f05: Option[Int] @@ MetaTag = None,
+        f06: Option[Int] @@ MetaTag = None,
+        f07: Option[Int] @@ MetaTag = None,
+        f08: Option[Int] @@ MetaTag = None,
+        f09: Option[Int] @@ MetaTag = None,
+        f10: Option[Int] @@ MetaTag = None,
+        f11: Option[Int] @@ MetaTag = None,
+        f12: Option[Int] @@ MetaTag = None,
+        f13: Option[Int] @@ MetaTag = None,
+        f14: Option[Int] @@ MetaTag = None,
+        f15: Option[Int] @@ MetaTag = None,
+        f16: Option[Int] @@ MetaTag = None,
+        f17: Option[Int] @@ MetaTag = None,
+        f18: Option[Int] @@ MetaTag = None,
+        f19: Option[Int] @@ MetaTag = None,
+        f20: Option[Int] @@ MetaTag = None,
+    )
+
+    implicit val codec = semiauto.unchecked.deriveResourceObjectCodecForCaseClass[MyClass]("my_class")
+
+    val ro = parseAs[ResourceObject]("""
+      {
+        "type": "my_class",
+        "id": "ID"
+      }
+    """)
+
+    ResourceObjectDecoder[MyClass].decode(ro, null).shouldSucceed shouldBe MyClass("ID")
+  }
+
+  it("should handle twenty optional relationships (codec)") {
+    final case class MyReferent(id: String @@ IdTag)
+
+    final case class MyClass(
+        id: String @@ IdTag,
+        f01: Option[MyReferent] @@ RelationshipTag = None,
+        f02: Option[MyReferent] @@ RelationshipTag = None,
+        f03: Option[MyReferent] @@ RelationshipTag = None,
+        f04: Option[MyReferent] @@ RelationshipTag = None,
+        f05: Option[MyReferent] @@ RelationshipTag = None,
+        f06: Option[MyReferent] @@ RelationshipTag = None,
+        f07: Option[MyReferent] @@ RelationshipTag = None,
+        f08: Option[MyReferent] @@ RelationshipTag = None,
+        f09: Option[MyReferent] @@ RelationshipTag = None,
+        f10: Option[MyReferent] @@ RelationshipTag = None,
+        f11: Option[MyReferent] @@ RelationshipTag = None,
+        f12: Option[MyReferent] @@ RelationshipTag = None,
+        f13: Option[MyReferent] @@ RelationshipTag = None,
+        f14: Option[MyReferent] @@ RelationshipTag = None,
+        f15: Option[MyReferent] @@ RelationshipTag = None,
+        f16: Option[MyReferent] @@ RelationshipTag = None,
+        f17: Option[MyReferent] @@ RelationshipTag = None,
+        f18: Option[MyReferent] @@ RelationshipTag = None,
+        f19: Option[MyReferent] @@ RelationshipTag = None,
+        f20: Option[MyReferent] @@ RelationshipTag = None,
+    )
+
+    implicit val rcodec = semiauto.deriveResourceIdentifierCodecForCaseClass[MyReferent]("my_referent")
+    implicit val codec = semiauto.deriveResourceObjectCodecForCaseClass[MyClass]("my_class")
+
+    val ro = parseAs[ResourceObject]("""
+      {
+        "type": "my_class",
+        "id": "ID"
+      }
+    """)
+
+    ResourceObjectDecoder[MyClass].decode(ro, null).shouldSucceed shouldBe MyClass("ID")
+  }
+
 }

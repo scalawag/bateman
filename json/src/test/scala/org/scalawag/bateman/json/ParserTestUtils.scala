@@ -14,10 +14,12 @@
 
 package org.scalawag.bateman.json
 
+import cats.data.NonEmptyChain
 import org.scalactic.source.Position
 import org.scalatest.funspec.AnyFunSpec
 import org.scalawag.bateman.json.decoding.DecodeError.formatErrorReport
-import org.scalawag.bateman.json.decoding.{DecodeResult, JAnyDecoder}
+import org.scalawag.bateman.json.decoding.{DecodeError, DecodeResult, JAnyDecoder}
+import org.scalawag.bateman.json.encoding.JAny
 
 trait ParserTestUtils { _: AnyFunSpec =>
   def parse(in: String)(implicit pos: Position): decoding.JAny =
@@ -29,8 +31,25 @@ trait ParserTestUtils { _: AnyFunSpec =>
   implicit class DecodeResultOps[A](r: DecodeResult[A]) {
     def shouldSucceed(implicit pos: Position): A =
       r.fold(
-        ee => fail("operation should have succeeded but failed with:\n " + formatErrorReport(ee)),
+        ee => fail("operation should have succeeded but failed with:\n" + formatErrorReport(ee)),
         identity
+      )
+
+    def shouldFail(implicit pos: Position): NonEmptyChain[DecodeError] =
+      r.fold(
+        identity,
+        a => fail(s"operation should have failed but succeeded with value: $a"),
+      )
+
+    def shouldFailSingle(implicit pos: Position): DecodeError =
+      r.fold(
+        ee =>
+          ee.length match {
+            case 1 => ee.head
+            case n =>
+              fail("operation should have failed with one error but failed with several:\n" + formatErrorReport(ee))
+          },
+        a => fail(s"operation should have failed but succeeded with value: $a"),
       )
   }
 }

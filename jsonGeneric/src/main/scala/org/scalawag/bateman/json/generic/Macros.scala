@@ -53,7 +53,7 @@ class Macros(override protected val c: Context) extends MacroBase(c) {
   private def encoderPreChecks(fields: List[Field]): List[Tree] = {
     // Only generate one implicit for each type, not for each field. Fields can have the same type and then we'll get
     // ambiguous implicits if we have one for each field.
-    val requiredInstances = fields.filterNot(_.hasTag(sourceTag)).groupByEq(_.typ).toList
+    val requiredInstances = fields.filterNot(_.hasTag(sourceTag)).groupByEq(f => stripOption(f.typ)).toList
 
     requiredInstances.map {
       case (t, ff) =>
@@ -77,7 +77,7 @@ class Macros(override protected val c: Context) extends MacroBase(c) {
   // These just search for the Decoders that we know we're going to need so that the errors for missing implicits are
   // more useful than the normal all-or-nothing "implicit not found" message. Also speeds up resolution.
   private def decoderPreChecks[To: WeakTypeTag](fields: List[Field]): List[Tree] = {
-    val requiredInstances = fields.filterNot(_.hasTag(sourceTag)).groupByEq(_.typ).toList
+    val requiredInstances = fields.filterNot(_.hasTag(sourceTag)).groupByEq(f => stripOption(f.typ)).toList
 
     requiredInstances.map {
       case (t, ff) =>

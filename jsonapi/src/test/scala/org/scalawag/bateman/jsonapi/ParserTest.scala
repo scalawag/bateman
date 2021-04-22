@@ -18,12 +18,12 @@ import cats.data.NonEmptyChain
 import cats.syntax.validated._
 import cats.syntax.apply._
 import org.scalawag.bateman.json.decoding.query.TraverseQuery._
-import org.scalawag.bateman.json.decoding.DecodeResult
+import org.scalawag.bateman.json.decoding.{DecodeResult, JLocation, JNull, JPointer}
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalawag.bateman.json.decoding.query._
 import org.scalawag.bateman.jsonapi.query._
-import org.scalawag.bateman.json.ParserTestUtils
+import org.scalawag.bateman.json.{NotNull, Null, ParserTestUtils}
 import org.scalawag.bateman.jsonapi.Model.{Blue, Circle, Drawing, Portfolio, RGB, Red, Square, Triangle}
 import org.scalawag.bateman.jsonapi.decoding.{Document, ResourceObject}
 
@@ -127,22 +127,22 @@ class ParserTest extends AnyFunSpec with Matchers with ParserTestUtils {
           UUID.fromString("00000000-0000-0000-0000-000000000000"),
           "bart",
           Circle.Id(UUID.fromString("11111111-1111-1111-1111-111111111111")),
-          Some("sub"),
+          NotNull("sub"),
           List(
             Circle.Id(UUID.fromString("22222222-2222-2222-2222-222222222222")),
             Square.Id(UUID.fromString("33333333-3333-3333-3333-333333333333")),
             Triangle.Id(UUID.fromString("44444444-4444-4444-4444-444444444444")),
           ),
-          Some(
+          NotNull(
             Square(
               UUID.fromString("55555555-5555-5555-5555-555555555555"),
-              None,
+              Null(JNull(JLocation(26, 25), JPointer.Root / "included" / 0 / "attributes" / "label")),
               List(Red, Blue, RGB(1, 0, 1)),
               12
             )
           )
         ),
-        Some(
+        NotNull(
           Drawing.Id(
             UUID.fromString("88888888-8888-8888-8888-888888888888")
           )

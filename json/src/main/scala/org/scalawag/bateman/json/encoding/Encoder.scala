@@ -14,10 +14,12 @@
 
 package org.scalawag.bateman.json.encoding
 
+import org.scalawag.bateman.json.{NotNull, Null, Nullable}
+
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 import java.util.UUID
 
-trait Encoder[A, +B] {
+trait Encoder[-A, +B] {
   def encode(a: A): B
 
   def contramap[C](fn: C => A): Encoder[C, B] = { c =>
@@ -53,9 +55,9 @@ object Encoder {
   implicit val localDateTimeDecoder: Encoder[LocalDateTime, JString] = stringEncoder.contramap(_.toString)
   implicit val instantDecoder: Encoder[Instant, JString] = stringEncoder.contramap(_.toString)
 
-  implicit def optionEncoder[A](implicit enc: Encoder[A, JAny]): Encoder[Option[A], JAny] = {
-    case Some(a) => enc.encode(a)
-    case None    => JNull
+  implicit def nullableEncoder[A](implicit enc: Encoder[A, JAny]): Encoder[Nullable[A], JAny] = {
+    case NotNull(a) => enc.encode(a)
+    case _: Null    => JNull
   }
 
   implicit def listEncoder[A](implicit enc: Encoder[A, JAny]): Encoder[List[A], JArray] = { aa =>

@@ -114,11 +114,8 @@ object GraphEncoder {
       enc: ResourceIdentifierEncoder[A]
   ): EncodeResult[Document] =
     aa.traverse(enc.encodeResource(_, includeSpec, fieldsSpec)).map(_.toList).andThen(prepareData).map {
-      case (data, includes) =>
-        Document.forData(
-          data = data.headOption,
-          included = noneIfEmpty(includes)
-        )
+      case (List(data), includes) => Document.forData(data = data, included = noneIfEmpty(includes))
+      case (Nil, includes)        => Document.forData(data = NullData, included = noneIfEmpty(includes))
     }
 
   def encodeObjects[A](
@@ -144,11 +141,8 @@ object GraphEncoder {
       enc: ResourceObjectEncoder[A]
   ): EncodeResult[Document] =
     aa.traverse(enc.encodeResource(_, includeSpec, fieldsSpec)).map(_.toList).andThen(prepareData).map {
-      case (data, includes) =>
-        Document.forData(
-          data = data.headOption,
-          included = noneIfEmpty(includes)
-        )
+      case (List(data), includes) => Document.forData(data = data, included = noneIfEmpty(includes))
+      case (Nil, includes)        => Document.forData(data = NullData, included = noneIfEmpty(includes))
     }
 
   def encodeObjectOptionalId[A](
@@ -159,11 +153,8 @@ object GraphEncoder {
       enc: ResourceObjectOptionalIdEncoder[A]
   ): EncodeResult[Document] =
     aa.traverse(enc.encodeResource(_, includeSpec, fieldsSpec)).map(_.toList).andThen(prepareData).map {
-      case (data, includes) =>
-        Document.forData(
-          data = data.headOption,
-          included = noneIfEmpty(includes)
-        )
+      case (List(data), includes) => Document.forData(data = data, included = noneIfEmpty(includes))
+      case (Nil, includes)        => Document.forData(data = NullData, included = noneIfEmpty(includes))
     }
 
 //  def encodeDataDocument[F[_], A, B <: ResourceIdentifierLike](loader: Loader[F])(

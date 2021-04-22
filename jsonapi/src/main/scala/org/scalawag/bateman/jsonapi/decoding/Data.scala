@@ -17,6 +17,7 @@ package org.scalawag.bateman.jsonapi.decoding
 import cats.data.NonEmptyChain
 import cats.syntax.validated._
 import cats.syntax.traverse._
+import org.scalawag.bateman.json.{NotNull, Null, Nullable}
 import org.scalawag.bateman.json.syntax._
 import org.scalawag.bateman.json.decoding.{
   DecodeResult,
@@ -35,31 +36,42 @@ trait Data[+A] {
   val src: JAny
 
   def required: DecodeResult[A]
-  def optional: DecodeResult[Option[A]]
+  def nullable: DecodeResult[Nullable[A]]
   def multiple: DecodeResult[List[A]]
 
   def toList: List[A]
 }
 
-trait SingularData[A] extends Data[A] {
-  val data: Option[A]
+case class NullData(src: JNull) extends Data[Nothing] with PrimaryData with RelationshipData {
+  override def required: DecodeResult[Nothing] = JsonTypeMismatch(src, NonEmptyChain(JObject)).invalidNec
+  override def nullable: DecodeResult[Nullable[Nothing]] = Null(src).validNec
+  override def multiple: DecodeResult[List[Nothing]] = JsonTypeMismatch(src, NonEmptyChain(JObject)).invalidNec
+  override def toList: List[Nothing] = Nil
+  override def toEncoding: encoding.NullData = encoding.NullData
+}
 
-  override def required: DecodeResult[A] =
-    data match {
-      case Some(d) => d.validNec
-      case None    => JsonTypeMismatch(src, NonEmptyChain(JObject)).invalidNec
+object NullData {
+  implicit def decoder: Decoder[JNull, NullData] =
+    Decoder { in =>
+      NullData(in).validNec
     }
-  override def optional: DecodeResult[Option[A]] = data.validNec
+}
+
+trait SingularData[A] extends Data[A] {
+  val data: A
+
+  override def required: DecodeResult[A] = data.validNec
+  override def nullable: DecodeResult[Nullable[A]] = NotNull(data).validNec
   override def multiple: DecodeResult[List[A]] = JsonTypeMismatch(src, NonEmptyChain(JArray)).invalidNec
 
-  override def toList: List[A] = data.toList
+  override def toList: List[A] = List(data)
 }
 
 trait PluralData[A] extends Data[A] {
   val data: List[A]
 
   override def required: DecodeResult[A] = JsonTypeMismatch(src, NonEmptyChain(JObject)).invalidNec
-  override def optional: DecodeResult[Option[A]] = JsonTypeMismatch(src, NonEmptyChain(JNull, JObject)).invalidNec
+  override def nullable: DecodeResult[Nullable[A]] = JsonTypeMismatch(src, NonEmptyChain(JNull, JObject)).invalidNec
   override def multiple: DecodeResult[List[A]] = data.validNec
 
   override def toList: List[A] = data
@@ -100,7 +112,7 @@ object PrimaryData {
       case jnull: JNull =>
         // It doesn't really matter which we use, since it's empty. Still, I'm using the strictest thing possible
         // (resource identifier).
-        ResourceIdentifierData(jnull, None).validNec
+        NullData(jnull).validNec
     }
 }
 
@@ -112,53 +124,52 @@ object RelationshipData {
   implicit val decoder: Decoder[JAny, RelationshipData] =
     Decoder { in =>
       in.forType {
-        case JArray          => in.as[ResourceIdentifiersData]
-        case JNull | JObject => in.as[ResourceIdentifierData]
+        case JArray  => in.as[ResourceIdentifiersData]
+        case JObject => in.as[ResourceIdentifierData]
+        case JNull   => in.as[NullData]
       }
     }
 }
 
-case class ResourceIdentifierData(src: JAny, data: Option[ResourceIdentifier])
+case class ResourceIdentifierData(src: JAny, data: ResourceIdentifier)
     extends SingularData[ResourceIdentifier]
     with PrimaryData
     with RelationshipData {
   override def toEncoding: encoding.ResourceIdentifierData =
-    encoding.ResourceIdentifierData(data.map(_.toEncoding))
+    encoding.ResourceIdentifierData(data.toEncoding)
 }
 
 object ResourceIdentifierData {
   implicit def decoder: Decoder[JAny, ResourceIdentifierData] =
     Decoder { in =>
-      in.as[Option[ResourceIdentifier]].map(ResourceIdentifierData(in, _))
+      in.as[ResourceIdentifier].map(ResourceIdentifierData(in, _))
     }
 }
 
-case class ResourceObjectData(src: JAny, data: Option[ResourceObject])
-    extends SingularData[ResourceObject]
-    with PrimaryData {
+case class ResourceObjectData(src: JAny, data: ResourceObject) extends SingularData[ResourceObject] with PrimaryData {
   override def toEncoding: encoding.ResourceObjectData =
-    encoding.ResourceObjectData(data.map(_.toEncoding))
+    encoding.ResourceObjectData(data.toEncoding)
 
 }
 
 object ResourceObjectData {
   implicit def decoder: Decoder[JAny, ResourceObjectData] =
     Decoder { in =>
-      in.as[Option[ResourceObject]].map(ResourceObjectData(in, _))
+      in.as[ResourceObject].map(ResourceObjectData(in, _))
     }
 }
 
-case class ResourceObjectOptionalIdData(src: JAny, data: Option[ResourceObjectOptionalId])
+case class ResourceObjectOptionalIdData(src: JAny, data: ResourceObjectOptionalId)
     extends SingularData[ResourceObjectOptionalId]
     with PrimaryData {
   override def toEncoding: encoding.ResourceObjectOptionalIdData =
-    encoding.ResourceObjectOptionalIdData(data.map(_.toEncoding))
+    encoding.ResourceObjectOptionalIdData(data.toEncoding)
 }
 
 object ResourceObjectOptionalIdData {
   implicit def decoder: Decoder[JAny, ResourceObjectOptionalIdData] =
     Decoder { in =>
-      in.as[Option[ResourceObjectOptionalId]].map(ResourceObjectOptionalIdData(in, _))
+      in.as[ResourceObjectOptionalId].map(ResourceObjectOptionalIdData(in, _))
     }
 }
 

@@ -129,6 +129,14 @@ object HListDecoderFactoryFactory {
       headDecoder.value.decode
     )
 
+  implicit def hconsOptionDecoder[OutHead, OutTail <: HList, DefaultTail <: HList, Context](implicit
+      headDecoder: Lazy[ContextualDecoder[JAny, OutHead, Context]],
+      tailDecoderFactoryFactory: HListDecoderFactoryFactory[OutTail, DefaultTail, Context]
+  ): HListDecoderFactoryFactory[Option[OutHead] :: OutTail, Option[Option[OutHead]] :: DefaultTail, Context] =
+    headDecoderFactoryFactory[Option[OutHead], OutTail, DefaultTail, Context](JPointer.Root / _)((in, context) =>
+      headDecoder.value.decode(in, context).map(Some(_))
+    )
+
   /** Generically decodes an [[HList]] with head of type [[OutHead]] (a supertype of [[JObject]]) tagged as [[SourceTag]]
     * by using the input itself as the head of the output [[HList]].
     *

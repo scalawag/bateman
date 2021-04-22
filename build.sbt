@@ -28,8 +28,8 @@ val Versions = new Object {
 
 val commonSettings = Seq(
   organization := "org.scalawag.bateman",
-  scalaVersion := "2.12.13",
-  crossScalaVersions := Seq("2.12.13", "2.13.5"),
+  scalaVersion := "2.12.14",
+  crossScalaVersions := Seq("2.12.14", "2.13.6"),
 //  scalacOptions += "-Xlog-implicits",
   scalacOptions ++= Seq(
     "-language:higherKinds",
@@ -78,7 +78,8 @@ val json = project
   .settings(
     name := s"$projectBaseName-json",
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-core" % Versions.cats
+      "org.typelevel" %% "cats-core" % Versions.cats,
+      "com.beachape" %% "enumeratum" % Versions.enumeratum % Test
     )
   )
 
@@ -168,6 +169,7 @@ val enumeratum = project
 
 val root = (project in file("."))
   .aggregate(json, parser, jsonGeneric, jsonLiteral, jsonapi, jsonapiGeneric, circe)
+  .settings(commonSettings)
   .settings(
     name := s"$projectBaseName-build",
     publish / skip := true

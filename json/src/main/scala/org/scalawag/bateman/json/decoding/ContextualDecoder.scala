@@ -19,6 +19,7 @@ import cats.data.NonEmptyChain
 import cats.syntax.apply._
 import cats.syntax.traverse._
 import cats.syntax.validated._
+import org.scalawag.bateman.json.{NotNull, Null, Nullable}
 import org.scalawag.bateman.json.validating.Validator
 
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
@@ -75,7 +76,7 @@ object ContextualDecoder {
   /** Decodes something to itself in any context. This always succeeds. */
   implicit def identityDecoder[FromTo]: Decoder[FromTo, FromTo] = Decoder(_.validNec)
 
-  /** Decodes something optionally from a JSON value. JSON null is always decoded as None. Any other JSON value is
+  /** Decodes something nullable from a JSON value. JSON null is always decoded as Null. Any other JSON value is
     * decoded using the underlying decoder (which may fail).
     *
     * @param dec the underlying decode which handles non-null JSON values
@@ -84,13 +85,13 @@ object ContextualDecoder {
     * @return the new decoder
     */
 
-  implicit def optionDecoder[To, Context](implicit
+  implicit def nullableDecoder[To, Context](implicit
       dec: ContextualDecoder[JAny, To, Context]
-  ): ContextualDecoder[JAny, Option[To], Context] = {
-    case (_: JNull, _) =>
-      None.validNec
+  ): ContextualDecoder[JAny, Nullable[To], Context] = {
+    case (in: JNull, _) =>
+      Null(in).validNec
     case (in, context) =>
-      dec.decode(in, context).map(Some.apply).leftMap { ee =>
+      dec.decode(in, context).map(NotNull.apply).leftMap { ee =>
         // We need to amend any JsonTypeMismatch errors that occurred on this value to indicate that JNull would also
         // have been supported.
         ee.map {

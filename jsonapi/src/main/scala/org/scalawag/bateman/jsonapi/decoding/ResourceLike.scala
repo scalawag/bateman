@@ -65,6 +65,27 @@ sealed trait ResourceLike extends HasMeta {
       .getOrElse(UnspecifiedField(this.src.root, JPointer.Root / "meta" / name).invalidNec)
   def requiredMetaAs[A](name: String)(implicit dec: Decoder[JAny, A]): DecodeResult[A] =
     requiredMeta(name).andThen(dec.decode(_))
+
+  def optionalAttribute(name: String): Option[JAny]
+
+  def optionalAttributeAs[A](name: String)(implicit dec: Decoder[JAny, A]): DecodeResult[Option[A]] =
+    optionalAttribute(name).traverse(dec.decode(_))
+  def requiredAttribute(name: String): DecodeResult[JAny] =
+    optionalAttribute(name)
+      .map(_.validNec)
+      .getOrElse(UnspecifiedField(this.src.root, JPointer.Root / "attributes" / name).invalidNec)
+  def requiredAttributeAs[A](name: String)(implicit dec: Decoder[JAny, A]): DecodeResult[A] =
+    requiredAttribute(name).andThen(dec.decode(_))
+
+  def optionalRelationship(name: String): Option[Relationship]
+  def optionalRelationshipAs[A](name: String)(implicit dec: Decoder[Relationship, A]): DecodeResult[Option[A]] =
+    optionalRelationship(name).traverse(dec.decode(_))
+  def requiredRelationship(name: String): DecodeResult[Relationship] =
+    optionalRelationship(name)
+      .map(_.validNec)
+      .getOrElse(UnspecifiedField(this.src.root, JPointer.Root / "relationships" / name).invalidNec)
+  def requiredRelationshipAs[A](name: String)(implicit dec: Decoder[Relationship, A]): DecodeResult[A] =
+    requiredRelationship(name).andThen(dec.decode(_))
 }
 
 object ResourceLike {
@@ -122,6 +143,9 @@ final case class ResourceIdentifier(src: JSource @@ SourceTag, `type`: JString, 
       id = id.value,
       meta = meta.map(_.toEncoding)
     )
+
+  override def optionalAttribute(name: String): Option[JAny] = None
+  override def optionalRelationship(name: String): Option[Relationship] = None
 }
 
 object ResourceIdentifier {
@@ -142,29 +166,8 @@ trait ResourceObjectLike extends ResourceLike with HasLinks {
   val relationships: Option[Relationships]
   val links: Option[Links]
 
-  def optionalAttribute(name: String): Option[JAny] =
-    attributes.flatMap(_.get(name))
-  def optionalAttributeAs[A](name: String)(implicit dec: Decoder[JAny, A]): DecodeResult[Option[A]] =
-    optionalAttribute(name).traverse(dec.decode(_))
-  def requiredAttribute(name: String): DecodeResult[JAny] =
-    optionalAttribute(name)
-      .map(_.validNec)
-      .getOrElse(UnspecifiedField(this.src.root, JPointer.Root / "attributes" / name).invalidNec)
-  def requiredAttributeAs[A](name: String)(implicit dec: Decoder[JAny, A]): DecodeResult[A] =
-    requiredAttribute(name).andThen(dec.decode(_))
-
-  def optionalRelationship(name: String): Option[Relationship] =
-    relationships.flatMap(_.get(name))
-  def optionalRelationshipAs[A](
-      name: String
-  )(implicit dec: Decoder[Relationship, A]): DecodeResult[Option[A]] =
-    optionalRelationship(name).traverse(dec.decode(_))
-  def requiredRelationship(name: String): DecodeResult[Relationship] =
-    optionalRelationship(name)
-      .map(_.validNec)
-      .getOrElse(UnspecifiedField(this.src.root, JPointer.Root / "relationships" / name).invalidNec)
-  def requiredRelationshipAs[A](name: String)(implicit dec: Decoder[Relationship, A]): DecodeResult[A] =
-    requiredRelationship(name).andThen(dec.decode(_))
+  def optionalAttribute(name: String): Option[JAny] = attributes.flatMap(_.get(name))
+  def optionalRelationship(name: String): Option[Relationship] = relationships.flatMap(_.get(name))
 }
 
 final case class ResourceObjectOptionalId(
@@ -190,18 +193,8 @@ final case class ResourceObjectOptionalId(
 }
 
 object ResourceObjectOptionalId {
-  implicit val decoder: Decoder[JObject, ResourceObjectOptionalId] = {
-    // We don't want to allow null as the ID, per the JSON:API spec (I think). It has to be missing to get a None.
-    // https://jsonapi.org/format/#document-resource-object-identification
-    implicit val idDec: JAnyDecoder[Option[JString]] = Decoder { in =>
-      def idDec = ??? // shadow my own term so that I don't get recursion.
-      JAnyDecoder[Option[JString]].decode(in).andThen {
-        case Some(s) => Some(s).validNec
-        case None    => JsonTypeMismatch(in, JString).invalidNec
-      }
-    }
+  implicit val decoder: Decoder[JObject, ResourceObjectOptionalId] =
     semiauto.deriveDecoderForCaseClass[ResourceObjectOptionalId, Any]()
-  }
 
   implicit val resourceLikeTranscoder: Decoder[ResourceLike, ResourceObjectOptionalId] = Decoder.fromPF {
     case ro: ResourceObjectOptionalId => ro.validNec

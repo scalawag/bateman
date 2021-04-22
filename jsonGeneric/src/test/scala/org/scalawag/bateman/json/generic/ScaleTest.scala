@@ -19,7 +19,7 @@ import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalawag.bateman.json.decoding.{ContextualDecoder, JAnyDecoder, JObjectDecoder}
 import org.scalawag.bateman.json.encoding.JObjectEncoder
-import org.scalawag.bateman.json.generic.ScaleTest.MyBigClass
+import org.scalawag.bateman.json.generic.ScaleTest.{MyBigClass, MyBigOptionClass}
 import org.scalawag.bateman.json.generic.codec.{CaseClassCodec, TraitCodec}
 import org.scalawag.bateman.json.{Codec, JObjectCodec, ParserTestUtils}
 
@@ -74,6 +74,18 @@ class ScaleTest extends AnyFunSpec with Matchers with ParserTestUtils {
     implicit val dec = semiauto.deriveDecoderForCaseClass[MyBigClass, Any]()
     JAnyDecoder[MyBigClass].decode(json) shouldBe MyBigClass(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
       18, 19, 20, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20).validNec
+  }
+
+  it("should handle at least forty optional fields") {
+
+    val json = parse("""
+      {
+        "f37": 17
+      }
+    """)
+
+    implicit val dec = semiauto.deriveDecoderForCaseClass[MyBigOptionClass, Any]()
+    JAnyDecoder[MyBigOptionClass].decode(json) shouldBe MyBigOptionClass(f37 = Some(17)).validNec
   }
 
   it("should handle at least twenty coproducts") {
@@ -150,5 +162,48 @@ object ScaleTest {
       f38: Int,
       f39: Int,
       f40: Int,
+  )
+
+  final case class MyBigOptionClass(
+      f01: Option[Int] = None,
+      f02: Option[Int] = None,
+      f03: Option[Int] = None,
+      f04: Option[Int] = None,
+      f05: Option[Int] = None,
+      f06: Option[Int] = None,
+      f07: Option[Int] = None,
+      f08: Option[Int] = None,
+      f09: Option[Int] = None,
+      f10: Option[Int] = None,
+      f11: Option[Int] = None,
+      f12: Option[Int] = None,
+      f13: Option[Int] = None,
+      f14: Option[Int] = None,
+      f15: Option[Int] = None,
+      f16: Option[Int] = None,
+      f17: Option[Int] = None,
+      f18: Option[Int] = None,
+      f19: Option[Int] = None,
+      f20: Option[Int] = None,
+      f21: Option[Int] = None,
+      f22: Option[Int] = None,
+      f23: Option[Int] = None,
+      f24: Option[Int] = None,
+      f25: Option[Int] = None,
+      f26: Option[Int] = None,
+      f27: Option[Int] = None,
+      f28: Option[Int] = None,
+      f29: Option[Int] = None,
+      f30: Option[Int] = None,
+      f31: Option[Int] = None,
+      f32: Option[Int] = None,
+      f33: Option[Int] = None,
+      f34: Option[Int] = None,
+      f35: Option[Int] = None,
+      f36: Option[Int] = None,
+      f37: Option[Int] = None,
+      f38: Option[Int] = None,
+      f39: Option[Int] = None,
+      f40: Option[Int] = None,
   )
 }

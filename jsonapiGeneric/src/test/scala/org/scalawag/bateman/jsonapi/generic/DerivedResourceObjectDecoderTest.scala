@@ -406,7 +406,7 @@ class DerivedResourceObjectDecoderTest extends AnyFunSpec with Matchers with Par
   }
 
   describe("optional ID") {
-    final case class MyClass(id: Option[Int] @@ IdTag)
+    final case class MyClass(id: Option[Int] @@ IdTag = None)
     implicit val intIdDecoder = ContextualDecoder.jstringToJNumber(ContextualDecoder.jnumberToIntDecoder)
     implicit val decoder = semiauto.deriveResourceObjectOptionalIdDecoderForCaseClass[MyClass]("my_class")
 

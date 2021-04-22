@@ -80,6 +80,12 @@ abstract class MacroBase(protected val c: Context) {
 
   protected val supportedTags: Iterable[ClassSymbol] = Iterable(sourceTag)
 
+  protected def stripOption(t: Type): Type =
+    if (isAssignableTo(t.typeSymbol.asClass, optionType))
+      t.typeArgs.head
+    else
+      t
+
   protected def getCaseClassSymbol(a: Type): MacroResult[ClassSymbol] = {
     val symbol = a.typeSymbol
     if (symbol.isClass && symbol.asClass.isCaseClass) {

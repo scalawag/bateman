@@ -97,20 +97,14 @@ sealed trait PrimaryData extends Data
 object PrimaryData {
   // These make it possible to create a PrimaryData without having to use the specific Data.* constructor
   implicit def fromResourceIdentifier(data: ResourceIdentifier): PrimaryData =
-    ResourceIdentifierData(Some(data))
-  implicit def fromResourceIdentifier(data: Option[ResourceIdentifier]): PrimaryData =
     ResourceIdentifierData(data)
   implicit def fromResourceIdentifiers(data: List[ResourceIdentifier]): PrimaryData =
     ResourceIdentifiersData(data)
   implicit def fromResourceObject(data: ResourceObject): PrimaryData =
-    ResourceObjectData(Some(data))
-  implicit def fromResourceObject(data: Option[ResourceObject]): PrimaryData =
     ResourceObjectData(data)
   implicit def fromResourceObjects(data: List[ResourceObject]): PrimaryData =
     ResourceObjectsData(data)
   implicit def fromResourceObjectOptionalId(data: ResourceObjectOptionalId): PrimaryData =
-    ResourceObjectOptionalIdData(Some(data))
-  implicit def fromResourceObjectOptionalId(data: Option[ResourceObjectOptionalId]): PrimaryData =
     ResourceObjectOptionalIdData(data)
 
   implicit def encoder: Encoder[PrimaryData, JAny] = {
@@ -127,8 +121,6 @@ sealed trait RelationshipData extends Data
 object RelationshipData {
   // These make it possible to create a RelationshipData without having to use the specific *Data constructor
   implicit def fromResourceIdentifier(data: ResourceIdentifier): RelationshipData =
-    ResourceIdentifierData(Some(data))
-  implicit def fromResourceIdentifier(data: Option[ResourceIdentifier]): RelationshipData =
     ResourceIdentifierData(data)
   implicit def fromResourceIdentifiers(data: List[ResourceIdentifier]): RelationshipData =
     ResourceIdentifiersData(data)
@@ -139,25 +131,28 @@ object RelationshipData {
   }
 }
 
-case class ResourceIdentifierData(data: Option[encoding.ResourceIdentifier]) extends PrimaryData with RelationshipData
+sealed trait NullData extends PrimaryData with RelationshipData
+case object NullData extends NullData
+
+case class ResourceIdentifierData(data: encoding.ResourceIdentifier) extends PrimaryData with RelationshipData
 
 object ResourceIdentifierData {
   implicit def encoder: Encoder[ResourceIdentifierData, JAny] =
-    Encoder[Option[encoding.ResourceIdentifier], JAny].contramap(_.data)
+    Encoder[encoding.ResourceIdentifier, JAny].contramap(_.data)
 }
 
-case class ResourceObjectData(data: Option[encoding.ResourceObject]) extends PrimaryData
+case class ResourceObjectData(data: encoding.ResourceObject) extends PrimaryData
 
 object ResourceObjectData {
   implicit def encoder: Encoder[ResourceObjectData, JAny] =
-    Encoder[Option[encoding.ResourceObject], JAny].contramap(_.data)
+    Encoder[encoding.ResourceObject, JAny].contramap(_.data)
 }
 
-case class ResourceObjectOptionalIdData(data: Option[encoding.ResourceObjectOptionalId]) extends PrimaryData
+case class ResourceObjectOptionalIdData(data: encoding.ResourceObjectOptionalId) extends PrimaryData
 
 object ResourceObjectOptionalIdData {
   implicit def encoder: Encoder[ResourceObjectOptionalIdData, JAny] =
-    Encoder[Option[encoding.ResourceObjectOptionalId], JAny].contramap(_.data)
+    Encoder[encoding.ResourceObjectOptionalId, JAny].contramap(_.data)
 }
 
 case class ResourceIdentifiersData(data: List[encoding.ResourceIdentifier]) extends PrimaryData with RelationshipData

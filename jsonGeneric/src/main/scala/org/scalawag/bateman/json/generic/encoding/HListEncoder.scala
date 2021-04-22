@@ -82,6 +82,29 @@ object HListEncoderFactoryFactory {
       }
     }
 
+  implicit def hconsOptionEncoder[Head, Tail <: HList, DefaultsTail <: HList](implicit
+      headEncoder: Lazy[Encoder[Head, JAny]],
+      tailEncoderFactoryFactory: HListEncoderFactoryFactory[Tail, DefaultsTail]
+  ): HListEncoderFactoryFactory[Option[Head] :: Tail, Option[Option[Head]] :: DefaultsTail] =
+    info => {
+      val tailEncoderFactory = tailEncoderFactoryFactory(info.tail)
+
+      params => {
+        val tailEncoder = tailEncoderFactory(params)
+
+        input => {
+          val fieldName = params.config.fieldNameMapping(info.fieldNames.head)
+          val encodedTail = tailEncoder.encode(input.tail)
+
+          // See if the input value is the same as the default value and, if so configured, skip it.
+          if (params.config.encodeDefaultValues || !info.defaults.head.contains(input.in.head))
+            JObject(input.in.head.map(headEncoder.value.encode).map(fieldName -> _).toList ++ encodedTail.fields: _*)
+          else
+            encodedTail
+        }
+      }
+    }
+
   /** Generates an encoder for a labelled [[HList]] whose head is any type and is tagged with [[SourceTag]].
     * Source fields don't get encoded. Just this just defers to the tail encoder.
     *

@@ -14,7 +14,8 @@
 
 package org.scalawag.bateman.json.generic
 
-import shapeless.{::, HList}
+import shapeless.tag.@@
+import shapeless.{::, HList, tag}
 
 case class CaseClassInfo[Defaults <: HList](defaults: Defaults, fieldNames: List[String])
 
@@ -27,5 +28,35 @@ object CaseClassInfo {
     */
   implicit class CaseClassInfoOps[H, T <: HList](in: CaseClassInfo[H :: T]) {
     def tail: CaseClassInfo[T] = in.copy(defaults = in.defaults.tail, fieldNames = in.fieldNames.tail)
+  }
+
+  implicit class OptionCaseClassInfoOps[H, Tg <: Tag, T <: HList](in: CaseClassInfo[Option[Option[H] @@ Tg] :: T]) {
+    def flattenHead: CaseClassInfo[Option[H @@ Tg] :: T] = {
+      val newHead =
+        in.defaults.head match {
+          case Some(outer) =>
+            (outer: Option[H]) match {
+              case Some(inner) => Some(tag[Tg](inner))
+              case None        => None
+            }
+          case None => None
+        }
+      in.copy(defaults = newHead :: in.defaults.tail)
+    }
+
+    def flattenHeadOrNone: CaseClassInfo[Option[H @@ Tg] :: T] = {
+      val newHead: Option[H @@ Tg] =
+        in.defaults.head match {
+          case Some(outer) =>
+            (outer: Option[H]) match {
+              case Some(inner) => Some(tag[Tg](inner))
+              case None        => None
+            }
+          case None =>
+            // In the case where there's no default specified, act as though None was specified.
+            None
+        }
+      in.copy(defaults = newHead :: in.defaults.tail)
+    }
   }
 }

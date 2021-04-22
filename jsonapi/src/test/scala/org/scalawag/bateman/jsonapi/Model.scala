@@ -17,6 +17,7 @@ package org.scalawag.bateman.jsonapi
 import cats.data.NonEmptyChain
 import cats.syntax.apply._
 import cats.syntax.validated._
+import org.scalawag.bateman.json.Nullable
 import org.scalawag.bateman.json.decoding.query._
 import org.scalawag.bateman.json.decoding.{
   ContextualDecoder,
@@ -49,9 +50,9 @@ object Model {
       id: UUID,
       title: String,
       primary: Shape.Id,
-      subtitle: Option[String],
+      subtitle: Nullable[String],
       shapes: List[Shape.Id],
-      favorite: Option[Shape]
+      favorite: Nullable[Shape]
   ) extends Entity
 
   object Drawing {
@@ -74,9 +75,9 @@ object Model {
           in.query(_ ~> id ~> as[UUID]),
           in.query(_ ~> attribute("title") ~> as[String]),
           in.query(_ ~> relationship("primary") ~> data ~> required ~> as[Shape.Id]),
-          in.query(_ ~> attribute("sub_title") ~> as[Option[String]]),
+          in.query(_ ~> attribute("sub_title") ~> as[Nullable[String]]),
           in.tquery(_ ~> relationship("sh_apes") ~> data ~> multiple ~> as[Shape.Id]),
-          in.ctquery(document)(_ ~> relationship("favorite") ~> data ~> optional ~> included ~> as[Shape]),
+          in.ctquery(document)(_ ~> relationship("favorite") ~> data ~> nullable ~> included ~> as[Shape]),
         ).mapN(Drawing.apply)
       }
   }
@@ -122,7 +123,7 @@ object Model {
   }
 
   sealed trait Shape extends Entity {
-    def label: Option[String]
+    def label: Nullable[String]
     def color: List[Color]
   }
 
@@ -152,7 +153,7 @@ object Model {
 
   final case class Circle(
       id: UUID,
-      label: Option[String],
+      label: Nullable[String],
       color: List[Color],
       radius: Int
   ) extends Shape
@@ -164,7 +165,7 @@ object Model {
       CustomResourceObject.generateDecoder(RESOURCE_TYPE) { in =>
         (
           in.query(_ ~> id ~> as[UUID]),
-          in.query(_ ~> attribute("label") ~> as[Option[String]]),
+          in.query(_ ~> attribute("label") ~> as[Nullable[String]]),
           in.query(_ ~> attribute("color") ~> as[List[Color]]),
           in.query(_ ~> attribute("radius") ~> as[Int])
         ).mapN(Circle.apply)
@@ -182,7 +183,7 @@ object Model {
 
   final case class Square(
       id: UUID,
-      label: Option[String],
+      label: Nullable[String],
       color: List[Color],
       sideLength: Int
   ) extends Shape
@@ -196,7 +197,7 @@ object Model {
       CustomResourceObject.generateDecoder(RESOURCE_TYPE) { in =>
         (
           in.query(_ ~> id ~> as[UUID]),
-          in.query(_ ~> attribute("label") ~> as[Option[String]]),
+          in.query(_ ~> attribute("label") ~> as[Nullable[String]]),
           in.query(_ ~> attribute("color") ~> as[List[Color]]),
           in.query(_ ~> attribute("side_length") ~> as[Int])
         ).mapN(Square.apply)
@@ -212,7 +213,7 @@ object Model {
 
   final case class Triangle(
       id: UUID,
-      label: Option[String],
+      label: Nullable[String],
       color: List[Color]
   ) extends Shape
 
@@ -223,7 +224,7 @@ object Model {
       CustomResourceObject.generateDecoder(RESOURCE_TYPE) { in =>
         (
           in.query(_ ~> id ~> as[UUID]),
-          in.query(_ ~> attribute("label") ~> as[Option[String]]),
+          in.query(_ ~> attribute("label") ~> as[Nullable[String]]),
           in.query(_ ~> attribute("color") ~> as[List[Color]])
         ).mapN(Triangle.apply)
       }
@@ -242,7 +243,7 @@ object Model {
   final case class Portfolio(
       id: UUID,
       full: Drawing,
-      sparse: Option[Drawing.Id]
+      sparse: Nullable[Drawing.Id]
   ) extends Entity
 
   object Portfolio {
@@ -251,7 +252,7 @@ object Model {
         (
           in.query(_ ~> id ~> as[UUID]),
           in.cquery(document)(_ ~> relationship("full") ~> data ~> required ~> included ~> as[Drawing]),
-          in.ctquery(document)(_ ~> relationship("sparse") ~> data ~> optional ~> as[Drawing.Id])
+          in.ctquery(document)(_ ~> relationship("sparse") ~> data ~> nullable ~> as[Drawing.Id])
         ).mapN(Portfolio.apply)
       }
   }

@@ -15,6 +15,7 @@
 package org.scalawag.bateman.jsonapi
 
 import cats.syntax.validated._
+import org.scalawag.bateman.json.Nullable
 import org.scalawag.bateman.json.decoding.{DecodeResult, JAny, JObject, JString}
 import org.scalawag.bateman.json.decoding.query.{Query, TraverseQuery, root}
 import org.scalawag.bateman.jsonapi.decoding.{
@@ -56,15 +57,15 @@ package object query {
       Query { (in, _) => in.required }
   }
 
-  trait OptionalPlaceholder
+  trait NullablePlaceholder
 
-  object optional extends OptionalPlaceholder {
-    implicit def forPrimary(p: OptionalPlaceholder): TraverseQuery[Option, PrimaryData, ResourceLike, Any] =
-      TraverseQuery { (in, _) => in.optional }
+  object nullable extends NullablePlaceholder {
+    implicit def forPrimary(p: NullablePlaceholder): TraverseQuery[Nullable, PrimaryData, ResourceLike, Any] =
+      TraverseQuery { (in, _) => in.nullable }
     implicit def forRelationship(
-        p: OptionalPlaceholder
-    ): TraverseQuery[Option, RelationshipData, ResourceIdentifier, Any] =
-      TraverseQuery { (in, _) => in.optional }
+        p: NullablePlaceholder
+    ): TraverseQuery[Nullable, RelationshipData, ResourceIdentifier, Any] =
+      TraverseQuery { (in, _) => in.nullable }
   }
 
   trait MultiplePlaceholder

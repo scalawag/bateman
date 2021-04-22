@@ -18,6 +18,7 @@ import scala.reflect.macros.whitebox.Context
 import cats.syntax.validated._
 import cats.syntax.traverse._
 import cats.syntax.apply._
+import org.scalawag.bateman.json.Nullable
 import org.scalawag.bateman.json.generic.MacroBase
 import org.scalawag.bateman.jsonapi
 import org.scalawag.bateman.jsonapi.generic.decoding.JSource
@@ -31,6 +32,7 @@ import org.scalawag.bateman.jsonapi.generic.decoding.JSource
 class Macros(override protected val c: Context) extends MacroBase(c) {
   import c.universe._
 
+  private val nullableType = typeOf[Nullable[_]].typeSymbol.asClass
   private val listType = typeOf[List[_]].typeSymbol.asClass
 
   private val idTag = typeOf[IdTag].typeSymbol.asClass
@@ -146,7 +148,9 @@ class Macros(override protected val c: Context) extends MacroBase(c) {
       ???
 
   private def getContainedType(t: Type): Type =
-    if (isAssignableTo(t.typeSymbol.asClass, optionType))
+    if (isAssignableTo(t.typeSymbol.asClass, nullableType))
+      t.typeArgs.head
+    else if (isAssignableTo(t.typeSymbol.asClass, optionType))
       t.typeArgs.head
     else if (isAssignableTo(t.typeSymbol.asClass, listType))
       t.typeArgs.head
@@ -179,7 +183,8 @@ class Macros(override protected val c: Context) extends MacroBase(c) {
         maybeNamedImplicit(name, q"""implicitly[org.scalawag.bateman.json.encoding.JStringEncoder[$ct]]""")
       case ((tag, t), ff) if tag == attributeTag || tag == metaTag =>
         val name = instanceName("encoder", ff)
-        maybeNamedImplicit(name, q"""implicitly[org.scalawag.bateman.json.encoding.JAnyEncoder[$t]]""")
+        val ct = getContainedType(t)
+        maybeNamedImplicit(name, q"""implicitly[org.scalawag.bateman.json.encoding.JAnyEncoder[$ct]]""")
       case ((tag, t), ff) if tag == relationshipTag =>
         val name = instanceName("encoder", ff)
         val ct = getContainedType(t)
@@ -202,9 +207,10 @@ class Macros(override protected val c: Context) extends MacroBase(c) {
         )
       case ((tag, t), ff) if tag == attributeTag || tag == metaTag =>
         val name = instanceName("decoder", ff)
+        val ct = getContainedType(t)
         maybeNamedImplicit(
           name,
-          q"""implicitly[org.scalawag.bateman.json.decoding.JAnyContextualDecoder[$t, org.scalawag.bateman.jsonapi.decoding.Document]]"""
+          q"""implicitly[org.scalawag.bateman.json.decoding.JAnyContextualDecoder[$ct, org.scalawag.bateman.jsonapi.decoding.Document]]"""
         )
       case ((tag, t), ff) if tag == relationshipTag =>
         val name = instanceName("decoder", ff)

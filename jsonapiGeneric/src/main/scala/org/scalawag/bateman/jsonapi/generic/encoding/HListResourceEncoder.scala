@@ -18,6 +18,7 @@ import cats.{Id, Traverse}
 import cats.syntax.traverse._
 import cats.syntax.foldable._
 import cats.syntax.functor._
+import org.scalawag.bateman.json.{NotNull, Null, Nullable}
 import org.scalawag.bateman.json.encoding.{Encoder, JAny, JString}
 import org.scalawag.bateman.json.generic.{CaseClassInfo, Config, SourceTag, Tag}
 import org.scalawag.bateman.jsonapi.encoding
@@ -27,6 +28,7 @@ import org.scalawag.bateman.jsonapi.encoding.{
   IncludeSpec,
   InvalidFieldName,
   InvalidIncludePath,
+  NullData,
   Relationship,
   RelationshipData,
   ResourceEncoder,
@@ -35,7 +37,7 @@ import org.scalawag.bateman.jsonapi.encoding.{
 import org.scalawag.bateman.jsonapi.generic.encoding.HListResourceEncoderFactoryFactory.{Input, Params}
 import org.scalawag.bateman.jsonapi.generic.{AttributeTag, IdTag, MetaTag, RelationshipTag}
 import shapeless.tag.@@
-import shapeless.{::, HList, HNil, Lazy}
+import shapeless.{::, HList, HNil, Lazy, tag}
 
 import scala.reflect.{ClassTag, classTag}
 
@@ -65,15 +67,10 @@ object HListResourceEncoderFactoryFactory {
       resourceType: String,
       includeSpec: IncludeSpec,
       fieldsSpec: FieldsSpec,
-      relationshipsHandled: Set[String] = Set.empty,
-      attributesHandled: Set[String] = Set.empty,
+      fieldsHandled: Set[(String, Tag)] = Set.empty
   ) {
-    def fieldsHandled: Set[String] = attributesHandled ++ relationshipsHandled
-
-    def withAttributeHandled(name: String): Input[In] =
-      this.copy(attributesHandled = this.attributesHandled + name)
-    def withRelationshipHandled(name: String): Input[In] =
-      this.copy(relationshipsHandled = this.relationshipsHandled + name)
+    def relationshipsHandled: Set[String] = fieldsHandled.collect { case (n, RelationshipTag) => n }
+    def withFieldHandled(name: String, tag: Tag): Input[In] = this.copy(fieldsHandled = fieldsHandled + ((name, tag)))
   }
 
   object Input {
@@ -93,7 +90,7 @@ object HListResourceEncoderFactoryFactory {
     // If we have any fields specified that aren't actually fields on this resource type, that's an error.
     val invalidFieldErrors =
       input.fieldsSpec.explicitFields(input.resourceType).collect {
-        case k if !input.fieldsHandled.contains(k) => InvalidFieldName(input.resourceType, k)
+        case k if !input.fieldsHandled.map(_._1).contains(k) => InvalidFieldName(input.resourceType, k)
       }
 
     val errors = invalidFieldErrors ++ invalidIncludePathErrors
@@ -108,7 +105,7 @@ object HListResourceEncoderFactoryFactory {
     (InHead @@ IdTag) :: InTail,
     Option[InHead @@ IdTag] :: DefTail
   ] =
-    headEncoderFactoryFactory[InHead, IdTag, InTail, DefTail](nothingHandled, false, false) { (input, partial, _) =>
+    headEncoderFactoryFactory[InHead, IdTag, InTail, DefTail](IdTag, false, false) { (input, partial, _) =>
       partial.copy(id = Some(headEncoder.value.encode(input.in.head).value))
     }
 
@@ -119,9 +116,8 @@ object HListResourceEncoderFactoryFactory {
     (Option[InHead] @@ IdTag) :: InTail,
     Option[Option[InHead] @@ IdTag] :: DefTail
   ] =
-    headEncoderFactoryFactory[Option[InHead], IdTag, InTail, DefTail](nothingHandled, false, false) {
-      (input, partial, _) =>
-        partial.copy(id = input.in.head.map(headEncoder.value.encode).map(_.value))
+    headEncoderFactoryFactory[Option[InHead], IdTag, InTail, DefTail](IdTag, false, false) { (input, partial, _) =>
+      partial.copy(id = input.in.head.map(headEncoder.value.encode).map(_.value))
     }
 
   implicit def hconsAttributeEncoder[InHead, InTail <: HList, DefTail <: HList](implicit
@@ -131,9 +127,24 @@ object HListResourceEncoderFactoryFactory {
     (InHead @@ AttributeTag) :: InTail,
     Option[InHead @@ AttributeTag] :: DefTail
   ] =
-    headEncoderFactoryFactory[InHead, AttributeTag, InTail, DefTail](_ withAttributeHandled _, true, true) {
+    headEncoderFactoryFactory[InHead, AttributeTag, InTail, DefTail](AttributeTag, true, true) {
       (input, partial, name) =>
         partial.addAttribute(name, headEncoder.value.encode(input.in.head))
+    }
+
+  implicit def hconsOptionAttributeEncoder[InHead, InTail <: HList, DefTail <: HList](implicit
+      headEncoder: Lazy[Encoder[InHead, JAny]],
+      tailEncoderFactoryFactory: HListResourceEncoderFactoryFactory[InTail, DefTail]
+  ): HListResourceEncoderFactoryFactory[
+    (Option[InHead] @@ AttributeTag) :: InTail,
+    Option[Option[InHead] @@ AttributeTag] :: DefTail
+  ] =
+    headEncoderFactoryFactory[Option[InHead], AttributeTag, InTail, DefTail](AttributeTag, true, true) {
+      (input, partial, name) =>
+        (input.in.head: Option[InHead]) match {
+          case Some(h) => partial.addAttribute(name, headEncoder.value.encode(h))
+          case None    => partial
+        }
     }
 
   implicit def hconsMetaEncoder[InHead, InTail <: HList, DefTail <: HList](implicit
@@ -143,8 +154,22 @@ object HListResourceEncoderFactoryFactory {
     (InHead @@ MetaTag) :: InTail,
     Option[InHead @@ MetaTag] :: DefTail
   ] =
-    headEncoderFactoryFactory[InHead, MetaTag, InTail, DefTail](nothingHandled, true, false) { (input, partial, name) =>
+    headEncoderFactoryFactory[InHead, MetaTag, InTail, DefTail](MetaTag, true, false) { (input, partial, name) =>
       partial.addMeta(name, headEncoder.value.encode(input.in.head))
+    }
+
+  implicit def hconsOptionMetaEncoder[InHead, InTail <: HList, DefTail <: HList](implicit
+      headEncoder: Lazy[Encoder[InHead, JAny]],
+      tailEncoderFactoryFactory: HListResourceEncoderFactoryFactory[InTail, DefTail]
+  ): HListResourceEncoderFactoryFactory[
+    (Option[InHead] @@ MetaTag) :: InTail,
+    Option[Option[InHead] @@ MetaTag] :: DefTail
+  ] =
+    headEncoderFactoryFactory[Option[InHead], MetaTag, InTail, DefTail](MetaTag, true, true) { (input, partial, name) =>
+      (input.in.head: Option[InHead]) match {
+        case Some(h) => partial.addMeta(name, headEncoder.value.encode(h))
+        case None    => partial
+      }
     }
 
   implicit def hconsRelationshipRequiredIdentifierEncoder[InHead, InTail <: HList, DefTail <: HList](implicit
@@ -159,9 +184,9 @@ object HListResourceEncoderFactoryFactory {
       headEncoder: Lazy[ResourceEncoder[InHead, encoding.ResourceIdentifier]],
       tailEncoder: HListResourceEncoderFactoryFactory[InTail, DefTail]
   ): HListResourceEncoderFactoryFactory[
-    (Option[InHead] @@ RelationshipTag) :: InTail,
-    Option[Option[InHead] @@ RelationshipTag] :: DefTail
-  ] = hconsRelationshipIdentifierEncoder[Option, InHead, InTail, DefTail]
+    (Nullable[InHead] @@ RelationshipTag) :: InTail,
+    Option[Nullable[InHead] @@ RelationshipTag] :: DefTail
+  ] = hconsRelationshipIdentifierEncoder[Nullable, InHead, InTail, DefTail]
 
   implicit def hconsRelationshipMultipleIdentifierEncoder[InHead, InTail <: HList, DefTail <: HList](implicit
       headEncoder: Lazy[ResourceEncoder[InHead, encoding.ResourceIdentifier]],
@@ -178,28 +203,84 @@ object HListResourceEncoderFactoryFactory {
     (Card[InHead] @@ RelationshipTag) :: InTail,
     Option[Card[InHead] @@ RelationshipTag] :: DefTail
   ] = { typeInfo => params =>
-    headEncoderFactoryFactory[Card[InHead], RelationshipTag, InTail, DefTail](
-      _ withRelationshipHandled _,
-      true,
-      true
-    ) { (input, partial, name) =>
-      // Figure out if we should include these relationships in the document. If so, we don't have the instances,
-      // so just queue up deferred encoding jobs.
+    headEncoderFactoryFactory[Card[InHead], RelationshipTag, InTail, DefTail](RelationshipTag, true, true) {
+      (input, partial, name) =>
+        // Figure out if we should include these relationships in the document. If so, we don't have the instances,
+        // so just queue up deferred encoding jobs.
 
-      val head: Card[InHead] = input.in.head
-      val encodedHeads = head.map(headEncoder.value.encode)
+        val head: Card[InHead] = input.in.head
+        val encodedHeads = head.map(headEncoder.value.encode)
 
-      val deferrals = input.includeSpec.descend(name) match {
-        case child: IncludeSpec.Always => encodedHeads.map(h => DeferredEncoding(h, child, input.fieldsSpec)).toList
-        case _                         => Nil
-      }
+        val deferrals = input.includeSpec.descend(name) match {
+          case child: IncludeSpec.Always => encodedHeads.map(h => DeferredEncoding(h, child, input.fieldsSpec)).toList
+          case _                         => Nil
+        }
 
-      if (input.fieldsSpec.includeField(input.resourceType, name))
-        partial
-          .addRelationship(name, Relationship(Some(relationshipData(encodedHeads))))
-          .addDeferredEncodings(deferrals)
-      else
-        partial.addDeferredEncodings(deferrals)
+        if (input.fieldsSpec.includeField(input.resourceType, name))
+          partial
+            .addRelationship(name, Relationship(Some(relationshipData(encodedHeads))))
+            .addDeferredEncodings(deferrals)
+        else
+          partial.addDeferredEncodings(deferrals)
+    }.apply(typeInfo)(params)
+  }
+
+  implicit def hconsOptionRelationshipRequiredIdentifierEncoder[InHead, InTail <: HList, DefTail <: HList](implicit
+      headEncoder: Lazy[ResourceEncoder[InHead, encoding.ResourceIdentifier]],
+      tailEncoder: HListResourceEncoderFactoryFactory[InTail, DefTail]
+  ): HListResourceEncoderFactoryFactory[
+    (Option[InHead] @@ RelationshipTag) :: InTail,
+    Option[Option[InHead] @@ RelationshipTag] :: DefTail
+  ] = hconsOptionRelationshipIdentifierEncoder[Id, InHead, InTail, DefTail]
+
+  implicit def hconsOptionRelationshipOptionalIdentifierEncoder[InHead, InTail <: HList, DefTail <: HList](implicit
+      headEncoder: Lazy[ResourceEncoder[InHead, encoding.ResourceIdentifier]],
+      tailEncoder: HListResourceEncoderFactoryFactory[InTail, DefTail]
+  ): HListResourceEncoderFactoryFactory[
+    (Option[Nullable[InHead]] @@ RelationshipTag) :: InTail,
+    Option[Option[Nullable[InHead]] @@ RelationshipTag] :: DefTail
+  ] = hconsOptionRelationshipIdentifierEncoder[Nullable, InHead, InTail, DefTail]
+
+  implicit def hconsOptionRelationshipMultipleIdentifierEncoder[InHead, InTail <: HList, DefTail <: HList](implicit
+      headEncoder: Lazy[ResourceEncoder[InHead, encoding.ResourceIdentifier]],
+      tailEncoder: HListResourceEncoderFactoryFactory[InTail, DefTail]
+  ): HListResourceEncoderFactoryFactory[
+    (Option[List[InHead]] @@ RelationshipTag) :: InTail,
+    Option[Option[List[InHead]] @@ RelationshipTag] :: DefTail
+  ] = hconsOptionRelationshipIdentifierEncoder[List, InHead, InTail, DefTail]
+
+  def hconsOptionRelationshipIdentifierEncoder[Card[_]: Traverse, InHead, InTail <: HList, DefTail <: HList](implicit
+      headEncoder: Lazy[ResourceEncoder[InHead, encoding.ResourceIdentifier]],
+      tailEncoder: HListResourceEncoderFactoryFactory[InTail, DefTail]
+  ): HListResourceEncoderFactoryFactory[
+    (Option[Card[InHead]] @@ RelationshipTag) :: InTail,
+    Option[Option[Card[InHead]] @@ RelationshipTag] :: DefTail
+  ] = { typeInfo => params =>
+    headEncoderFactoryFactory[Option[Card[InHead]], RelationshipTag, InTail, DefTail](RelationshipTag, true, true) {
+      (input, partial, name) =>
+        (input.in.head: Option[Card[InHead]]) match {
+          case None       => partial
+          case Some(head) =>
+            // Figure out if we should include these relationships in the document. If so, we don't have the instances,
+            // so just queue up deferred encoding jobs.
+
+            val encodedHeads = head.map(headEncoder.value.encode)
+
+            val deferrals = input.includeSpec.descend(name) match {
+              case child: IncludeSpec.Always =>
+                encodedHeads.map(h => DeferredEncoding(h, child, input.fieldsSpec)).toList
+              case _ => Nil
+            }
+
+            if (input.fieldsSpec.includeField(input.resourceType, name))
+              partial
+                .addRelationship(name, Relationship(Some(relationshipData(encodedHeads))))
+                .addDeferredEncodings(deferrals)
+            else
+              partial.addDeferredEncodings(deferrals)
+
+        }
+
     }.apply(typeInfo)(params)
   }
 
@@ -215,9 +296,9 @@ object HListResourceEncoderFactoryFactory {
       headEncoder: Lazy[ResourceEncoder[InHead, encoding.ResourceObject]],
       tailEncoder: HListResourceEncoderFactoryFactory[InTail, DefTail]
   ): HListResourceEncoderFactoryFactory[
-    (Option[InHead] @@ RelationshipTag) :: InTail,
-    Option[Option[InHead] @@ RelationshipTag] :: DefTail
-  ] = hconsRelationshipObjectEncoder[Option, InHead, InTail, DefTail]
+    (Nullable[InHead] @@ RelationshipTag) :: InTail,
+    Option[Nullable[InHead] @@ RelationshipTag] :: DefTail
+  ] = hconsRelationshipObjectEncoder[Nullable, InHead, InTail, DefTail]
 
   implicit def hconsRelationshipMultipleObjectEncoder[InHead, InTail <: HList, DefTail <: HList](implicit
       headEncoder: Lazy[ResourceEncoder[InHead, encoding.ResourceObject]],
@@ -234,63 +315,144 @@ object HListResourceEncoderFactoryFactory {
     (Card[InHead] @@ RelationshipTag) :: InTail,
     Option[Card[InHead] @@ RelationshipTag] :: DefTail
   ] = { typeInfo => params =>
-    headEncoderFactoryFactory[Card[InHead], RelationshipTag, InTail, DefTail](
-      _ withRelationshipHandled _,
-      true,
-      true
-    ) { (input, partial, fieldName) =>
-      // For each relationship, we need a ResourceIdentifier and possibly a ResourceObject. Whether we need a
-      // ResourceObject depends on whether this field is in the IncludeSpec (has a path). If it doesn't,
-      // we can just encode the ResourceObject (which is the only encoder we have access to) with no fields and
-      // then extract the identifier from that. If it _is_ included, then we need to use the specified FieldsSpec
-      // and IncludeSpec to determine how to encode it because we're going to use the resulting ResourceObject.
+    headEncoderFactoryFactory[Card[InHead], RelationshipTag, InTail, DefTail](RelationshipTag, true, true) {
+      (input, partial, fieldName) =>
+        // For each relationship, we need a ResourceIdentifier and possibly a ResourceObject. Whether we need a
+        // ResourceObject depends on whether this field is in the IncludeSpec (has a path). If it doesn't,
+        // we can just encode the ResourceObject (which is the only encoder we have access to) with no fields and
+        // then extract the identifier from that. If it _is_ included, then we need to use the specified FieldsSpec
+        // and IncludeSpec to determine how to encode it because we're going to use the resulting ResourceObject.
 
-      val head: Card[InHead] = input.in.head
+        val head: Card[InHead] = input.in.head
 
-      input.includeSpec.descend(fieldName) match {
-        case IncludeSpec.Never =>
-          // If it's not included, all we possibly need is the RI, which is only needed if it's an included field.
-          if (input.fieldsSpec.includeField(input.resourceType, fieldName))
-            // Encode minimally, just to get an identifier.
-            partial.whenValid(
-              head.traverse(headEncoder.value.encodeResource(_, IncludeSpec.Never, FieldsSpec.None))
-            ) { encodedHead =>
-              val relationship = {
-                val ri = encodedHead.map(_.root.getResourceIdentifier)
-                Some(Relationship(Option(relationshipData(ri))))
-              }
-
-              partial.addRelationship(fieldName, relationship)
-            }
-          else
-            // This field is excluded and the path is excluded, nothing else to do.
-            partial
-
-        case childIncludeSpec =>
-          // It is included. We need to encode it the way the parameters say that we should.
-          partial.whenValid(head.traverse(headEncoder.value.encodeResource(_, childIncludeSpec, input.fieldsSpec))) {
-            encodedHead =>
-              val relationship =
-                if (input.fieldsSpec.includeField(input.resourceType, fieldName)) {
+        input.includeSpec.descend(fieldName) match {
+          case IncludeSpec.Never =>
+            // If it's not included, all we possibly need is the RI, which is only needed if it's an included field.
+            if (input.fieldsSpec.includeField(input.resourceType, fieldName))
+              // Encode minimally, just to get an identifier.
+              partial.whenValid(
+                head.traverse(headEncoder.value.encodeResource(_, IncludeSpec.Never, FieldsSpec.None))
+              ) { encodedHead =>
+                val relationship = {
                   val ri = encodedHead.map(_.root.getResourceIdentifier)
                   Some(Relationship(Option(relationshipData(ri))))
-                } else None
+                }
 
+                partial.addRelationship(fieldName, relationship)
+              }
+            else
+              // This field is excluded and the path is excluded, nothing else to do.
               partial
-                .addRelationship(fieldName, relationship)
-                .addInclusions(encodedHead.map(_.root).toList)
-                .addInclusions(encodedHead.map(_.inclusions).combineAll)
-                .addDeferredEncodings(encodedHead.toList.flatMap(_.deferrals))
-          }
-      }
+
+          case childIncludeSpec =>
+            // It is included. We need to encode it the way the parameters say that we should.
+            partial.whenValid(head.traverse(headEncoder.value.encodeResource(_, childIncludeSpec, input.fieldsSpec))) {
+              encodedHead =>
+                val relationship =
+                  if (input.fieldsSpec.includeField(input.resourceType, fieldName)) {
+                    val ri = encodedHead.map(_.root.getResourceIdentifier)
+                    Some(Relationship(Option(relationshipData(ri))))
+                  } else None
+
+                partial
+                  .addRelationship(fieldName, relationship)
+                  .addInclusions(encodedHead.map(_.root).toList)
+                  .addInclusions(encodedHead.map(_.inclusions).combineAll)
+                  .addDeferredEncodings(encodedHead.toList.flatMap(_.deferrals))
+            }
+        }
+    }.apply(typeInfo)(params)
+  }
+
+  implicit def hconsOptionRelationshipRequiredObjectEncoder[InHead, InTail <: HList, DefTail <: HList](implicit
+      headEncoder: Lazy[ResourceEncoder[InHead, encoding.ResourceObject]],
+      tailEncoder: HListResourceEncoderFactoryFactory[InTail, DefTail]
+  ): HListResourceEncoderFactoryFactory[
+    (Option[InHead] @@ RelationshipTag) :: InTail,
+    Option[Option[InHead] @@ RelationshipTag] :: DefTail
+  ] = hconsOptionRelationshipObjectEncoder[Id, InHead, InTail, DefTail]
+
+  implicit def hconsOptionRelationshipOptionalObjectEncoder[InHead, InTail <: HList, DefTail <: HList](implicit
+      headEncoder: Lazy[ResourceEncoder[InHead, encoding.ResourceObject]],
+      tailEncoder: HListResourceEncoderFactoryFactory[InTail, DefTail]
+  ): HListResourceEncoderFactoryFactory[
+    (Option[Nullable[InHead]] @@ RelationshipTag) :: InTail,
+    Option[Option[Nullable[InHead]] @@ RelationshipTag] :: DefTail
+  ] = hconsOptionRelationshipObjectEncoder[Nullable, InHead, InTail, DefTail]
+
+  implicit def hconsOptionRelationshipMultipleObjectEncoder[InHead, InTail <: HList, DefTail <: HList](implicit
+      headEncoder: Lazy[ResourceEncoder[InHead, encoding.ResourceObject]],
+      tailEncoder: HListResourceEncoderFactoryFactory[InTail, DefTail]
+  ): HListResourceEncoderFactoryFactory[
+    (Option[List[InHead]] @@ RelationshipTag) :: InTail,
+    Option[Option[List[InHead]] @@ RelationshipTag] :: DefTail
+  ] = hconsOptionRelationshipObjectEncoder[List, InHead, InTail, DefTail]
+
+  def hconsOptionRelationshipObjectEncoder[Card[_]: Traverse, InHead, InTail <: HList, DefTail <: HList](implicit
+      headEncoder: Lazy[ResourceEncoder[InHead, encoding.ResourceObject]],
+      tailEncoder: HListResourceEncoderFactoryFactory[InTail, DefTail]
+  ): HListResourceEncoderFactoryFactory[
+    (Option[Card[InHead]] @@ RelationshipTag) :: InTail,
+    Option[Option[Card[InHead]] @@ RelationshipTag] :: DefTail
+  ] = { typeInfo => params =>
+    headEncoderFactoryFactory[Option[Card[InHead]], RelationshipTag, InTail, DefTail](RelationshipTag, true, true) {
+      (input, partial, fieldName) =>
+        (input.in.head: Option[Card[InHead]]) match {
+          case None       => partial
+          case Some(head) =>
+            // For each relationship, we need a ResourceIdentifier and possibly a ResourceObject. Whether we need a
+            // ResourceObject depends on whether this field is in the IncludeSpec (has a path). If it doesn't,
+            // we can just encode the ResourceObject (which is the only encoder we have access to) with no fields and
+            // then extract the identifier from that. If it _is_ included, then we need to use the specified FieldsSpec
+            // and IncludeSpec to determine how to encode it because we're going to use the resulting ResourceObject.
+
+            input.includeSpec.descend(fieldName) match {
+              case IncludeSpec.Never =>
+                // If it's not included, all we possibly need is the RI, which is only needed if it's an included field.
+                if (input.fieldsSpec.includeField(input.resourceType, fieldName))
+                  // Encode minimally, just to get an identifier.
+                  partial.whenValid(
+                    head.traverse(headEncoder.value.encodeResource(_, IncludeSpec.Never, FieldsSpec.None))
+                  ) { encodedHead =>
+                    val relationship = {
+                      val ri = encodedHead.map(_.root.getResourceIdentifier)
+                      Some(Relationship(Option(relationshipData(ri))))
+                    }
+
+                    partial.addRelationship(fieldName, relationship)
+                  }
+                else
+                  // This field is excluded and the path is excluded, nothing else to do.
+                  partial
+
+              case childIncludeSpec =>
+                // It is included. We need to encode it the way the parameters say that we should.
+                partial.whenValid(
+                  head.traverse(headEncoder.value.encodeResource(_, childIncludeSpec, input.fieldsSpec))
+                ) { encodedHead =>
+                  val relationship =
+                    if (input.fieldsSpec.includeField(input.resourceType, fieldName)) {
+                      val ri = encodedHead.map(_.root.getResourceIdentifier)
+                      Some(Relationship(Option(relationshipData(ri))))
+                    } else None
+
+                  partial
+                    .addRelationship(fieldName, relationship)
+                    .addInclusions(encodedHead.map(_.root).toList)
+                    .addInclusions(encodedHead.map(_.inclusions).combineAll)
+                    .addDeferredEncodings(encodedHead.toList.flatMap(_.deferrals))
+                }
+            }
+        }
     }.apply(typeInfo)(params)
   }
 
   private def relationshipData[F[_]: Traverse, A](fa: F[A]): RelationshipData =
     fa match {
-      case ri: ResourceIdentifier         => RelationshipData.fromResourceIdentifier(ri)
-      case ri: Option[ResourceIdentifier] => RelationshipData.fromResourceIdentifier(ri)
-      case ris: List[ResourceIdentifier]  => RelationshipData.fromResourceIdentifiers(ris)
+      case _: Null                         => NullData
+      case NotNull(ri: ResourceIdentifier) => RelationshipData.fromResourceIdentifier(ri)
+      case ri: ResourceIdentifier          => RelationshipData.fromResourceIdentifier(ri)
+      case ris: List[ResourceIdentifier]   => RelationshipData.fromResourceIdentifiers(ris)
     }
 
   implicit def hconsSourceEncoder[InHead, InTail <: HList, DefTail <: HList](implicit
@@ -299,13 +461,13 @@ object HListResourceEncoderFactoryFactory {
     (InHead @@ SourceTag) :: InTail,
     Option[InHead @@ SourceTag] :: DefTail
   ] =
-    headEncoderFactoryFactory[InHead, SourceTag, InTail, DefTail](nothingHandled, false, false) { (_, partial, _) =>
+    headEncoderFactoryFactory[InHead, SourceTag, InTail, DefTail](SourceTag, false, false) { (_, partial, _) =>
       // This is essentially a no-op. We can't encode source fields.
       partial
     }
 
   def headEncoderFactoryFactory[InHead, Tg <: Tag, InTail <: HList, DefTail <: HList](
-      handledFn: (Input[(InHead @@ Tg) :: InTail], String) => Input[(InHead @@ Tg) :: InTail],
+      tag: Tg,
       canBeExcluded: Boolean,
       fieldsCanExclude: Boolean,
   )(
@@ -322,7 +484,7 @@ object HListResourceEncoderFactoryFactory {
         val tailEncoder = tailEncoderFactory(params)
 
         input => {
-          val encodedTail = tailEncoder.encode(handledFn(input, jsonFieldName).tail)
+          val encodedTail = tailEncoder.encode(input.withFieldHandled(jsonFieldName, tag).tail)
 
           // Whether to encode this field is a bit complicated. It depends on several things.
           //   1) What type of field is it (what Tag does it have)?
@@ -355,6 +517,4 @@ object HListResourceEncoderFactoryFactory {
         }
       }
     }
-
-  private def nothingHandled[A <: HList](input: Input[A], name: String): Input[A] = input
 }
