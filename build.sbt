@@ -13,7 +13,8 @@
 // limitations under the License.
 
 val projectBaseName = "bateman"
-val projectVersion = "0.1.0-SNAPSHOT"
+
+ThisBuild / versionScheme := Some("semver-spec")
 
 val Versions = new Object {
   val cats = "2.2.0"
@@ -26,11 +27,10 @@ val Versions = new Object {
 }
 
 val commonSettings = Seq(
-  version := projectVersion,
   organization := "org.scalawag.bateman",
   scalaVersion := "2.12.13",
-  crossScalaVersions := Seq("2.12.13", "2.13.5"),
-  scalacOptions += "-Xlog-implicits",
+//  crossScalaVersions := Seq("2.12.13", "2.13.5"),
+//  scalacOptions += "-Xlog-implicits",
   scalacOptions ++= Seq(
     "-language:higherKinds",
     "-language:implicitConversions",
@@ -44,7 +44,7 @@ val commonSettings = Seq(
     "org.scalacheck" %% "scalacheck" % Versions.scalacheck,
   ).map(_ % Test),
   publishMavenStyle := true,
-  publishArtifact in Test := false,
+  Test / publishArtifact := false,
   publishTo := {
     val nexus = "https://oss.sonatype.org/"
     if (version.value.trim.endsWith("SNAPSHOT"))
@@ -53,6 +53,19 @@ val commonSettings = Seq(
       Some("releases" at nexus + "service/local/staging/deploy/maven2")
   },
   pomIncludeRepository := { _ => false },
+  homepage := Some(url("http://github.com/scalawag/bateman")),
+  startYear := Some(2021),
+  licenses += "Apache License, Version 2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"),
+  scmInfo := Some(ScmInfo(url("http://github.com/scalawag/bateman"), "scm:git:git://github.com/scalawag/bateman.git")),
+  developers := List(
+    Developer("justinp", "Justin Patterson", "justin@scalawag.org", url("https://github.com/justinp"))
+  ),
+  credentials += Credentials(
+    "GnuPG Key ID",
+    "gpg",
+    "439444E02ED9335F91C538455283F6A358FB8629",
+    "ignored"
+  ),
 )
 
 val json = project
@@ -123,10 +136,9 @@ val enumeratum = project
     )
   )
 
-
 val root = (project in file("."))
   .aggregate(json, parser, jsonGeneric, jsonapi, jsonapiGeneric, circe)
   .settings(
     name := s"$projectBaseName-build",
-    skip in publish := true
+    publish / skip := true
   )
