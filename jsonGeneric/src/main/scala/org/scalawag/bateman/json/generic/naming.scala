@@ -25,14 +25,19 @@ object naming {
     protected def capitalize(word: String): String = word.take(1).map(_.toUpper) ++ word.drop(1)
   }
 
-  trait CaseBasedCase extends Case {
+  abstract class CaseBasedCase(val groupConsecutiveCapitals: Boolean) extends Case {
     override def toWords(s: String): List[String] = {
       @tailrec
       def rec(remains: String, acc: List[String]): List[String] =
         if (remains.isEmpty)
           acc
         else {
-          val next = remains.take(1).toLowerCase ++ remains.drop(1).takeWhile(_.isLower)
+          val uppers =
+            if (groupConsecutiveCapitals)
+              remains.takeWhile(_.isUpper).toLowerCase
+            else
+              remains.take(1).toLowerCase
+          val next = uppers ++ remains.drop(uppers.length).takeWhile(!_.isUpper)
           rec(remains.drop(next.length), next :: acc)
         }
 
@@ -40,13 +45,18 @@ object naming {
     }
   }
 
-  object CamelCase extends CaseBasedCase {
+  case class CamelCase(override val groupConsecutiveCapitals: Boolean) extends CaseBasedCase(groupConsecutiveCapitals) {
     override def fromWords(words: List[String]): String = (words.take(1) ::: words.drop(1).map(capitalize)).mkString
   }
 
-  object PascalCase extends CaseBasedCase {
+  object CamelCase extends CamelCase(false)
+
+  case class PascalCase(override val groupConsecutiveCapitals: Boolean)
+      extends CaseBasedCase(groupConsecutiveCapitals) {
     override def fromWords(words: List[String]): String = words.map(capitalize).mkString
   }
+
+  object PascalCase extends PascalCase(false)
 
   abstract class DelimiterBasedCase(delimiter: Char) extends Case {
     private val delimiterString = delimiter.toString

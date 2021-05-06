@@ -28,9 +28,9 @@ val Versions = new Object {
 val commonSettings = Seq(
   version := projectVersion,
   organization := "org.scalawag.bateman",
-  scalaVersion := "2.12.12",
-  crossScalaVersions := Seq("2.12.12", "2.13.5"),
-//  scalacOptions += "-Xlog-implicits",
+  scalaVersion := "2.12.13",
+  crossScalaVersions := Seq("2.12.13", "2.13.5"),
+  scalacOptions += "-Xlog-implicits",
   scalacOptions ++= Seq(
     "-language:higherKinds",
     "-language:implicitConversions",
