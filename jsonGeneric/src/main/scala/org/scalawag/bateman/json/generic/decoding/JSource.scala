@@ -28,7 +28,7 @@ trait JSourceLike {
     }
 
   def unspecifiedField(name: String): UnspecifiedField =
-    fields.get("tenant") match {
+    fields.get(name) match {
       case Some(p: JPointer.Child) => UnspecifiedField(root, p)
       case Some(_)                 => throw ProgrammerError(s"Field $name was not sourced from a child in the JSON text.")
       case None                    => throw ProgrammerError(s"Field $name is not represented in the source JSON text.")
