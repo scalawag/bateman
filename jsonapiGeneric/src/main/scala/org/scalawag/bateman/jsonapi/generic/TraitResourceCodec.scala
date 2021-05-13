@@ -25,7 +25,7 @@ case class TraitResourceCodec[In <: jsonapi.decoding.ResourceLike, CaseClass, +O
     decoder: TraitResourceDecoder[In, CaseClass],
 ) extends TraitResourceEncoder[CaseClass, Out]
     with TraitResourceDecoder[In, CaseClass] {
-  override def decode(in: In, context: jsonapi.decoding.Document): DecodeResult[CaseClass] = decode(in, context)
+  override def decode(in: In, context: jsonapi.decoding.Document): DecodeResult[CaseClass] = decoder.decode(in, context)
 
   override def encodeResource(
       in: CaseClass,
