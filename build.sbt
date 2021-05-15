@@ -29,15 +29,20 @@ val Versions = new Object {
 val commonSettings = Seq(
   organization := "org.scalawag.bateman",
   scalaVersion := "2.12.13",
-//  crossScalaVersions := Seq("2.12.13", "2.13.5"),
+  crossScalaVersions := Seq("2.12.13", "2.13.5"),
 //  scalacOptions += "-Xlog-implicits",
   scalacOptions ++= Seq(
     "-language:higherKinds",
     "-language:implicitConversions",
-    "-Ypartial-unification",
     "-deprecation",
     "-feature"
   ),
+  scalacOptions ++= {
+    CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((2, n)) if n <= 12 => List("-Ypartial-unification")
+      case _                       => Nil
+    }
+  },
   testOptions += Tests.Argument("-oDF"),
   libraryDependencies ++= Seq(
     "org.scalatest" %% "scalatest" % Versions.scalatest,
@@ -92,11 +97,18 @@ val jsonGeneric = project
   .settings(commonSettings)
   .settings(
     name := s"$projectBaseName-json-generic",
-    addCompilerPlugin(("org.scalamacros" % "paradise" % "2.1.1").cross(CrossVersion.full)),
     libraryDependencies ++= Seq(
       "com.chuusai" %% "shapeless" % Versions.shapeless,
       "org.scala-lang" % "scala-reflect" % scalaVersion.value
-    )
+    ),
+    libraryDependencies ++= {
+      CrossVersion.partialVersion(scalaVersion.value) match {
+        case Some((2, n)) if n <= 12 =>
+          List(compilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full))
+        case _ =>
+          Nil
+      }
+    },
   )
 
 val jsonapi = project

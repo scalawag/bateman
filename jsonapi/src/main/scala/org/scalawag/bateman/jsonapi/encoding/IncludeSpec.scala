@@ -71,7 +71,7 @@ object IncludeSpec {
   def apply(spec: String, lengthLimit: Int = 1024, depthLimit: Int = 8): EncodeResult[IncludeSpec] = {
     def go(prefix: List[String], paths: Array[Array[String]]): IncludeSpec = {
       val children =
-        paths.groupBy(_.head).mapValues(_.map(_.tail)) map {
+        paths.groupBy(_.head).mapValues(_.map(_.tail)).toMap map {
           case (h, pp) => h -> go(prefix :+ h, pp.filterNot(_.isEmpty))
         }
       Always(prefix.mkString("."), children)

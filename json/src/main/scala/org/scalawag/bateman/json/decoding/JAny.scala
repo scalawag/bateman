@@ -261,7 +261,7 @@ final case class JObject(
     val duplicateErrors = duplicateSets.flatMap { ff =>
       ff.tail.map(DuplicateField(_, ff.head))
     }
-    validIfEmpty(duplicateErrors, fieldsByName.mapValues(_.head))
+    validIfEmpty(duplicateErrors, fieldsByName.mapValues(_.head).toMap)
   }
 
   /** Retrieves the value of the field with the specified name, if it exists.

@@ -86,12 +86,12 @@ object Model {
   object Color {
     implicit val colorDecoder: Decoder[JAny, Color] = Decoder { in =>
       in match {
-        case JString("red", _, _)   => Red.validNec
-        case JString("green", _, _) => Green.validNec
-        case JString("blue", _, _)  => Blue.validNec
-        case s: JString             => InvalidValue(s, "must be 'green', 'blue' or 'red'").invalidNec
-        case o: JObject             => Decoder[JObject, RGB].decode(o)
-        case x                      => JsonTypeMismatch(x, NonEmptyChain(JObject, JString)).invalidNec
+        case s: JString if s.value == "red"   => Red.validNec
+        case s: JString if s.value == "green" => Green.validNec
+        case s: JString if s.value == "blue"  => Blue.validNec
+        case s: JString                       => InvalidValue(s, "must be 'green', 'blue' or 'red'").invalidNec
+        case o: JObject                       => Decoder[JObject, RGB].decode(o)
+        case x                                => JsonTypeMismatch(x, NonEmptyChain(JObject, JString)).invalidNec
       }
     }
 

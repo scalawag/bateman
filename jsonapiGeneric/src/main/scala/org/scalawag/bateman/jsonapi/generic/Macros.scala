@@ -14,20 +14,13 @@
 
 package org.scalawag.bateman.jsonapi.generic
 
-import cats.Eq
-
 import scala.reflect.macros.whitebox.Context
 import cats.syntax.validated._
 import cats.syntax.traverse._
 import cats.syntax.apply._
 import org.scalawag.bateman.json.generic.MacroBase
-import org.scalawag.bateman.jsonapi.decoding.{ResourceIdentifier, ResourceObject, ResourceObjectOptionalId}
 import org.scalawag.bateman.jsonapi
 import org.scalawag.bateman.jsonapi.generic.decoding.JSource
-
-import scala.annotation.tailrec
-import scala.collection.mutable.Builder
-import scala.collection.{TraversableLike, immutable, mutable}
 
 /** This contains macros that validate the input classes prior to generating the codecs using shapeless.
   * This puts most of the logic into non-macro code (which was a goal). The macros generate the creation of

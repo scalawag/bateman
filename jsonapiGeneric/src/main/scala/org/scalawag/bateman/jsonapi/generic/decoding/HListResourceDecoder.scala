@@ -67,7 +67,7 @@ object HListResourceDecoderFactoryFactory {
   implicit def hnilDecoder[In <: ResourceLike]: HListResourceDecoderFactoryFactory[In, HNil, HNil] =
     _ => {
       params => { input =>
-        val output: Output[HNil] = Output[HNil](HNil, input.fieldPointers.mapValues(_._2))
+        val output: Output[HNil] = Output[HNil](HNil, input.fieldPointers.mapValues(_._2).toMap)
 
         {
           if (params.config.allowUnknownFields)
