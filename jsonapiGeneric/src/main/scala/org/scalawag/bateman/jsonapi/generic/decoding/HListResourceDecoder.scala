@@ -52,14 +52,14 @@ object HListResourceDecoderFactoryFactory {
   final case class Input[In <: ResourceLike](
       in: In,
       context: Document,
-      fieldPointers: Map[String, (Tag, JPointer)] = Map.empty,
+      fieldPointers: Map[String, (Tag, String, JPointer)] = Map.empty,
   ) {
-    def withFieldPointer(name: String, tag: Tag, pointer: JPointer): Input[In] =
-      this.copy(fieldPointers = this.fieldPointers + (name -> (tag, pointer)))
-    def idsHandled: Set[String] = fieldPointers.collect { case (name, (IdTag, _)) => name }.toSet
-    def metasHandled: Set[String] = fieldPointers.collect { case (name, (MetaTag, _)) => name }.toSet
-    def attributesHandled: Set[String] = fieldPointers.collect { case (name, (AttributeTag, _)) => name }.toSet
-    def relationshipsHandled: Set[String] = fieldPointers.collect { case (name, (RelationshipTag, _)) => name }.toSet
+    def withFieldHandled(jsonName: String, scalaName: String, tag: Tag, pointer: JPointer): Input[In] =
+      this.copy(fieldPointers = this.fieldPointers + (scalaName -> (tag, jsonName, pointer)))
+    def idsHandled: Set[String] = fieldPointers.collect { case (_, (IdTag, name, _)) => name }.toSet
+    def metasHandled: Set[String] = fieldPointers.collect { case (_, (MetaTag, name, _)) => name }.toSet
+    def attributesHandled: Set[String] = fieldPointers.collect { case (_, (AttributeTag, name, _)) => name }.toSet
+    def relationshipsHandled: Set[String] = fieldPointers.collect { case (_, (RelationshipTag, name, _)) => name }.toSet
   }
 
   final case class Output[Out <: HList](out: Out, fieldSources: Map[String, JPointer])
@@ -67,7 +67,7 @@ object HListResourceDecoderFactoryFactory {
   implicit def hnilDecoder[In <: ResourceLike]: HListResourceDecoderFactoryFactory[In, HNil, HNil] =
     _ => {
       params => { input =>
-        val output: Output[HNil] = Output[HNil](HNil, input.fieldPointers.mapValues(_._2).toMap)
+        val output: Output[HNil] = Output[HNil](HNil, input.fieldPointers.mapValues(_._3).toMap)
 
         {
           if (params.config.allowUnknownFields)
@@ -399,9 +399,11 @@ object HListResourceDecoderFactoryFactory {
 
       params => {
         val tailDecoder = tailDecoderFactory(params)
+        val jsonFieldName = params.config.fieldNameMapping(typeInfo.fieldNames.head)
 
         input => {
-          val tailResult = tailDecoder.decode(input.withFieldPointer(scalaFieldName, SourceTag, JPointer.Root))
+          val tailResult =
+            tailDecoder.decode(input.withFieldHandled(jsonFieldName, scalaFieldName, SourceTag, JPointer.Root))
 
           tailResult.map { tailOutput =>
             tailOutput.copy(
@@ -430,7 +432,7 @@ object HListResourceDecoderFactoryFactory {
         val pointer = pointerFn(jsonFieldName)
 
         input => {
-          val tailResult = tailDecoder.decode(input.withFieldPointer(scalaFieldName, tag, pointer))
+          val tailResult = tailDecoder.decode(input.withFieldHandled(jsonFieldName, scalaFieldName, tag, pointer))
           val headResult =
             (params.config.useDefaultsForMissingFields, typeInfo.defaults.head) match {
               case (true, Some(d)) =>

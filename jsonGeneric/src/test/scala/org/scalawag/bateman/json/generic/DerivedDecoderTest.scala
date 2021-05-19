@@ -144,6 +144,20 @@ class DerivedDecoderTest extends AnyFunSpec with Matchers with ParserTestUtils {
     da shouldBe UnexpectedValue(json("d").getOrElse(???)).invalidNec
   }
 
+  it("should fail on extra fields when configured to (with field name mapping)") {
+    import DataTypes.LongNames._
+
+    val json = parseAs[JObject]("""{"longer_name": "7", "d": 5.67}""")
+
+    //    import auto._
+
+    implicit val config: Config =
+      Config(allowUnknownFields = false, fieldNameMapping = CaseTransformation(CamelCase, SnakeCase))
+    implicit val dec: CaseClassDecoder[YNamedClass, Any] = semiauto.deriveDecoderForCaseClass[YNamedClass, Any]()
+    val da = JObjectDecoder[YNamedClass].decode(json)
+    da shouldBe UnexpectedValue(json("d").getOrElse(???)).invalidNec
+  }
+
   it("should require a discriminator for trait decoding") {
     import DataTypes.Default._
 

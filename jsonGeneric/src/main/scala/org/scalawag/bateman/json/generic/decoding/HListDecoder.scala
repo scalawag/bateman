@@ -71,6 +71,7 @@ object HListDecoderFactoryFactory {
       in: JObject,
       context: Context,
       discriminatorField: Option[String],
+      fieldsHandled: Set[String] = Set.empty,
       fieldPointers: Map[String, JPointer] = Map.empty,
   ) {
 
@@ -78,8 +79,8 @@ object HListDecoderFactoryFactory {
       * This also marks a field as having been used by the decoder. This enables the decoder to (optionally) fail if
       * any fields are not handled.
       */
-    def withFieldPointer(name: String, source: JPointer): Input[Context] =
-      this.copy(fieldPointers = this.fieldPointers + (name -> source))
+    def withFieldHandled(name: String, scalaName: String, source: JPointer): Input[Context] =
+      this.copy(fieldsHandled = this.fieldsHandled + name, fieldPointers = this.fieldPointers + (scalaName -> source))
   }
 
   final case class Output[Out <: HList](out: Out, fieldSources: Map[String, JPointer])
@@ -99,7 +100,7 @@ object HListDecoderFactoryFactory {
             if (params.config.allowUnknownFields)
               output.validNec
             else {
-              val validKeys = input.fieldPointers.keySet ++ input.discriminatorField
+              val validKeys = input.fieldsHandled ++ input.discriminatorField
               validIfEmpty(
                 input.in.fieldList.filterNot(n => validKeys(n.name.value)).map(_.value).map(UnexpectedValue),
                 output
@@ -174,9 +175,10 @@ object HListDecoderFactoryFactory {
 
       params => {
         val tailDecoder = tailDecoderFactory(params)
+        val jsonFieldName = params.config.fieldNameMapping(typeInfo.fieldNames.head)
 
         input => {
-          val tailResult = tailDecoder.decode(input.withFieldPointer(scalaFieldName, JPointer.Root))
+          val tailResult = tailDecoder.decode(input.withFieldHandled(jsonFieldName, scalaFieldName, JPointer.Root))
 
           tailResult.map { tailOutput =>
             tailOutput.copy(headDecoder(JSource(input.in, tailOutput.fieldSources)) :: tailOutput.out)
@@ -202,7 +204,7 @@ object HListDecoderFactoryFactory {
         val pointer = pointerFn(jsonFieldName)
 
         input => {
-          val tailResult = tailDecoder.decode(input.withFieldPointer(scalaFieldName, pointer))
+          val tailResult = tailDecoder.decode(input.withFieldHandled(jsonFieldName, scalaFieldName, pointer))
           val headResult =
             (params.config.useDefaultsForMissingFields, typeInfo.defaults.head) match {
               case (true, Some(d)) =>
