@@ -76,7 +76,7 @@ object CaseClassDecoderFactory {
             context: Context,
             discriminatorField: Option[String]
         ): DecodeResult[CaseClass] = {
-          val input = HListDecoderFactoryFactory.Input(in, context, discriminatorField)
+          val input = HListDecoderFactoryFactory.Input(in, context, discriminatorField.map(JPointer.Root / _))
           hlistDecoder.decode(input).map(_.out).map(generic.from)
         }
       }

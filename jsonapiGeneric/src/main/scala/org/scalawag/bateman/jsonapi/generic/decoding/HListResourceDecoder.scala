@@ -52,14 +52,10 @@ object HListResourceDecoderFactoryFactory {
   final case class Input[In <: ResourceLike](
       in: In,
       context: Document,
-      fieldPointers: Map[String, (Tag, String, JPointer)] = Map.empty,
+      fieldPointers: Map[String, JPointer] = Map.empty,
   ) {
-    def withFieldHandled(jsonName: String, scalaName: String, tag: Tag, pointer: JPointer): Input[In] =
-      this.copy(fieldPointers = this.fieldPointers + (scalaName -> (tag, jsonName, pointer)))
-    def idsHandled: Set[String] = fieldPointers.collect { case (_, (IdTag, name, _)) => name }.toSet
-    def metasHandled: Set[String] = fieldPointers.collect { case (_, (MetaTag, name, _)) => name }.toSet
-    def attributesHandled: Set[String] = fieldPointers.collect { case (_, (AttributeTag, name, _)) => name }.toSet
-    def relationshipsHandled: Set[String] = fieldPointers.collect { case (_, (RelationshipTag, name, _)) => name }.toSet
+    def withFieldPointer(name: String, tag: Tag, pointer: JPointer): Input[In] =
+      this.copy(fieldPointers = this.fieldPointers + (name -> pointer))
   }
 
   final case class Output[Out <: HList](out: Out, fieldSources: Map[String, JPointer])
@@ -67,23 +63,37 @@ object HListResourceDecoderFactoryFactory {
   implicit def hnilDecoder[In <: ResourceLike]: HListResourceDecoderFactoryFactory[In, HNil, HNil] =
     _ => {
       params => { input =>
-        val output: Output[HNil] = Output[HNil](HNil, input.fieldPointers.mapValues(_._3).toMap)
+        val output: Output[HNil] = Output[HNil](HNil, input.fieldPointers)
 
         {
           if (params.config.allowUnknownFields)
             output.validNec
           else {
 
+            // Gather up all of the values present in the input so we can compare that with what's been handled.
+
+            // TODO: Does this ID check belong here? There could be an ID in the JSON that doesn't have a place in
+            //       the case class.
+
             val ids = input.in match {
-              case r: ResourceIdentifierLike => r.optionalId.toIterable
+              case r: ResourceIdentifierLike => r.optionalId.toIterable.map(JPointer.Root / "id" -> _)
               case _                         => Iterable.empty
             }
+
+            val meta =
+              input.in.meta.toIterable.flatMap(_.mappings).map {
+                case (n, v) => JPointer.Root / "meta" / n.value -> v
+              }
 
             val (attributes, relationships) = input.in match {
               case r: ResourceObjectLike =>
                 (
-                  r.attributes.toIterable.flatMap(_.mappings),
-                  r.relationships.toIterable.flatMap(_.mappings)
+                  r.attributes.toIterable.flatMap(_.mappings).map {
+                    case (n, v) => JPointer.Root / "attributes" / n.value -> v
+                  },
+                  r.relationships.toIterable.flatMap(_.mappings).map {
+                    case (n, v) => JPointer.Root / "relationships" / n.value -> v.src.root
+                  }
                 )
               case _ =>
                 (
@@ -92,33 +102,10 @@ object HListResourceDecoderFactoryFactory {
                 )
             }
 
-            // TODO: Does this ID check belong here? There could be an ID in the JSON that doesn't have a place in
-            //       the case class.
-
-            val unknownIds = ids
-              .filterNot(x => input.idsHandled(x.value))
-              .map(UnexpectedValue)
-
-            val unknownMetas = input.in.meta.toIterable
-              .flatMap(_.mappings)
-              .filterNot(x => input.metasHandled(x._1.value))
-              .map(_._2)
-              .map(UnexpectedValue)
-
-            val unknownAttributes = attributes
-              .filterNot(x => input.attributesHandled(x._1.value))
-              .map(_._2)
-              .map(UnexpectedValue)
-
-            val unknownRelationships = relationships
-              .filterNot(x => input.relationshipsHandled(x._1.value))
-              .map(_._2.src.root)
-              .map(UnexpectedValue)
-
-            validIfEmpty(
-              unknownIds ++ unknownMetas ++ unknownAttributes ++ unknownRelationships,
-              output
-            )
+            val presentValues = ids ++ meta ++ attributes ++ relationships
+            val handledValues = input.fieldPointers.values.toSet
+            val unhandledValues = presentValues.filterNot(x => handledValues(x._1)).map(_._2).map(UnexpectedValue)
+            validIfEmpty(unhandledValues, output)
           }
         }
       }
@@ -399,11 +386,10 @@ object HListResourceDecoderFactoryFactory {
 
       params => {
         val tailDecoder = tailDecoderFactory(params)
-        val jsonFieldName = params.config.fieldNameMapping(typeInfo.fieldNames.head)
 
         input => {
           val tailResult =
-            tailDecoder.decode(input.withFieldHandled(jsonFieldName, scalaFieldName, SourceTag, JPointer.Root))
+            tailDecoder.decode(input.withFieldPointer(scalaFieldName, SourceTag, JPointer.Root))
 
           tailResult.map { tailOutput =>
             tailOutput.copy(
@@ -432,7 +418,7 @@ object HListResourceDecoderFactoryFactory {
         val pointer = pointerFn(jsonFieldName)
 
         input => {
-          val tailResult = tailDecoder.decode(input.withFieldHandled(jsonFieldName, scalaFieldName, tag, pointer))
+          val tailResult = tailDecoder.decode(input.withFieldPointer(scalaFieldName, tag, pointer))
           val headResult =
             (params.config.useDefaultsForMissingFields, typeInfo.defaults.head) match {
               case (true, Some(d)) =>
