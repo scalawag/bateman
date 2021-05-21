@@ -111,6 +111,24 @@ val jsonGeneric = project
     },
   )
 
+val jsonLiteral = project
+  .dependsOn(json)
+  .settings(commonSettings)
+  .settings(
+    name := s"$projectBaseName-json-literal",
+    libraryDependencies ++= Seq(
+      "org.scala-lang" % "scala-reflect" % scalaVersion.value
+    ),
+    libraryDependencies ++= {
+      CrossVersion.partialVersion(scalaVersion.value) match {
+        case Some((2, n)) if n <= 12 =>
+          List(compilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full))
+        case _ =>
+          Nil
+      }
+    },
+  )
+
 val jsonapi = project
   .dependsOn(jsonGeneric % "compile->compile;test->test")
   .settings(commonSettings)
@@ -149,7 +167,7 @@ val enumeratum = project
   )
 
 val root = (project in file("."))
-  .aggregate(json, parser, jsonGeneric, jsonapi, jsonapiGeneric, circe)
+  .aggregate(json, parser, jsonGeneric, jsonLiteral, jsonapi, jsonapiGeneric, circe)
   .settings(
     name := s"$projectBaseName-build",
     publish / skip := true
