@@ -15,7 +15,7 @@
 package org.scalawag.bateman.jsonapi.encoding
 
 import org.scalawag.bateman.jsonapi.encoding
-import org.scalawag.bateman.json.encoding.{Encoder, JAny, JArray, JObject, JObjectEncoder, JString}
+import org.scalawag.bateman.json.encoding.{Encoder, JAny, JArray, JNull, JObject, JObjectEncoder, JString}
 import org.scalawag.bateman.json.generic.semiauto
 
 sealed trait HasMeta[A] {
@@ -126,13 +126,16 @@ object RelationshipData {
     ResourceIdentifiersData(data)
 
   implicit def encoder: Encoder[RelationshipData, JAny] = {
+    case d: NullData                => NullData.encoder.encode(d)
     case d: ResourceIdentifierData  => ResourceIdentifierData.encoder.encode(d)
     case d: ResourceIdentifiersData => ResourceIdentifiersData.encoder.encode(d)
   }
 }
 
 sealed trait NullData extends PrimaryData with RelationshipData
-case object NullData extends NullData
+case object NullData extends NullData {
+  implicit def encoder: Encoder[NullData, JAny] = Encoder { _ => JNull }
+}
 
 case class ResourceIdentifierData(data: encoding.ResourceIdentifier) extends PrimaryData with RelationshipData
 
