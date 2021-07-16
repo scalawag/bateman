@@ -11,6 +11,9 @@ sealed trait JAny {
 }
 
 object JAny {
+  def apply(jany: encoding.JAny): JAny = Encoding(jany)
+  def apply(jany: decoding.JAny): JAny = Decoding(jany)
+
   case class Encoding(toEncoding: encoding.JAny) extends JAny {
     override def toDecoding: decoding.JAny =
       throw ProgrammerError("This value was not parsed and can not be turned into a decoding JAny.")
