@@ -184,7 +184,7 @@ final case class ResourceObjectOptionalId(
   def toEncoding: encoding.ResourceObjectOptionalId =
     encoding.ResourceObjectOptionalId(
       `type` = `type`.value,
-      optionalId = id.map(_.value),
+      id = id.map(_.value),
       attributes = attributes.map(_.toEncoding),
       relationships = relationships.map(_.toEncoding),
       meta = meta.map(_.toEncoding),

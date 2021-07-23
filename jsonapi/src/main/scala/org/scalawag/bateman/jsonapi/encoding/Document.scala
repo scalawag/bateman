@@ -216,13 +216,15 @@ trait ResourceObjectLike extends ResourceLike {
 
 final case class ResourceObjectOptionalId(
     `type`: String,
-    optionalId: Option[String] = None,
+    id: Option[String] = None,
     attributes: Option[Map[String, JAny]] = None,
     relationships: Option[Map[String, Relationship]] = None,
     meta: Option[Map[String, JAny]] = None,
     links: Option[Map[String, Link]] = None
 ) extends ResourceObjectLike
     with HasMeta[ResourceObjectOptionalId] {
+  override val optionalId: Option[String] = id
+
   override def mapMeta(fn: Option[Map[String, JAny]] => Option[Map[String, JAny]]): ResourceObjectOptionalId =
     copy(meta = fn(meta))
 }
