@@ -37,6 +37,7 @@ class StringCharCollectorTest extends AnyFunSpec with Matchers with DataDrivenTe
     """"\ta"""" -> Right(5 -> "\ta"),
     """"a\t"""" -> Right(5 -> "a\t"),
     """"\"\""""" -> Right(6 -> "\"\""),
+    s""""${"a" * 8192}"""" -> Right(8194 -> "a" * 8192),
     // This craziness is required to prevent scala from interpreting the unicode escape (even in a multiline string!)
     s""""\\${'u'}0b94"""" -> Right(8 -> "\u0b94"),
     s""""\\${'u'}D83C\\${'u'}DF89"""" -> Right(14 -> "\uD83C\uDF89"),

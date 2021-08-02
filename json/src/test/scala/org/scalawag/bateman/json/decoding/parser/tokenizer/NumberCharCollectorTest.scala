@@ -40,6 +40,7 @@ class NumberCharCollectorTest extends AnyFunSpec with Matchers {
     "-54.000034f45 " -> Right(10),
     "-0.000034e45 " -> Right(12),
     "-01.000034e45 " -> Right(2),
+    s"1.${"0" * 8192}" -> Right(8194),
     "-.000034e45" -> Left(2),
     "5." -> Left(3),
     "-" -> Left(2),

@@ -22,5 +22,5 @@ import cats.data.ValidatedNec
   *  Documenter -> turns a stream of events into a JAny (just pukes on extra? maybe doesn't need to exist.)
   * */
 package object parser2 {
-  type ParseResult[+A] = ValidatedNec[SyntaxError, A]
+  type ParseResult[+A] = Either[SyntaxError, A]
 }

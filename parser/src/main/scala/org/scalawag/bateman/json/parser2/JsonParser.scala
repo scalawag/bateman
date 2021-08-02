@@ -49,7 +49,7 @@ object JsonParser {
           x.copy(
             items = x.items.zipWithIndex.map {
               case (v, n) =>
-                go(pointer / n.toString, v)
+                go(pointer / n, v)
             },
             pointer = pointer
           )
@@ -158,9 +158,8 @@ class JsonParser private (input: String, source: Option[String] = None) {
 
   def parse: ParseResult[JAny] =
     fastparse.parse(input, root(_), verboseFailures = true) match {
-      case Parsed.Success(value, _) => value.valid
-      case f: Parsed.Failure =>
-        SyntaxError(locationForIndex(f.index), f).invalidNec
+      case Parsed.Success(value, _) => Right(value)
+      case f: Parsed.Failure        => Left(SyntaxError(locationForIndex(f.index), f))
     }
 
   // This is just a list of the index offset for the beginning of each line to speed up the location derivation.

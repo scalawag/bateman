@@ -14,7 +14,6 @@
 
 package org.scalawag.bateman.json.decoding.parser.tokenizer
 
-import cats.implicits.catsSyntaxEitherId
 import org.scalawag.bateman.json.decoding.parser.SyntaxError
 
 private[parser] object NumberCharCollector extends CharCollector {
@@ -73,7 +72,11 @@ private[parser] object NumberCharCollector extends CharCollector {
   private val end: State[List[Char]] = pure(Nil)
 
   def numberToken(in: CharStream): Either[SyntaxError, (CharStream, Token)] =
-    leadingMinus.run(in) flatMap {
-      case (next, cc) => (next -> NumberToken(in.position, cc.mkString)).asRight
-    }
+    leadingMinus
+      .run(in)
+      .map {
+        case (next, cc) => next -> NumberToken(in.position, cc.mkString)
+      }
+      .value
+      .value
 }

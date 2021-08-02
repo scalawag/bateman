@@ -117,7 +117,7 @@ object Eventizer {
       case Right(x: PrimitiveToken) => Value(x).asRight #:: next(in.drop(1))
       case Right(b: OpenBrace)      => ObjectStart(b).asRight #:: fields(next)(in.drop(1))
       case Right(b: OpenBracket)    => ArrayStart(b).asRight #:: items(next)(in.drop(1))
-      case Right(t: EndOfInput)     => Stream.Empty
+      case Right(_: EndOfInput)     => Stream.Empty
       case _                        => unexpected("a JSON value")(in)
     }
 

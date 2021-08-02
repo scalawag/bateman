@@ -14,9 +14,8 @@
 
 package org.scalawag.bateman.json.decoding.parser.documenter
 
-import cats.data.StateT
-import cats.syntax.either._
-import org.scalawag.bateman.json._
+import cats.Eval
+import cats.data.{EitherT, StateT}
 import org.scalawag.bateman.json.decoding.parser.SyntaxError
 import org.scalawag.bateman.json.decoding.parser.tokenizer.{False, Null, NumberToken, PrimitiveToken, StringToken, True}
 import org.scalawag.bateman.json.decoding.parser.eventizer.{
@@ -40,7 +39,8 @@ import org.scalawag.bateman.json.decoding.{
   JNumber,
   JObject,
   JPointer,
-  JString
+  JString,
+  parser
 }
 
 /** By the time we get here, any errors should have already been detected. Since the event stream is another
@@ -52,14 +52,15 @@ object Documentizer {
   private case class EventStream(events: Stream[Either[SyntaxError, Event]], pointer: JPointer)
   type OutStream = Stream[Either[SyntaxError, JAny]]
 
-  type MaybeError[A] = Either[SyntaxError, A]
-  private type State[A] = cats.data.StateT[MaybeError, EventStream, A]
+  type MaybeError[A] = EitherT[Eval, SyntaxError, A]
+  private type State[A] = StateT[MaybeError, EventStream, A]
 
-  private val get: StateT[MaybeError, EventStream, EventStream] = StateT.get[MaybeError, EventStream]
-  private def pure[A](a: A): StateT[MaybeError, EventStream, A] = StateT.pure[MaybeError, EventStream, A](a)
-  private val peek: StateT[MaybeError, EventStream, MaybeError[Event]] = get.map(_.events.head)
-
-  private def rethrow[A](e: SyntaxError) = StateT[MaybeError, EventStream, A] { _ => e.asLeft }
+  private val get: State[EventStream] = StateT.get[MaybeError, EventStream]
+  private def pure[A](a: A): State[A] = StateT.pure[MaybeError, EventStream, A](a)
+  private val peek: State[Event] = StateT[MaybeError, EventStream, Event] {
+    case EventStream(Left(err) #:: _, _)       => EitherT.leftT(err)
+    case in @ EventStream(Right(evt) #:: _, _) => EitherT.rightT(in -> evt)
+  }
 
   private val consume: State[Unit] = StateT.modify[MaybeError, EventStream] { in =>
     in.copy(events = in.events.drop(1))
@@ -94,20 +95,18 @@ object Documentizer {
 
   private def items(index: Int): State[List[JAny]] =
     peek flatMap {
-      case Right(ArrayEnd(_)) =>
+      case ArrayEnd(_) =>
         for {
           _ <- consume
         } yield Nil
 
-      case Right(_) =>
+      case _ =>
         for {
           _ <- descend(index)
           h <- any
           _ <- ascend
           t <- items(index + 1)
         } yield h :: t
-
-      case Left(e) => rethrow(e)
     }
 
   private def arr(start: ArrayStart): State[JAny] =
@@ -118,13 +117,13 @@ object Documentizer {
 
   private val fields: State[List[JField]] =
     peek flatMap {
-      case Right(ObjectEnd(_)) =>
+      case ObjectEnd(_) =>
         for {
           _ <- consume
           t <- pure(Nil)
         } yield t
 
-      case Right(FieldStart(name)) =>
+      case FieldStart(name) =>
         for {
           _ <- consume
           _ <- descend(name.value)
@@ -134,10 +133,6 @@ object Documentizer {
           _ <- ascend
           t <- fields
         } yield JField(k, h) :: t
-
-      case Right(e) => ??? // No other events are allowed here the stream.
-
-      case Left(e) => rethrow(e)
     }
 
   private def obj(start: ObjectStart): State[JAny] =
@@ -146,30 +141,27 @@ object Documentizer {
       p <- get.map(_.pointer)
     } yield JObject(ff, start.token.position, p)
 
-  private val any: State[JAny] =
+  private val any: State[JAny] = {
     peek flatMap {
-      case Right(Value(e: Null))        => consume.flatMap(_ => make(e)(JNull.apply))
-      case Right(Value(e: True))        => consume.flatMap(_ => make(e)(JBoolean(true, _, _)))
-      case Right(Value(e: False))       => consume.flatMap(_ => make(e)(JBoolean(false, _, _)))
-      case Right(Value(e: StringToken)) => consume.flatMap(_ => make(e)(JString(e.value, _, _)))
-      case Right(Value(e: NumberToken)) => consume.flatMap(_ => make(e)(JNumber(e.value, _, _)))
+      case Value(e: Null)        => consume.flatMap(_ => make(e)(JNull.apply))
+      case Value(e: True)        => consume.flatMap(_ => make(e)(JBoolean(true, _, _)))
+      case Value(e: False)       => consume.flatMap(_ => make(e)(JBoolean(false, _, _)))
+      case Value(e: StringToken) => consume.flatMap(_ => make(e)(JString(e.value, _, _)))
+      case Value(e: NumberToken) => consume.flatMap(_ => make(e)(JNumber(e.value, _, _)))
 
-      case Right(e: ArrayStart)  => consume.flatMap(_ => arr(e))
-      case Right(e: ObjectStart) => consume.flatMap(_ => obj(e))
-
-      case Right(e) => ??? // No other events are allowed here the stream.
-
-      case Left(e) => rethrow[JAny](e)
+      case e: ArrayStart  => consume.flatMap(_ => arr(e))
+      case e: ObjectStart => consume.flatMap(_ => obj(e))
     }
+  }
 
   private def anys(in: EventStream): Stream[MaybeError[JAny]] =
     if (in.events.isEmpty)
       Stream.Empty
     else
-      any.run(in) match {
-        case Right((next, v)) => v.asRight #:: anys(next)
-        case Left(e)          => Stream(e.asLeft)
+      any.run(in).value.value match {
+        case Right((next, v)) => EitherT[Eval, SyntaxError, JAny](Eval.always(Right(v))) #:: anys(next)
+        case Left(e)          => Stream(EitherT.leftT(e))
       }
 
-  def documentize(in: Eventizer.EventStream): OutStream = anys(EventStream(in, JPointer.Root))
+  def documentize(in: Eventizer.EventStream): OutStream = anys(EventStream(in, JPointer.Root)).map(_.value.value)
 }

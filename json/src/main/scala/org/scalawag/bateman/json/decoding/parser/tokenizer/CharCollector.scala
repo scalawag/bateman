@@ -14,21 +14,21 @@
 
 package org.scalawag.bateman.json.decoding.parser.tokenizer
 
-import cats.data.StateT
-import cats.syntax.either._
+import cats.Eval
+import cats.data.{EitherT, StateT}
 import org.scalawag.bateman.json.decoding.parser.SyntaxError
 
 private[parser] trait CharCollector {
-  protected type Result[A] = Either[SyntaxError, A]
+  protected type Result[A] = EitherT[Eval, SyntaxError, A]
   protected type State[A] = StateT[Result, CharStream, A]
 
   protected def syntaxError[A](reason: Predef.String): State[A] =
     StateT[Result, CharStream, A] { in =>
-      SyntaxError(in, reason).asLeft
+      EitherT.leftT(SyntaxError(in, reason))
     }
 
-  protected val get: StateT[Result, CharStream, CharStream] = StateT.get[Result, CharStream]
-  protected def pure[A](a: A): StateT[Result, CharStream, A] = StateT.pure[Result, CharStream, A](a)
+  protected val get: State[CharStream] = StateT.get[Result, CharStream]
+  protected def pure[A](a: A): State[A] = StateT.pure[Result, CharStream, A](a)
   protected val peek: State[Option[Char]] = get.map(_.chars.headOption)
-  protected val consume: StateT[Result, CharStream, Unit] = StateT.modify[Result, CharStream](_.drop(1))
+  protected val consume: State[Unit] = StateT.modify[Result, CharStream](_.drop(1))
 }
