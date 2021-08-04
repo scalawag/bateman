@@ -66,7 +66,7 @@ class Performance extends AnyFunSpec with Matchers {
     runComparison(bigString, 8)
   }
 
-  it("should tokenize big JSON") {
+  ignore("should tokenize big JSON") {
     val (t, tokens) = time {
       org.scalawag.bateman.json.decoding.parser.tokenizer.Tokenizer
         .tokenize(CharStream(bigJson.toStream))
