@@ -38,14 +38,14 @@ object ErrorSource {
 
 final case class Error(
     src: JSource @@ SourceTag,
-    id: Option[JString],
-    links: Option[Links],
-    status: Option[JString],
-    code: Option[JString],
-    title: Option[JString],
-    detail: Option[JString],
-    source: Option[ErrorSource],
-    meta: Option[Meta]
+    id: Option[JString] = None,
+    links: Option[Links] = None,
+    status: Option[JString] = None,
+    code: Option[JString] = None,
+    title: Option[JString] = None,
+    detail: Option[JString] = None,
+    source: Option[ErrorSource] = None,
+    meta: Option[Meta] = None
 ) {
   def toEncoding: encoding.Error =
     encoding.Error(
