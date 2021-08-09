@@ -65,6 +65,7 @@ object HListEncoderFactoryFactory {
   ): HListEncoderFactoryFactory[Head :: Tail, Option[Head] :: DefaultsTail] =
     info => {
       val tailEncoderFactory = tailEncoderFactoryFactory(info.tail)
+      def defaultEncoded = info.defaults.head.map(headEncoder.value.encode)
 
       params => {
         val tailEncoder = tailEncoderFactory(params)
@@ -74,8 +75,9 @@ object HListEncoderFactoryFactory {
           val encodedTail = tailEncoder.encode(input.tail)
 
           // See if the input value is the same as the default value and, if so configured, skip it.
-          if (params.config.encodeDefaultValues || !info.defaults.head.contains(input.in.head))
-            JObject((fieldName -> headEncoder.value.encode(input.in.head)) +: encodedTail.fields: _*)
+          val inputEncoded = headEncoder.value.encode(input.in.head)
+          if (params.config.encodeDefaultValues || !defaultEncoded.contains(inputEncoded))
+            JObject((fieldName -> inputEncoded) +: encodedTail.fields: _*)
           else
             encodedTail
         }
