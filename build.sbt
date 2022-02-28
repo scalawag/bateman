@@ -168,7 +168,7 @@ val enumeratum = project
   )
 
 val root = (project in file("."))
-  .aggregate(json, parser, jsonGeneric, jsonLiteral, jsonapi, jsonapiGeneric, circe)
+  .aggregate(json, parser, jsonGeneric, jsonLiteral, jsonapi, jsonapiGeneric, circe, enumeratum)
   .settings(commonSettings)
   .settings(
     name := s"$projectBaseName-build",
