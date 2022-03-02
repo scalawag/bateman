@@ -21,7 +21,7 @@ import java.net.URL
 
 class LiteralTest extends AnyFunSpec with Matchers {
   it("should parse JSON text with no variables") {
-    val json = json"""
+    val json = jany"""
       {
         "a": 4,
         "b": true,
@@ -58,7 +58,7 @@ class LiteralTest extends AnyFunSpec with Matchers {
     val string = "what \"about\" escape\\sequences? 🤷"
 
     val json =
-      json"""
+      jany"""
         {
           "blah": $string,
           "6": 6,
@@ -87,12 +87,32 @@ class LiteralTest extends AnyFunSpec with Matchers {
     implicit val urlEncoder: JAnyEncoder[URL] = JAnyEncoder[String].contramap(_.toString)
 
     val json =
-      json"""
+      jany"""
         {
           "foo": $url
         }
       """
 
     json shouldBe JObject("foo" -> JString(url.toString))
+  }
+
+  it("should be a narrower type when jobject is used") {
+    val j: JObject = jobject"{}"
+  }
+
+  it("should be a narrower type when jarray is used") {
+    val j: JArray = jarray"[]"
+  }
+
+  it("should fail to compile if the JSON text is not an object") {
+    assertTypeError("""
+      jobject"[]"
+    """)
+  }
+
+  it("should fail to compile if the JSON text is not an array") {
+    assertTypeError("""
+      jarray"true"
+    """)
   }
 }

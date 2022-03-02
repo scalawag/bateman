@@ -15,7 +15,7 @@
 package org.scalawag.bateman.json
 
 import scala.language.experimental.macros
-import org.scalawag.bateman.json.encoding.JAny
+import org.scalawag.bateman.json.encoding.{JAny, JArray, JObject}
 
 package object literal {
   implicit final class JsonStringContext(sc: StringContext) {
@@ -28,6 +28,37 @@ package object literal {
       * @param args items to be inserted into the text (must have a [[JAnyEncoder]] in scope.
       * @return the JAny resulting from parsing the JSON text with the interpolations performed
       */
-    def json(args: Any*): JAny = macro LiteralMacros.jsonStringContext
+    @deprecated("use jany instead", "0.1.11")
+    def json(args: Any*): JAny = macro LiteralMacros.janyStringContext
+
+    /** Generate an encoding JAny for a JSON text with optional expression interpolations, which must represent JSON
+      * values. That is, no partial values, punctuation or object field keys can be generated through interpolation.
+      *
+      * This will fail at compile-time if the resulting JSON text is invalid.
+      *
+      * @param args items to be inserted into the text (must have a [[JAnyEncoder]] in scope.
+      * @return the JAny resulting from parsing the JSON text with the interpolations performed
+      */
+    def jany(args: Any*): JAny = macro LiteralMacros.janyStringContext
+
+    /** Generate an encoding JAny for a JSON text with optional expression interpolations, which must represent JSON
+      * values. That is, no partial values, punctuation or object field keys can be generated through interpolation.
+      *
+      * This will fail at compile-time if the resulting JSON text is invalid.
+      *
+      * @param args items to be inserted into the text (must have a [[JAnyEncoder]] in scope.
+      * @return the JObject resulting from parsing the JSON text with the interpolations performed
+      */
+    def jobject(args: Any*): JObject = macro LiteralMacros.jobjectStringContext
+
+    /** Generate an encoding JArray for a JSON text with optional expression interpolations, which must represent JSON
+      * values. That is, no partial values, punctuation or object field keys can be generated through interpolation.
+      *
+      * This will fail at compile-time if the resulting JSON text is invalid.
+      *
+      * @param args items to be inserted into the text (must have a [[JAnyEncoder]] in scope.
+      * @return the JArray resulting from parsing the JSON text with the interpolations performed
+      */
+    def jarray(args: Any*): JArray = macro LiteralMacros.jarrayStringContext
   }
 }

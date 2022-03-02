@@ -14,8 +14,8 @@
 
 package org.scalawag.bateman.json.literal
 
-import org.scalawag.bateman.json.encoding.{JAny, JAnyEncoder, JArray, JBoolean, JNull, JNumber, JObject, JString}
-
+import org.scalawag.bateman.json.encoding.{JAny, JArray, JBoolean, JNull, JNumber, JObject, JString}
+import scala.reflect.{ClassTag, classTag}
 import scala.reflect.macros.whitebox.Context
 import scala.util.Random
 
@@ -59,7 +59,7 @@ class LiteralMacros(val c: Context) {
 
   private case class InterpolatedExpression(term: TermName, decl: Tree, standIn: String)
 
-  final def jsonStringContext(args: c.Expr[Any]*): Tree =
+  private def commonStringContext[A <: JAny: ClassTag](args: c.Expr[Any]*): Tree =
     c.prefix.tree match {
       case Apply(_, Apply(_, parts) :: Nil) =>
         // Get the StringContext parts from lexical context
@@ -93,15 +93,29 @@ class LiteralMacros(val c: Context) {
           .map(_.toEncoding)
           .fold(
             e => c.abort(c.enclosingPosition, e.description),
-            // Walk the resulting JAny, turning it into direct JAny constructor calls and replacing the stand-ins
-            // with their associated terms.
-            toTree(_, exprs.map(x => x.standIn -> x.term).toMap)
+            identity
           )
+
+        jany match {
+          case _: A => // NOOP
+          case _ =>
+            val actual = jany.getClass.getSimpleName.stripSuffix("$")
+            val expected = classTag[A].runtimeClass.getSimpleName.stripSuffix("$")
+            c.abort(c.enclosingPosition, s"JSON text parsed to a $actual instead of a $expected")
+        }
+
+        // Walk the resulting JAny, turning it into direct JAny constructor calls and replacing the stand-ins
+        // with their associated terms.
+        val tree = toTree(jany, exprs.map(x => x.standIn -> x.term).toMap)
 
         // Output the term declarations and the JAny construction code
         q"""
           ..${exprs.map(_.decl)}
-          $jany
+          $tree
         """
     }
+
+  final def janyStringContext(args: c.Expr[Any]*): Tree = commonStringContext[JAny](args: _*)
+  final def jarrayStringContext(args: c.Expr[Any]*): Tree = commonStringContext[JArray](args: _*)
+  final def jobjectStringContext(args: c.Expr[Any]*): Tree = commonStringContext[JObject](args: _*)
 }
