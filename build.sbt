@@ -14,7 +14,7 @@
 
 val projectBaseName = "bateman"
 
-ThisBuild / versionScheme := Some("semver-spec")
+ThisBuild / versionScheme := Some("early-semver")
 
 val Versions = new Object {
   val cats = "2.2.0"
