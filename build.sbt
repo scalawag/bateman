@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import org.scalawag.sbt.gitflux.lib.FluxReleaseTag
+
 val projectBaseName = "bateman"
 
 ThisBuild / versionScheme := Some("early-semver")
@@ -71,29 +73,50 @@ val commonSettings = Seq(
     "439444E02ED9335F91C538455283F6A358FB8629",
     "ignored"
   ),
+  // Make it so that sbt-git-flux can see the older releases.
+  ThisBuild / gitFluxLegacyTagMapper := {
+    case s if s.startsWith("release/") && FluxReleaseTag(s.replaceFirst("/", "-")).isDefined =>
+      FluxReleaseTag(s.replaceFirst("/", "-")).get
+  }
 )
 
-val json = project
+val json = projectMatrix
   .settings(commonSettings)
   .settings(
     name := s"$projectBaseName-json",
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % Versions.cats,
       "com.beachape" %% "enumeratum" % Versions.enumeratum % Test
-    )
+    ),
+    gitFluxArtifactSince := {
+      if (virtualAxes.value.contains(VirtualAxis.jvm))
+        None
+      else
+        Some("0.1.13")
+    }
   )
+  .jvmPlatform(scalaVersions = Seq("2.12.15", "2.13.8"))
+  .jsPlatform(scalaVersions = Seq("2.13.8"))
 
-val parser = project
+val parser = projectMatrix
   .dependsOn(json)
   .settings(commonSettings)
   .settings(
     name := s"$projectBaseName-json-parser",
     libraryDependencies ++= Seq(
       "com.lihaoyi" %% "fastparse" % Versions.fastparse
-    )
+    ),
+    gitFluxArtifactSince := {
+      if (virtualAxes.value.contains(VirtualAxis.jvm))
+        None
+      else
+        Some("0.1.13")
+    }
   )
+  .jvmPlatform(scalaVersions = Seq("2.12.15", "2.13.8"))
+  .jsPlatform(scalaVersions = Seq("2.13.8"))
 
-val jsonGeneric = project
+val jsonGeneric = projectMatrix
   .dependsOn(json % "compile->compile;test->test")
   .settings(commonSettings)
   .settings(
@@ -110,9 +133,17 @@ val jsonGeneric = project
           Nil
       }
     },
+    gitFluxArtifactSince := {
+      if (virtualAxes.value.contains(VirtualAxis.jvm))
+        None
+      else
+        Some("0.1.13")
+    }
   )
+  .jvmPlatform(scalaVersions = Seq("2.12.15", "2.13.8"))
+  .jsPlatform(scalaVersions = Seq("2.13.8"))
 
-val jsonLiteral = project
+val jsonLiteral = projectMatrix
   .dependsOn(json)
   .settings(commonSettings)
   .settings(
@@ -128,49 +159,92 @@ val jsonLiteral = project
           Nil
       }
     },
+    gitFluxArtifactSince := {
+      if (virtualAxes.value.contains(VirtualAxis.jvm))
+        None
+      else
+        Some("0.1.13")
+    }
   )
+  .jvmPlatform(scalaVersions = Seq("2.12.15", "2.13.8"))
+  .jsPlatform(scalaVersions = Seq("2.13.8"))
 
-val jsonapi = project
+val jsonapi = projectMatrix
   .dependsOn(jsonGeneric % "compile->compile;test->test")
   .settings(commonSettings)
   .settings(
     name := s"$projectBaseName-jsonapi",
     libraryDependencies ++= Seq(
-    )
+    ),
+    gitFluxArtifactSince := {
+      if (virtualAxes.value.contains(VirtualAxis.jvm))
+        None
+      else
+        Some("0.1.13")
+    }
   )
+  .jvmPlatform(scalaVersions = Seq("2.12.15", "2.13.8"))
+  .jsPlatform(scalaVersions = Seq("2.13.8"))
 
-val jsonapiGeneric = project
+val jsonapiGeneric = projectMatrix
   .dependsOn(jsonapi % "compile->compile;test->test")
   .dependsOn(jsonGeneric)
   .settings(commonSettings)
   .settings(
     name := s"$projectBaseName-jsonapi-generic",
+    gitFluxArtifactSince := {
+      if (virtualAxes.value.contains(VirtualAxis.jvm))
+        None
+      else
+        Some("0.1.13")
+    }
   )
+  .jvmPlatform(scalaVersions = Seq("2.12.15", "2.13.8"))
+  .jsPlatform(scalaVersions = Seq("2.13.8"))
 
-val circe = project
+val circe = projectMatrix
   .dependsOn(json)
   .settings(commonSettings)
   .settings(
     name := s"$projectBaseName-json-circe",
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-core" % Versions.circe
-    )
+    ),
+    gitFluxArtifactSince := {
+      if (virtualAxes.value.contains(VirtualAxis.jvm))
+        None
+      else
+        Some("0.1.13")
+    }
   )
+  .jvmPlatform(scalaVersions = Seq("2.12.15", "2.13.8"))
+  .jsPlatform(scalaVersions = Seq("2.13.8"))
 
-val enumeratum = project
+val enumeratum = projectMatrix
   .dependsOn(json)
   .settings(commonSettings)
   .settings(
     name := s"$projectBaseName-json-enumeratum",
     libraryDependencies ++= Seq(
       "com.beachape" %% "enumeratum" % Versions.enumeratum
-    )
+    ),
+    gitFluxArtifactSince := {
+      if (virtualAxes.value.contains(VirtualAxis.jvm))
+        None
+      else
+        Some("0.1.13")
+    }
   )
+  .jvmPlatform(scalaVersions = Seq("2.12.15", "2.13.8"))
+  .jsPlatform(scalaVersions = Seq("2.13.8"))
 
 val root = (project in file("."))
-  .aggregate(json, parser, jsonGeneric, jsonLiteral, jsonapi, jsonapiGeneric, circe, enumeratum)
+  .aggregate(
+    Seq(json, parser, jsonGeneric, jsonLiteral, jsonapi, jsonapiGeneric, circe, enumeratum).flatMap(_.projectRefs): _*
+  )
   .settings(commonSettings)
   .settings(
     name := s"$projectBaseName-build",
-    publish / skip := true
+    publish / skip := true,
+    mimaPreviousArtifacts := Set.empty,
   )
