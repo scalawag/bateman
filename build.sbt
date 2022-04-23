@@ -30,8 +30,8 @@ val Versions = new Object {
 
 val commonSettings = Seq(
   organization := "org.scalawag.bateman",
-  scalaVersion := "2.12.14",
-  crossScalaVersions := Seq("2.12.14", "2.13.6"),
+//  scalaVersion := "2.12.14",
+//  crossScalaVersions := Seq("2.12.15", "2.13.6"),
 //  scalacOptions += "-Xlog-implicits",
   scalacOptions ++= Seq(
     "-language:higherKinds",
@@ -238,13 +238,12 @@ val enumeratum = projectMatrix
   .jvmPlatform(scalaVersions = Seq("2.12.15", "2.13.8"))
   .jsPlatform(scalaVersions = Seq("2.13.8"))
 
-val root = (project in file("."))
-  .aggregate(
-    Seq(json, parser, jsonGeneric, jsonLiteral, jsonapi, jsonapiGeneric, circe, enumeratum).flatMap(_.projectRefs): _*
-  )
+val root = projectMatrix
+  .in(file("."))
+  .aggregate(json, parser, jsonGeneric, jsonLiteral, jsonapi, jsonapiGeneric, circe, enumeratum)
   .settings(commonSettings)
   .settings(
-    name := s"$projectBaseName-build",
+    name := projectBaseName,
     publish / skip := true,
     mimaPreviousArtifacts := Set.empty,
   )
