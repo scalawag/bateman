@@ -17,6 +17,7 @@ import org.scalawag.sbt.gitflux.lib.FluxReleaseTag
 val projectBaseName = "bateman"
 
 ThisBuild / versionScheme := Some("early-semver")
+ThisBuild / organization := "org.scalawag.bateman"
 
 val Versions = new Object {
   val cats = "2.2.0"
@@ -29,7 +30,6 @@ val Versions = new Object {
 }
 
 val commonSettings = Seq(
-  organization := "org.scalawag.bateman",
 //  scalaVersion := "2.12.14",
 //  crossScalaVersions := Seq("2.12.15", "2.13.6"),
 //  scalacOptions += "-Xlog-implicits",
