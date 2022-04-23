@@ -42,11 +42,8 @@ final case class Document(
 
   /** Contains all of the included resource objects as well as any from the primary data. */
 
-  private def coerceToResourceObject(r: ResourceLike): Option[ResourceObject] =
-    ResourceObject.resourceLikeTranscoder.decode(r).map(Some.apply).getOrElse(None)
-
   private lazy val includedMap = {
-    val resourceObjectsFromData = data.toList.flatMap(_.toList).flatMap(coerceToResourceObject)
+    val resourceObjectsFromData = data.toList.flatMap(_.toList).collect { case r: ResourceObject => r }
     val resourceObjectsFromIncluded = included.getOrElse(Nil)
     val allResourceObjects = resourceObjectsFromData ::: resourceObjectsFromIncluded
 
