@@ -18,19 +18,21 @@ import org.scalawag.bateman.json.decoding.parser.documenter.Documentizer
 import org.scalawag.bateman.json.decoding.parser.eventizer.Eventizer
 import org.scalawag.bateman.json.decoding.parser.tokenizer.{CharStream, Tokenizer}
 
+import scala.collection.compat.immutable.LazyList
+
 package object parser {
   type ParseResult[+A] = Either[SyntaxError, A]
 
-  private def toTokens(src: Stream[Char], loc: Option[String] = None): Tokenizer.TokenStream =
+  private def toTokens(src: LazyList[Char], loc: Option[String] = None): Tokenizer.TokenStream =
     Tokenizer.tokenize(CharStream(src, loc))
 
-  def toEvents(src: Stream[Char], loc: Option[String] = None): Eventizer.EventStream =
+  def toEvents(src: LazyList[Char], loc: Option[String] = None): Eventizer.EventStream =
     Eventizer.eventize(toTokens(src, loc))
 
-  def toJAnys(src: Stream[Char], loc: Option[String] = None): Documentizer.OutStream =
+  def toJAnys(src: LazyList[Char], loc: Option[String] = None): Documentizer.OutStream =
     Documentizer.documentize(Eventizer.eventize(toTokens(src, loc)))
 
-  def toJAny(src: Stream[Char], loc: Option[String] = None): ParseResult[JAny] = {
+  def toJAny(src: LazyList[Char], loc: Option[String] = None): ParseResult[JAny] = {
     val anys = Documentizer.documentize(Eventizer.eventizeOne(toTokens(src, loc)))
     // Make sure there's not a second item that's an error. There could have been another (illegal) value in the input.
     anys.find(_.isLeft).getOrElse(anys.head)

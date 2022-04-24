@@ -20,6 +20,8 @@ import org.scalatest.matchers.should.Matchers
 import org.scalawag.bateman.json.decoding.JLocation
 import org.scalawag.bateman.json.decoding.parser.SyntaxError
 
+import scala.collection.compat.immutable.LazyList
+
 class NumberCharCollectorTest extends AnyFunSpec with Matchers {
   val cases = Iterable(
     "5.67" -> Right(4),
@@ -50,18 +52,20 @@ class NumberCharCollectorTest extends AnyFunSpec with Matchers {
     "-1e+" -> Left(5),
   )
 
+  private def truncate(in: String, len: Int): String = if (in.length > len) in.take(len) + "..." else in
+
   cases.foreach {
     case (in, Right(len)) =>
-      it(s"should collect $len character${if (len == 1) "" else "s"} of '$in'") {
-        val cs = CharStream(in.toStream)
+      it(s"should collect $len character${if (len == 1) "" else "s"} of '${truncate(in, 120)}'") {
+        val cs = CharStream(in.to(LazyList))
         val expectedCs = cs.drop(len)
         val expectedToken = NumberToken(JLocation(1, 1), cs.chars.take(len).mkString)
         NumberCharCollector.numberToken(cs) shouldBe (expectedCs, expectedToken).asRight
       }
 
     case (in, Left(failPos)) =>
-      it(s"should fail at character $failPos of '$in'") {
-        val cs = CharStream(in.toStream)
+      it(s"should fail at character $failPos of '${truncate(in, 120)}'") {
+        val cs = CharStream(in.to(LazyList))
         val res = NumberCharCollector.numberToken(cs)
         res shouldBe SyntaxError(cs.drop(failPos - 1), "expecting a digit").asLeft
       }

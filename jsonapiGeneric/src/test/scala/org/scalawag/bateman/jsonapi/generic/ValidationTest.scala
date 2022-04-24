@@ -80,7 +80,7 @@ object ValidationTest {
 class ValidationTest extends AnyFunSpec with Matchers with ParserTestUtils {
   import ValidationTest._
   it("should") {
-//    val a = MyClass.unsafe(UUID.randomUUID, "Justin", "Patterson")
+//    val a = MyClass.unsafe(randomUUID, "Justin", "Patterson")
 //    val e = ResourceEncoder[MyClass, ResourceObject].encode(a)
 //    println(e)
 //    val j = Encoder[ResourceObject, encoding.JAny].encode(e)
@@ -114,15 +114,15 @@ class ValidationTest extends AnyFunSpec with Matchers with ParserTestUtils {
     )
 
     println(
-      MyClass(UUID.randomUUID, "", "abcdefghijklmnopqrstuvwxyz")
+      MyClass(randomUUID, "", "abcdefghijklmnopqrstuvwxyz")
     )
 
     println(
-      MyClass(UUID.randomUUID, tag[Name](""), "abcdefghijklmnopqrstuvwxyz")
+      MyClass(randomUUID, tag[Name](""), "abcdefghijklmnopqrstuvwxyz")
     )
 
     println(
-      MyClass.unsafe(UUID.randomUUID, "", "abcdefghijklmnopqrstuvwxyz")
+      MyClass.unsafe(randomUUID, "", "abcdefghijklmnopqrstuvwxyz")
     )
   }
 

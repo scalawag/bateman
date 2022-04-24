@@ -18,6 +18,8 @@ import cats.syntax.either._
 import org.scalawag.bateman.json.decoding.JLocation
 import org.scalawag.bateman.json.decoding.parser.SyntaxError
 
+import scala.collection.compat.immutable.LazyList
+
 /** The output of this module is a stream of tokens, representing the tokens in the JSON specification. There's
   *  also one representing the end of the input, so that we will have the position for error reporting. This module
   *  may emit lexical errors (though they are called "syntax errors" here). This includes things like invalid numbers,
@@ -32,20 +34,20 @@ import org.scalawag.bateman.json.decoding.parser.SyntaxError
   */
 
 object Tokenizer {
-  type TokenStream = Stream[Either[SyntaxError, Token]]
+  type TokenStream = LazyList[Either[SyntaxError, Token]]
 
   private def syntaxError[A](in: CharStream, reason: String): TokenStream =
-    Stream(SyntaxError(in.position, reason).asLeft)
+    LazyList(SyntaxError(in.position, reason).asLeft)
 
   def makeToken[A](in: CharStream, ctor: JLocation => A): Either[SyntaxError, A] =
     ctor(in.position).asRight
 
   private def endOfInput(in: CharStream): TokenStream =
-    Stream(makeToken(in, EndOfInput))
+    LazyList(makeToken(in, EndOfInput))
 
   private def literal(in: CharStream): TokenStream = {
     class StartsWith(s: String) {
-      def unapply(arg: Stream[Char]): Option[String] =
+      def unapply(arg: LazyList[Char]): Option[String] =
         if (arg.zip(s).forall(x => x._1 == x._2))
           Some(s)
         else
@@ -68,13 +70,13 @@ object Tokenizer {
 
   private def string(in: CharStream): TokenStream =
     StringCharCollector.stringToken(in) match {
-      case Left(e)          => Stream(e.asLeft)
+      case Left(e)          => LazyList(e.asLeft)
       case Right((next, t)) => t.asRight #:: tokenize(next)
     }
 
   private def number(in: CharStream): TokenStream =
     NumberCharCollector.numberToken(in) match {
-      case Left(e)          => Stream(e.asLeft)
+      case Left(e)          => LazyList(e.asLeft)
       case Right((next, t)) => t.asRight #:: tokenize(next)
     }
 

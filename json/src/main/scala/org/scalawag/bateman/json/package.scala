@@ -19,6 +19,8 @@ import cats.data.{NonEmptyChain, ValidatedNec}
 import org.scalawag.bateman.json.decoding.JAny
 import org.scalawag.bateman.json.decoding.parser.ParseResult
 
+import scala.collection.compat.immutable.LazyList
+
 package object json {
 
   /** Represents a codec that does not depend on the decoding context. */
@@ -74,6 +76,9 @@ package object json {
     * @param source an optional name for the source of the text (e.g., the filename or URL) which will be included
     *               in error messages
     */
-  def parse(text: Stream[Char], source: Option[String] = None): ParseResult[JAny] =
+  def parse(text: LazyList[Char], source: Option[String]): ParseResult[JAny] =
     decoding.parser.toJAny(text, source)
+
+  def parse(text: String, source: Option[String] = None): ParseResult[JAny] =
+    decoding.parser.toJAny(text.to(LazyList), source)
 }

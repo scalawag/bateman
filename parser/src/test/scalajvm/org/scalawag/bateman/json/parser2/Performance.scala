@@ -19,7 +19,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalawag.bateman.json.decoding.parser
 import org.scalawag.bateman.json.decoding.parser.tokenizer.CharStream
 import org.scalawag.bateman.json.parser2
-
+import scala.collection.compat.immutable.LazyList
 import java.util.zip.GZIPInputStream
 import scala.io.Source
 import scala.util.Try
@@ -69,7 +69,7 @@ class Performance extends AnyFunSpec with Matchers {
   ignore("should tokenize big JSON") {
     val (t, tokens) = time {
       org.scalawag.bateman.json.decoding.parser.tokenizer.Tokenizer
-        .tokenize(CharStream(bigJson.toStream))
+        .tokenize(CharStream(bigJson.to(LazyList)))
     }
 
     val (e, events) = time {
@@ -93,7 +93,7 @@ class Performance extends AnyFunSpec with Matchers {
 
     val src = input.toStream
     val (bt, br) = time {
-      for (_ <- 1 to iterations) yield parser.toJAny(src)
+      for (_ <- 1 to iterations) yield parser.toJAny(src.to(LazyList))
     }
     println(s"$bt y")
 

@@ -22,7 +22,8 @@ import org.scalawag.bateman.json.encoding.{Encoder, JAny, JObject, PrettySpaces2
 import org.scalawag.bateman.json.generic.SourceTag
 import org.scalawag.bateman.jsonapi.Model.{Blue, Color, RGB, Red}
 import org.scalawag.bateman.jsonapi.TestResultUtils
-import org.scalawag.bateman.jsonapi.decoding.ResourceLike
+
+import scala.collection.compat.immutable.LazyList
 import org.scalawag.bateman.jsonapi.encoding.ResourceEncoder.PartiallyEncoded
 import org.scalawag.bateman.jsonapi.encoding.{
   DeferredEncoding,
@@ -105,7 +106,7 @@ class DerivedResourceObjectEncoderTest extends AnyFunSpec with Matchers with Tes
             }
           }
         }
-      """.toStream).fold(e => fail(e.toString), identity).toEncoding
+      """.to(LazyList)).fold(e => fail(e.toString), identity).toEncoding
 
       import org.scalawag.bateman.json.syntax._
       json.toJAny shouldMatch expected

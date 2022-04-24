@@ -19,35 +19,39 @@ import org.scalawag.bateman.json.decoding.parser.SyntaxError
 
 import java.io.File
 import scala.annotation.tailrec
+import scala.collection.compat.immutable.LazyList
 import scala.io.Source
 
-final case class CharStream(chars: Stream[Char], position: JLocation) {
+final case class CharStream(chars: LazyList[Char], position: JLocation) {
   @tailrec
   def drop(n: Int): CharStream = {
     if (n < 1)
       this
-    else
-      (chars match {
+    else {
+      (chars.head match {
         // Don't count carriage return as a new line if followed by a real newline.
-        case '\r' #:: '\n' #:: tail => CharStream(tail, position.copy(column = position.column + 1))
-        case ('\r' | '\n') #:: tail => CharStream(tail, position.copy(line = position.line + 1, column = 1))
-        case _ #:: tail             => CharStream(tail, position.copy(column = position.column + 1))
+        case '\r' if chars.tail.headOption.contains('\n') =>
+          CharStream(chars.tail.tail, position.copy(column = position.column + 1))
+        case '\r' | '\n' =>
+          CharStream(chars.tail, position.copy(line = position.line + 1, column = 1))
+        case _ => CharStream(chars.tail, position.copy(column = position.column + 1))
       }).drop(n - 1)
+    }
   }
 
   @tailrec
   def skipWhitespace: CharStream =
-    chars match {
-      case ('\r' | '\n' | '\t' | ' ') #:: _ => drop(1).skipWhitespace
-      case _                                => this
+    chars.headOption match {
+      case Some('\r' | '\n' | '\t' | ' ') => drop(1).skipWhitespace
+      case _                              => this
     }
 }
 
 object CharStream {
-  def apply(src: Stream[Char], name: Option[String] = None): CharStream = CharStream(src, JLocation(1, 1, name))
+  def apply(src: LazyList[Char], name: Option[String] = None): CharStream = CharStream(src, JLocation(1, 1, name))
 
   /** You are still responsible for closing this Source. */
-  def fromSource(src: Source, name: Option[String] = None): CharStream = apply(src.toStream, name)
+  def fromSource(src: Source, name: Option[String] = None): CharStream = apply(src.to(LazyList), name)
   // TODO: how to close this source?
   def fromFile(file: File): CharStream = fromSource(Source.fromFile(file), Some(file.getPath))
 }

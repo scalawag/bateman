@@ -6,10 +6,8 @@ import org.scalawag.bateman.json.decoding.{DecodeError, JAnyDecoder}
 import org.scalawag.bateman.json.encoding.{JNull, JObject, JObjectEncoder, JString}
 import org.scalawag.bateman.json.generic.encoding.HListEncoderTest.WithDefaults
 import org.scalawag.bateman.json.generic.{Config, semiauto}
-import org.scalawag.bateman.json.generic.semiauto.Derivers
 import org.scalawag.bateman.json.syntax._
-import org.scalawag.bateman.json.{NotNull, Null, Nullable, parse}
-import shapeless.tag.@@
+import org.scalawag.bateman.json.{NotNull, Null, Nullable}
 
 object HListEncoderTest {
   val mydef: Nullable[String] = parse[Nullable[String]]("null")
@@ -21,7 +19,7 @@ object HListEncoderTest {
 
   def parse[A](json: String)(implicit decoder: JAnyDecoder[A]): A =
     org.scalawag.bateman.json
-      .parse(json.toStream)
+      .parse(json)
       .getOrElse(???)
       .as[A]
       .getOrElse(???)

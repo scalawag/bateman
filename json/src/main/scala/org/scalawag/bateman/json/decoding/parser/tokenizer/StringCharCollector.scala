@@ -41,35 +41,37 @@ private[parser] object StringCharCollector extends CharCollector {
   private def isHex(c: Char) = c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F'
   private def illegal(c: Char) = c == '\\' || c == '"' || c <= 0x1f
 
+  private def collectUnicodeEscape(in: CharStream, acc: List[Char]) =
+    in.chars.take(4).toList match {
+      case List(hex(d1), hex(d2), hex(d3), hex(d4)) =>
+        val d = Iterable(d1, d2, d3, d4).mkString
+        val i = Integer.parseInt(d, 16)
+        collectString(in.drop(4), i.toChar :: acc)
+      case next =>
+        val hexes = next.takeWhile(isHex)
+        Left(SyntaxError(in.drop(hexes.length), "expecting a hexadecimal digit"))
+    }
+
+  private def collectEscape(in: CharStream, acc: List[Char]) =
+    in.chars.headOption match {
+      case Some(escape(c)) => collectString(in.drop(1), c :: acc)
+      case Some('u')       => collectUnicodeEscape(in.drop(1), acc)
+      case _               => Left(SyntaxError(in, "expecting escape character [bfnrtu\\/\"]"))
+    }
+
   @tailrec
   private def collectString(in: CharStream, acc: List[Char]): Either[SyntaxError, (CharStream, List[Char])] =
-    in.chars match {
-      case '"' #:: _ =>
-        Right((in.drop(1), acc.reverse))
-
-      case '\\' #:: tail =>
-        tail match {
-          case escape(c) #:: _ => collectString(in.drop(2), c :: acc)
-          case 'u' #:: hex(d1) #:: hex(d2) #:: hex(d3) #:: hex(d4) #:: _ =>
-            val d = Iterable(d1, d2, d3, d4).mkString
-            val i = Integer.parseInt(d, 16)
-            collectString(in.drop(6), i.toChar :: acc)
-          case 'u' #:: tail =>
-            val hexes = tail.takeWhile(isHex)
-            Left(SyntaxError(in.drop(2 + hexes.length), "expecting a hexadecimal digit"))
-          case _ =>
-            Left(SyntaxError(in.drop(1), "expecting escape character [bfnrtu\\/\"]"))
-        }
-
-      case c #:: _ if !illegal(c) =>
-        collectString(in.drop(1), c :: acc)
+    in.chars.headOption match {
+      case Some('"')              => Right((in.drop(1), acc.reverse))
+      case Some('\\')             => collectEscape(in.drop(1), acc)
+      case Some(c) if !illegal(c) => collectString(in.drop(1), c :: acc)
 
       case _ => Left(SyntaxError(in, "expecting a legal string character, escape sequence or end quote"))
     }
 
   private def initialQuote(in: CharStream): Either[SyntaxError, (CharStream, List[Char])] =
-    in.chars match {
-      case '"' #:: _ => collectString(in.drop(1), Nil)
+    in.chars.headOption match {
+      case Some('"') => collectString(in.drop(1), Nil)
       case _         => Left(SyntaxError(in, ("expecting a beginning quote")))
     }
 

@@ -31,6 +31,8 @@ import org.scalawag.bateman.json.decoding.parser.tokenizer.{
 }
 import org.scalawag.bateman.json.decoding.parser.tokenizer.Tokenizer.TokenStream
 
+import scala.collection.compat.immutable.LazyList
+
 /** The input to this module comes from the Tokenizer. That means that it is guaranteed to have a terminating
   * SyntaxError or EndOfInput. An external caller is not allowed to provide input to this module, so we can make
   * this assumption without having extra error-handling code.
@@ -52,17 +54,17 @@ import org.scalawag.bateman.json.decoding.parser.tokenizer.Tokenizer.TokenStream
   */
 
 object Eventizer {
-  type EventStream = Stream[Either[SyntaxError, Event]]
+  type EventStream = LazyList[Either[SyntaxError, Event]]
 
   private type State = TokenStream => EventStream
 
   private def syntaxError(token: Token, reason: String)(tokens: TokenStream): EventStream =
-    Stream(SyntaxError(token.position, reason).asLeft)
+    LazyList(SyntaxError(token.position, reason).asLeft)
 
   private def unexpected(expected: String)(in: TokenStream): EventStream =
     in.head match {
       case Right(t) => syntaxError(t, s"expected $expected, not token: $t")(in)
-      case Left(e)  => Stream(e.asLeft)
+      case Left(e)  => LazyList(e.asLeft)
     }
 
   private def fieldEnd(next: State)(in: TokenStream): EventStream =
@@ -117,19 +119,19 @@ object Eventizer {
       case Right(x: PrimitiveToken) => Value(x).asRight #:: next(in.drop(1))
       case Right(b: OpenBrace)      => ObjectStart(b).asRight #:: fields(next)(in.drop(1))
       case Right(b: OpenBracket)    => ArrayStart(b).asRight #:: items(next)(in.drop(1))
-      case Right(_: EndOfInput)     => Stream.Empty
+      case Right(_: EndOfInput)     => LazyList.empty
       case _                        => unexpected("a JSON value")(in)
     }
 
   private def end(in: TokenStream): EventStream =
     in.head match {
-      case Right(t: EndOfInput) => Stream.empty
+      case Right(_: EndOfInput) => LazyList.empty
       case _                    => unexpected("end of input")(in)
     }
 
   private def values(in: TokenStream): EventStream =
     in.headOption match {
-      case None => Stream.Empty
+      case None => LazyList.empty
       case _    => value(values)(in)
     }
 
