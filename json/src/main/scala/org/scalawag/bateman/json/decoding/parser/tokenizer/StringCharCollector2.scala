@@ -19,6 +19,10 @@ import org.scalawag.bateman.json.decoding.parser.SyntaxError
 // This is not currently used because it blows up the heap really easily. I'm not sure how to prevent this, but I
 // prefer this (State) style to the explicit tailrec style in StringCharCollector, so I'm keeping it around in case
 // I can figure it out some day. The other one is also _much_ faster.
+//
+// UPDATE 2022-04-24 - switching from Stream to LazyList prevents the heap from blwoing up, but this implementation
+// still seems to be about 3x slower that the other one, so I'm going to leave that one in place until I can
+// investigate further.
 
 private[parser] object StringCharCollector2 extends CharCollector {
   private def isHex(c: Char) = c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F'
