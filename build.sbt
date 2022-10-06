@@ -90,6 +90,7 @@ val json = projectMatrix
       "org.typelevel" %%% "cats-core" % Versions.cats,
       "org.scala-lang.modules" %%% "scala-collection-compat" % "2.7.0",
       "io.github.cquiroz" %%% "scala-java-time" % "2.2.2",
+      "org.typelevel" %% "cats-core" % Versions.cats,
     ),
     libraryDependencies ++= Seq(
       "io.github.cquiroz" %%% "scala-java-time" % "2.2.2"
