@@ -20,16 +20,21 @@ ThisBuild / versionScheme := Some("early-semver")
 ThisBuild / organization := "org.scalawag.bateman"
 
 val Versions = new Object {
-  val cats = "2.7.0"
-  val circe = "0.13.0"
-  val enumeratum = "1.6.1"
-  val fastparse = "2.3.1"
-  val scalatest = "3.2.3"
-  val shapeless = "2.3.3"
-  val scalacheck = "1.16.0"
+  val cats = "2.8.0"
+  val circe = "0.14.3"
+  val enumeratum = "1.7.0"
+  val fastparse = "2.3.3"
+  val scalatest = "3.2.14"
+  val shapeless = "2.3.10"
+  val scalacheck = "1.17.0"
 }
 
+val jvmScalaVersions = Seq("2.12.17", "2.13.9")
+val jsScalaVersions = Seq("2.13.9")
+
 val commonSettings = Seq(
+  organization := "org.scalawag.bateman",
+//  scalacOptions += "-Xlog-implicits",
   scalacOptions ++= Seq(
     "-language:higherKinds",
     "-language:implicitConversions",
@@ -90,8 +95,8 @@ val json = projectMatrix
       "io.github.cquiroz" %%% "scala-java-time" % "2.2.2"
     ).map(_ % Test)
   )
-  .jvmPlatform(scalaVersions = Seq("2.12.15", "2.13.8"))
-  .jsPlatform(scalaVersions = Seq("2.13.8"))
+  .jvmPlatform(scalaVersions = jvmScalaVersions)
+  .jsPlatform(scalaVersions = jsScalaVersions)
 
 val parser = projectMatrix
   .dependsOn(json)
@@ -108,8 +113,8 @@ val parser = projectMatrix
         Some("0.1.13")
     }
   )
-  .jvmPlatform(scalaVersions = Seq("2.12.15", "2.13.8"))
-  .jsPlatform(scalaVersions = Seq("2.13.8"))
+  .jvmPlatform(scalaVersions = jvmScalaVersions)
+  .jsPlatform(scalaVersions = jsScalaVersions)
 
 val jsonGeneric = projectMatrix
   .dependsOn(json % "compile->compile;test->test")
@@ -129,8 +134,8 @@ val jsonGeneric = projectMatrix
       }
     }
   )
-  .jvmPlatform(scalaVersions = Seq("2.12.15", "2.13.8"))
-  .jsPlatform(scalaVersions = Seq("2.13.8"))
+  .jvmPlatform(scalaVersions = jvmScalaVersions)
+  .jsPlatform(scalaVersions = jsScalaVersions)
 
 val jsonLiteral = projectMatrix
   .dependsOn(json)
@@ -150,8 +155,8 @@ val jsonLiteral = projectMatrix
       }
     }
   )
-  .jvmPlatform(scalaVersions = Seq("2.12.15", "2.13.8"))
-  .jsPlatform(scalaVersions = Seq("2.13.8"))
+  .jvmPlatform(scalaVersions = jvmScalaVersions)
+  .jsPlatform(scalaVersions = jsScalaVersions)
 
 val jsonapi = projectMatrix
   .dependsOn(jsonGeneric % "compile->compile;test->test")
@@ -159,8 +164,8 @@ val jsonapi = projectMatrix
   .settings(
     name := s"$projectBaseName-jsonapi"
   )
-  .jvmPlatform(scalaVersions = Seq("2.12.15", "2.13.8"))
-  .jsPlatform(scalaVersions = Seq("2.13.8"))
+  .jvmPlatform(scalaVersions = jvmScalaVersions)
+  .jsPlatform(scalaVersions = jsScalaVersions)
 
 val jsonapiGeneric = projectMatrix
   .dependsOn(jsonapi % "compile->compile;test->test")
@@ -176,8 +181,8 @@ val jsonapiGeneric = projectMatrix
         Seq.empty
     }
   )
-  .jvmPlatform(scalaVersions = Seq("2.12.15", "2.13.8"))
-  .jsPlatform(scalaVersions = Seq("2.13.8"))
+  .jvmPlatform(scalaVersions = jvmScalaVersions)
+  .jsPlatform(scalaVersions = jsScalaVersions)
 
 val circe = projectMatrix
   .dependsOn(json)
@@ -188,8 +193,8 @@ val circe = projectMatrix
       "io.circe" %%% "circe-core" % Versions.circe
     )
   )
-  .jvmPlatform(scalaVersions = Seq("2.12.15", "2.13.8"))
-  .jsPlatform(scalaVersions = Seq("2.13.8"))
+  .jvmPlatform(scalaVersions = jvmScalaVersions)
+  .jsPlatform(scalaVersions = jsScalaVersions)
 
 val enumeratum = projectMatrix
   .dependsOn(json)
@@ -200,8 +205,8 @@ val enumeratum = projectMatrix
       "com.beachape" %%% "enumeratum" % Versions.enumeratum
     )
   )
-  .jvmPlatform(scalaVersions = Seq("2.12.15", "2.13.8"))
-  .jsPlatform(scalaVersions = Seq("2.13.8"))
+  .jvmPlatform(scalaVersions = jvmScalaVersions)
+  .jsPlatform(scalaVersions = jsScalaVersions)
 
 val root = projectMatrix
   .in(file("."))
