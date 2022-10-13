@@ -14,57 +14,65 @@
 
 package org.scalawag.bateman.json.encoding
 
+import cats.{Contravariant, Functor}
 import org.scalawag.bateman.json.{NotNull, Null, Nullable}
+import cats.syntax.contravariant._
 
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 import java.util.UUID
 
 trait Encoder[-A, +B] {
   def encode(a: A): B
-
-  def contramap[C](fn: C => A): Encoder[C, B] = { c =>
-    encode(fn(c))
-  }
 }
 
 object Encoder {
+  implicit def contravariantForEncoder[R]: Contravariant[Encoder[-*, R]] =
+    new Contravariant[Encoder[-*, R]] {
+      override def contramap[A, B](fa: Encoder[A, R])(f: B => A): Encoder[B, R] = b => fa.encode(f(b))
+    }
+
+  implicit def functorForEncoder[A]: Functor[Encoder[A, +*]] =
+    new Functor[Encoder[A, +*]] {
+      override def map[B, C](fa: Encoder[A, B])(f: B => C): Encoder[A, C] = b => f(fa.encode(b))
+    }
+
   def apply[A, B](implicit encoder: Encoder[A, B]): Encoder[A, B] = encoder
 
   def encode[A, B](a: A)(implicit encoder: Encoder[A, B]): B = encoder.encode(a)
 
   implicit def identityEncoder[A]: Encoder[A, A] = identity(_)
 
-  implicit val charEncoder: Encoder[Char, JString] = c => JString(c.toString)
-  implicit val stringEncoder: Encoder[String, JString] = JString(_)
+  implicit val charEncoder: JStringEncoder[Char] = c => JString(c.toString)
+  implicit val stringEncoder: JStringEncoder[String] = JString(_)
 
-  implicit val booleanEncoder: Encoder[Boolean, JBoolean] = JBoolean(_)
+  implicit val booleanEncoder: JBooleanEncoder[Boolean] = JBoolean(_)
 
-  implicit val byteEncoder: Encoder[Byte, JNumber] = JNumber(_)
-  implicit val shortEncoder: Encoder[Short, JNumber] = JNumber(_)
-  implicit val intEncoder: Encoder[Int, JNumber] = JNumber(_)
-  implicit val longEncoder: Encoder[Long, JNumber] = JNumber(_)
-  implicit val floatEncoder: Encoder[Float, JNumber] = JNumber(_)
-  implicit val doubleEncoder: Encoder[Double, JNumber] = JNumber(_)
-  implicit val bigIntEncoder: Encoder[BigInt, JNumber] = JNumber(_)
-  implicit val bigDecEncoder: Encoder[BigDecimal, JNumber] = JNumber(_)
+  implicit val byteEncoder: JNumberEncoder[Byte] = JNumber(_)
+  implicit val shortEncoder: JNumberEncoder[Short] = JNumber(_)
+  implicit val intEncoder: JNumberEncoder[Int] = JNumber(_)
+  implicit val longEncoder: JNumberEncoder[Long] = JNumber(_)
+  implicit val floatEncoder: JNumberEncoder[Float] = JNumber(_)
+  implicit val doubleEncoder: JNumberEncoder[Double] = JNumber(_)
+  implicit val bigIntEncoder: JNumberEncoder[BigInt] = JNumber(_)
+  implicit val bigDecEncoder: JNumberEncoder[BigDecimal] = JNumber(_)
 
-  implicit val uuidEncoder: Encoder[UUID, JString] = Encoder[String, JString].contramap(_.toString)
+  implicit val uuidEncoder: JStringEncoder[UUID] = stringEncoder.contramap(_.toString)
 
-  implicit val localDateDecoder: Encoder[LocalDate, JString] = stringEncoder.contramap(_.toString)
-  implicit val localTimeDecoder: Encoder[LocalTime, JString] = stringEncoder.contramap(_.toString)
-  implicit val localDateTimeDecoder: Encoder[LocalDateTime, JString] = stringEncoder.contramap(_.toString)
-  implicit val instantDecoder: Encoder[Instant, JString] = stringEncoder.contramap(_.toString)
+  implicit val localDateDecoder: JStringEncoder[LocalDate] = stringEncoder.contramap(_.toString)
+  implicit val localTimeDecoder: JStringEncoder[LocalTime] = stringEncoder.contramap(_.toString)
+  implicit val localDateTimeDecoder: JStringEncoder[LocalDateTime] = stringEncoder.contramap(_.toString)
+  implicit val instantDecoder: JStringEncoder[Instant] = stringEncoder.contramap(_.toString)
 
-  implicit def nullableEncoder[A](implicit enc: Encoder[A, JAny]): Encoder[Nullable[A], JAny] = {
+  implicit def nullableEncoder[A](implicit enc: JAnyEncoder[A]): JAnyEncoder[Nullable[A]] = {
     case NotNull(a) => enc.encode(a)
     case _: Null    => JNull
   }
 
-  implicit def listEncoder[A](implicit enc: Encoder[A, JAny]): Encoder[List[A], JArray] = { aa =>
+  implicit def listEncoder[A](implicit enc: JAnyEncoder[A]): JArrayEncoder[List[A]] = { aa =>
     JArray(aa.map(enc.encode): _*)
   }
 
-  implicit def mapEncoder[A](implicit enc: Encoder[A, JAny]): Encoder[Map[String, A], JObject] = { aa =>
+  implicit def mapEncoder[A](implicit enc: JAnyEncoder[A]): JObjectEncoder[Map[String, A]] = { aa =>
     JObject(aa.toSeq.map {
       case (n, a) => n -> enc.encode(a)
     }: _*)

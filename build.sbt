@@ -35,6 +35,7 @@ val jsScalaVersions = jvmScalaVersions
 val commonSettings = Seq(
   organization := "org.scalawag.bateman",
 //  scalacOptions += "-Xlog-implicits",
+  addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full),
   scalacOptions ++= Seq(
     "-language:higherKinds",
     "-language:implicitConversions",

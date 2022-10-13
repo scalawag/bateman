@@ -25,15 +25,17 @@ package object encoding {
   type JObjectEncoder[In] = Encoder[In, JObject]
   type JStringEncoder[In] = Encoder[In, JString]
   type JNumberEncoder[In] = Encoder[In, JNumber]
+  type JBooleanEncoder[In] = Encoder[In, JBoolean]
 
-  object JAnyEncoder extends EncoderAliasCompanion[JAny]
-  object JArrayEncoder extends EncoderAliasCompanion[JArray]
-  object JObjectEncoder extends EncoderAliasCompanion[JObject]
-  object JStringEncoder extends EncoderAliasCompanion[JString]
-  object JNumberEncoder extends EncoderAliasCompanion[JNumber]
+  object JAnyEncoder extends EncoderAliasCompanion[JAny, JAnyEncoder]
+  object JArrayEncoder extends EncoderAliasCompanion[JArray, JArrayEncoder]
+  object JObjectEncoder extends EncoderAliasCompanion[JObject, JObjectEncoder]
+  object JStringEncoder extends EncoderAliasCompanion[JString, JStringEncoder]
+  object JNumberEncoder extends EncoderAliasCompanion[JNumber, JNumberEncoder]
+  object JBooleanEncoder extends EncoderAliasCompanion[JBoolean, JBooleanEncoder]
 
-  trait EncoderAliasCompanion[Out] {
-    def apply[In](implicit encoder: Encoder[In, Out]): Encoder[In, Out] = encoder
+  trait EncoderAliasCompanion[Out, Enc[_]] {
+    def apply[In](implicit encoder: Enc[In]): Enc[In] = encoder
     def encode[In](in: In)(implicit enc: Encoder[In, Out]): Out = enc.encode(in)
   }
 }

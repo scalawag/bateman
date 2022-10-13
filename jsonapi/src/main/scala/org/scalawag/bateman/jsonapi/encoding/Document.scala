@@ -15,8 +15,19 @@
 package org.scalawag.bateman.jsonapi.encoding
 
 import org.scalawag.bateman.jsonapi.encoding
-import org.scalawag.bateman.json.encoding.{Encoder, JAny, JArray, JNull, JObject, JObjectEncoder, JString}
+import org.scalawag.bateman.json.encoding.{
+  Encoder,
+  JAny,
+  JAnyEncoder,
+  JArray,
+  JArrayEncoder,
+  JNull,
+  JObject,
+  JObjectEncoder,
+  JStringEncoder
+}
 import org.scalawag.bateman.json.generic.semiauto
+import cats.syntax.contravariant._
 
 sealed trait HasMeta[A] {
   def meta: Option[Map[String, JAny]]
@@ -40,7 +51,7 @@ final case class BareLink(
 ) extends Link
 
 object BareLink {
-  implicit val encoder: Encoder[BareLink, JAny] = Encoder[String, JString].contramap(_.href)
+  implicit val encoder: Encoder[BareLink, JAny] = JStringEncoder[String].contramap(_.href)
 }
 
 final case class RichLink(
@@ -141,35 +152,35 @@ case class ResourceIdentifierData(data: encoding.ResourceIdentifier) extends Pri
 
 object ResourceIdentifierData {
   implicit def encoder: Encoder[ResourceIdentifierData, JAny] =
-    Encoder[encoding.ResourceIdentifier, JAny].contramap(_.data)
+    JAnyEncoder[encoding.ResourceIdentifier].contramap(_.data)
 }
 
 case class ResourceObjectData(data: encoding.ResourceObject) extends PrimaryData
 
 object ResourceObjectData {
   implicit def encoder: Encoder[ResourceObjectData, JAny] =
-    Encoder[encoding.ResourceObject, JAny].contramap(_.data)
+    JAnyEncoder[encoding.ResourceObject].contramap(_.data)
 }
 
 case class ResourceObjectOptionalIdData(data: encoding.ResourceObjectOptionalId) extends PrimaryData
 
 object ResourceObjectOptionalIdData {
   implicit def encoder: Encoder[ResourceObjectOptionalIdData, JAny] =
-    Encoder[encoding.ResourceObjectOptionalId, JAny].contramap(_.data)
+    JAnyEncoder[encoding.ResourceObjectOptionalId].contramap(_.data)
 }
 
 case class ResourceIdentifiersData(data: List[encoding.ResourceIdentifier]) extends PrimaryData with RelationshipData
 
 object ResourceIdentifiersData {
   implicit def encoder: Encoder[ResourceIdentifiersData, JArray] =
-    Encoder[List[encoding.ResourceIdentifier], JArray].contramap(_.data)
+    JArrayEncoder[List[encoding.ResourceIdentifier]].contramap(_.data)
 }
 
 case class ResourceObjectsData(data: List[encoding.ResourceObject]) extends PrimaryData
 
 object ResourceObjectsData {
   implicit def encoder: Encoder[ResourceObjectsData, JArray] =
-    Encoder[List[encoding.ResourceObject], JArray].contramap(_.data)
+    JArrayEncoder[List[encoding.ResourceObject]].contramap(_.data)
 }
 
 final case class Relationship(

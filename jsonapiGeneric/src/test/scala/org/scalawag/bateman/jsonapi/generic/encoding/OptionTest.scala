@@ -24,6 +24,7 @@ import org.scalawag.bateman.json.generic.Config
 import org.scalawag.bateman.jsonapi.encoding.{NullData, Relationship, ResourceIdentifier, ResourceObjectOptionalId}
 import org.scalawag.bateman.jsonapi.generic.{AttributeTag, IdTag, MetaTag, RelationshipTag, semiauto}
 import shapeless.tag.@@
+import cats.syntax.contravariant._
 
 object OptionTest {
   final case class MyIdClass(id: String @@ IdTag)

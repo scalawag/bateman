@@ -17,8 +17,8 @@ package org.scalawag.bateman.json.literal
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalawag.bateman.json.encoding.{JAnyEncoder, JArray, JBoolean, JNull, JNumber, JObject, JString}
-
 import scala.collection.BitSet
+import cats.syntax.contravariant._
 
 class LiteralTest extends AnyFunSpec with Matchers {
   it("should parse JSON text with no variables") {

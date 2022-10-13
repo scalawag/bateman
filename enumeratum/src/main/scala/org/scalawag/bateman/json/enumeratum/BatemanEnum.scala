@@ -16,6 +16,7 @@ package org.scalawag.bateman.json.enumeratum
 
 import enumeratum.{Enum, EnumEntry}
 import cats.syntax.validated._
+import cats.syntax.contravariant._
 import org.scalawag.bateman.json.decoding.{Decoder, InvalidValue}
 import org.scalawag.bateman.json.encoding.Encoder
 import org.scalawag.bateman.json.{decoding, encoding}
@@ -27,7 +28,7 @@ trait BatemanEnum[A <: EnumEntry] { this: Enum[A] =>
 
 object BatemanEnum {
   def encoder[A <: EnumEntry](enum: Enum[A]): Encoder[A, encoding.JString] =
-    Encoder[String, encoding.JString].contramap(_.entryName)
+    encoding.JStringEncoder[String].contramap(_.entryName)
 
   def decoder[A <: EnumEntry](enum: Enum[A]): Decoder[decoding.JString, A] =
     Decoder { in =>
