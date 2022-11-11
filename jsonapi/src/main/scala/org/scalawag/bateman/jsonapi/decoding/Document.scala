@@ -17,7 +17,7 @@ package org.scalawag.bateman.jsonapi.decoding
 import cats.data.NonEmptyChain
 import cats.syntax.validated._
 import cats.syntax.apply._
-import org.scalawag.bateman.json.decoding.query.{Query, root}
+import org.scalawag.bateman.json.decoding.query.{Query, TraverseQuery, root}
 import org.scalawag.bateman.json.decoding.{ContextualDecoder, DecodeResult, Decoder, JArray, JObject, JString}
 import org.scalawag.bateman.json.generic.decoding.JSource
 import org.scalawag.bateman.json.generic.{SourceTag, semiauto}
@@ -116,6 +116,9 @@ final case class Document(
       throw new IllegalArgumentException("invalid JSON:API doc can't be represented as encoding")
 
   def dquery[To](fn: Query[Document, Document, Document] => Query[Document, To, Document]): DecodeResult[To] =
+    fn(root[Document, Document])(this, this)
+
+  def dtquery[F[_], To](fn: Query[Document, Document, Document] => TraverseQuery[F, Document, To, Document]): DecodeResult[F[To]] =
     fn(root[Document, Document])(this, this)
 
   def primaryDatumAs[To](implicit decoder: ContextualDecoder[ResourceLike, To, Document]): DecodeResult[To] = {
