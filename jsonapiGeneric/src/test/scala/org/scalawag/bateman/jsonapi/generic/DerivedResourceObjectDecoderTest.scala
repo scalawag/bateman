@@ -15,6 +15,7 @@
 package org.scalawag.bateman.jsonapi.generic
 
 import cats.data.NonEmptyChain
+import cats.data.Validated.{Invalid, Valid}
 import cats.syntax.validated._
 import org.scalawag.bateman.json.generic.naming.{CamelCase, CaseTransformation, SnakeCase}
 import org.scalawag.bateman.json.decoding.{
@@ -46,7 +47,7 @@ import org.scalawag.bateman.json.ParserTestUtils
 import org.scalawag.bateman.json.decoding.DecodeError.formatErrorReport
 import org.scalawag.bateman.json.generic.{Config, SourceTag}
 import org.scalawag.bateman.json.validating.EmptyTraitValidatedCompanion
-import org.scalawag.bateman.jsonapi.generic.decoding.{JSource, ResourceDecoder}
+import org.scalawag.bateman.jsonapi.generic.decoding.{CaseClassResourceDecoder, JSource, ResourceDecoder}
 import shapeless.tag.@@
 
 import java.util.UUID
@@ -510,6 +511,85 @@ class DerivedResourceObjectDecoderTest extends AnyFunSpec with Matchers with Par
         )
         .shouldSucceed shouldBe MyClass("ID", "A", "B", 31)
 
+    }
+  }
+
+  describe("decode data array") {
+    it("should extract a list") {
+      val in =
+        """
+          |{
+          |  "data": [
+          |    {
+          |      "type": "briefcase",
+          |      "id": "77777777-7777-7777-7777-777777777777",
+          |      "attributes": {
+          |        "description": "A beautiful set of photography left by a mysterious figure.",
+          |        "size": 1234,
+          |        "value": 126.63
+          |      },
+          |      "meta": {
+          |        "archived": false,
+          |        "version": 1
+          |      }
+          |    },
+          |    {
+          |      "type": "briefcase",
+          |      "id": "88888888-8888-8888-8888-888888888888",
+          |      "attributes": {
+          |        "description": "Your lunch. Carrying it in a briefcase is way cooler than carrying around a lunchbox.",
+          |        "size": 500,
+          |        "value": 12.99
+          |      },
+          |      "meta": {
+          |        "archived": false,
+          |        "version": 1
+          |      }
+          |    }
+          |  ]
+          |}""".stripMargin
+
+      final case class Briefcase(
+          id: String @@ IdTag,
+          description: String @@ AttributeTag,
+          size: Int @@ AttributeTag,
+          value: Double @@ AttributeTag,
+          archived: Boolean @@ MetaTag,
+          version: Int @@ MetaTag
+      )
+
+      object Briefcase {
+        implicit val decoder: CaseClassResourceDecoder[ResourceObject, Briefcase] =
+          semiauto.deriveResourceObjectDecoderForCaseClass[Briefcase]("briefcase")
+      }
+
+      val doc = parseAs[Document](in)
+
+      val actualBriefcases = doc.dtquery(_ ~> data ~> multiple ~> as[ResourceObject] ~> as[Briefcase]) match {
+        case Valid(briefcases) => briefcases
+        case Invalid(error)    => fail(s"Could not decode data array of briefcase: $error")
+      }
+
+      val expectedBriefcases = List(
+        Briefcase(
+          id = "77777777-7777-7777-7777-777777777777",
+          description = "A beautiful set of photography left by a mysterious figure.",
+          size = 1234,
+          value = 126.63,
+          archived = false,
+          version = 1
+        ),
+        Briefcase(
+          id = "88888888-8888-8888-8888-888888888888",
+          description = "Your lunch. Carrying it in a briefcase is way cooler than carrying around a lunchbox.",
+          size = 500,
+          value = 12.99,
+          archived = false,
+          version = 1
+        )
+      )
+
+      actualBriefcases shouldBe expectedBriefcases
     }
   }
 }
