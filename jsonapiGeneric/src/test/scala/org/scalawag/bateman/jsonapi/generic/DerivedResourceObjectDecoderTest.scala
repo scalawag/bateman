@@ -18,11 +18,29 @@ import cats.data.NonEmptyChain
 import cats.data.Validated.{Invalid, Valid}
 import cats.syntax.validated._
 import org.scalawag.bateman.json.generic.naming.{CamelCase, CaseTransformation, SnakeCase}
-import org.scalawag.bateman.json.decoding.{ContextualDecoder, DecodeResult, JAny, JAnyDecoder, JObject, JString, JsonTypeMismatch}
+import org.scalawag.bateman.json.decoding.{
+  ContextualDecoder,
+  DecodeResult,
+  JAny,
+  JAnyDecoder,
+  JObject,
+  JString,
+  JsonTypeMismatch
+}
 import org.scalawag.bateman.json.decoding.query._
 import org.scalawag.bateman.jsonapi.query._
 import org.scalawag.bateman.jsonapi.Model.{Blue, Color, RGB, Red}
-import org.scalawag.bateman.jsonapi.decoding.{Document, JsonApiTypeMismatch, ResourceIdentifier, ResourceIdentifierDecoder, ResourceObject, ResourceObjectDecoder, ResourceObjectLike, ResourceObjectOptionalId, ResourceObjectOptionalIdDecoder}
+import org.scalawag.bateman.jsonapi.decoding.{
+  Document,
+  JsonApiTypeMismatch,
+  ResourceIdentifier,
+  ResourceIdentifierDecoder,
+  ResourceObject,
+  ResourceObjectDecoder,
+  ResourceObjectLike,
+  ResourceObjectOptionalId,
+  ResourceObjectOptionalIdDecoder
+}
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalawag.bateman.json.ParserTestUtils
@@ -38,22 +56,21 @@ class DerivedResourceObjectDecoderTest extends AnyFunSpec with Matchers with Par
   describe("tagged") {
 
     final case class Square(
-      id: UUID @@ IdTag,
-      label: Option[String] @@ AttributeTag = None,
-      color: List[Color] @@ AttributeTag,
-      sideLength: Int @@ AttributeTag,
-      parent: Option[ResourceIdentifier] @@ RelationshipTag = None
+        id: UUID @@ IdTag,
+        label: Option[String] @@ AttributeTag = None,
+        color: List[Color] @@ AttributeTag,
+        sideLength: Int @@ AttributeTag,
+        parent: Option[ResourceIdentifier] @@ RelationshipTag = None
     )
 
     object Square {
       implicit val cfg: Config = Config(fieldNameMapping = CaseTransformation(CamelCase, SnakeCase))
-
       implicit def decoder: ResourceObjectDecoder[Square] =
         semiauto.deriveResourceObjectDecoderForCaseClass[Square]("square")
     }
 
     val q1 = root[JAny, Any] ~> as[Document]
-    //    val q2 = root[JAny, Any].~>(as[Document])(ContextualDecoder.narrowObject(Document.decoder[Any]))
+//    val q2 = root[JAny, Any].~>(as[Document])(ContextualDecoder.narrowObject(Document.decoder[Any]))
 
     it("should decode") {
       val square =
@@ -67,8 +84,7 @@ class DerivedResourceObjectDecoderTest extends AnyFunSpec with Matchers with Par
 
       square.copy(sideLength = 11)
 
-      val doc = parseAs[Document](
-        """
+      val doc = parseAs[Document]("""
         {
           "data" : {
             "type" : "Square",
@@ -103,21 +119,19 @@ class DerivedResourceObjectDecoderTest extends AnyFunSpec with Matchers with Par
   describe("source injection") {
 
     final case class MyClass(
-      id: UUID @@ IdTag,
-      label: Option[String] @@ AttributeTag = None,
-      src: Option[JSource] @@ SourceTag = None
+        id: UUID @@ IdTag,
+        label: Option[String] @@ AttributeTag = None,
+        src: Option[JSource] @@ SourceTag = None
     )
 
     object MyClass {
       implicit val cfg: Config = Config(fieldNameMapping = CaseTransformation(CamelCase, SnakeCase))
-
       implicit def decoder: ResourceObjectDecoder[MyClass] =
         semiauto.deriveResourceObjectDecoderForCaseClass[MyClass]("my_class")
     }
 
     it("should decode") {
-      val in = parseAs[ResourceObject](
-        """
+      val in = parseAs[ResourceObject]("""
         {
           "type" : "my_class",
           "id" : "55555555-5555-5555-5555-555555555555",
@@ -140,27 +154,26 @@ class DerivedResourceObjectDecoderTest extends AnyFunSpec with Matchers with Par
     import shapeless.tag.@@
 
     final case class SquareId(
-      id: UUID @@ IdTag
+        id: UUID @@ IdTag
     )
 
     object SquareId {
-      //      implicit val tagUUidDec = IdTag.decoder[JAny, UUID]
+//      implicit val tagUUidDec = IdTag.decoder[JAny, UUID]
 
       implicit val decoder: ResourceIdentifierDecoder[SquareId] =
         semiauto.deriveResourceIdentifierDecoderForCaseClass[SquareId]("square")
     }
 
     final case class Square(
-      id: UUID @@ IdTag,
-      label: Option[String] @@ AttributeTag = None,
-      color: List[Color] @@ AttributeTag,
-      sideLength: Int @@ AttributeTag,
-      parent: Option[SquareId] @@ RelationshipTag
+        id: UUID @@ IdTag,
+        label: Option[String] @@ AttributeTag = None,
+        color: List[Color] @@ AttributeTag,
+        sideLength: Int @@ AttributeTag,
+        parent: Option[SquareId] @@ RelationshipTag
     )
 
     object Square {
       implicit val cfg: Config = Config(fieldNameMapping = CaseTransformation(CamelCase, SnakeCase))
-
       implicit def decoder: ResourceObjectDecoder[Square] =
         semiauto.deriveResourceObjectDecoderForCaseClass[Square]("square")
     }
@@ -177,8 +190,7 @@ class DerivedResourceObjectDecoderTest extends AnyFunSpec with Matchers with Par
 
       square.copy(sideLength = 11)
 
-      val in = parse(
-        """
+      val in = parse("""
         {
           "data" : {
             "type" : "Square",
@@ -250,11 +262,11 @@ class DerivedResourceObjectDecoderTest extends AnyFunSpec with Matchers with Par
   describe("relationships") {
     final case class MyRelative(id: UUID @@ IdTag, name: String @@ AttributeTag)
 
-    //    implicit val tagIdDec = IdTag.decoder[JString, Int]
-    //    implicit val tagStringDec = AttributeTag.decoder[JAny, String]
+//    implicit val tagIdDec = IdTag.decoder[JString, Int]
+//    implicit val tagStringDec = AttributeTag.decoder[JAny, String]
 
     object MyRelative {
-      //      implicit val isDec: Decoder[JString, Int] = Decoder.jstringToJNumber
+//      implicit val isDec: Decoder[JString, Int] = Decoder.jstringToJNumber
       implicit val decoder = semiauto.deriveResourceObjectDecoderForCaseClass[MyRelative]("my_relative")
     }
 
@@ -263,12 +275,12 @@ class DerivedResourceObjectDecoderTest extends AnyFunSpec with Matchers with Par
       implicit val decoder = semiauto.deriveResourceIdentifierDecoderForCaseClass[MyRelativeId]("my_relative")
     }
 
-    //    implicit def full[A](implicit
-    //        dec: ResourceDecoder[ResourceObject, A]
-    //    ): ResourceDecoder[ResourceIdentifier, A] = {
-    //      case (in, Some(doc)) => doc.requiredIncluded(in).andThen(_.as[A])
-    //      case (in, None)      => ??? // TODO: handle gracefully with a missing inclusion error
-    //    }
+//    implicit def full[A](implicit
+//        dec: ResourceDecoder[ResourceObject, A]
+//    ): ResourceDecoder[ResourceIdentifier, A] = {
+//      case (in, Some(doc)) => doc.requiredIncluded(in).andThen(_.as[A])
+//      case (in, None)      => ??? // TODO: handle gracefully with a missing inclusion error
+//    }
 
     it("should handle a singular raw relation") {
       final case class MyClass(id: UUID @@ IdTag, relative: ResourceIdentifier @@ RelationshipTag)
@@ -302,9 +314,9 @@ class DerivedResourceObjectDecoderTest extends AnyFunSpec with Matchers with Par
 
     it("should handle a singular custom object relation") {
       final case class MyClass(id: UUID @@ IdTag, relative: MyRelative @@ RelationshipTag)
-      //      implicit val f = full(MyRelative.decoder)
-      //      ResourceIdentifierLike.fromIdentifierDecoder[MyRelative]
-      //      ResourceIdentifierLike.fromObjectDecoder[MyRelative]
+//      implicit val f = full(MyRelative.decoder)
+//      ResourceIdentifierLike.fromIdentifierDecoder[MyRelative]
+//      ResourceIdentifierLike.fromObjectDecoder[MyRelative]
       val dec = semiauto.deriveResourceObjectDecoderForCaseClass[MyClass]("my_class")
     }
 
@@ -318,8 +330,7 @@ class DerivedResourceObjectDecoderTest extends AnyFunSpec with Matchers with Par
       val fooId = UUID.randomUUID
       val barId = UUID.randomUUID
 
-      val json = parseAs[Document](
-        s"""
+      val json = parseAs[Document](s"""
         {
           "data": {
             "type": "my_class",
@@ -360,7 +371,7 @@ class DerivedResourceObjectDecoderTest extends AnyFunSpec with Matchers with Par
 
       final case class MyClass(id: UUID @@ IdTag, relatives: List[MyRelative] @@ RelationshipTag)
 
-      //      implicit val tagRelDec = RelationshipTag.decoder[ResourceIdentifier, MyRelative]
+//      implicit val tagRelDec = RelationshipTag.decoder[ResourceIdentifier, MyRelative]
 
       implicit val dec = semiauto.deriveResourceObjectDecoderForCaseClass[MyClass]("my_class")
 
@@ -369,10 +380,10 @@ class DerivedResourceObjectDecoderTest extends AnyFunSpec with Matchers with Par
       val q = json.cquery(json)(_ ~> data ~> required)
 
       val g = json.cquery(json)(_ ~> data ~> required ~> as[ResourceObject] ~> as[MyClass])
-      //      println(g.fold(formatErrorReport, identity))
+//      println(g.fold(formatErrorReport, identity))
 
       g.shouldSucceed shouldBe MyClass(mainId, List(MyRelative(fooId, "foo"), MyRelative(barId, "bar")))
-      //      val f = json.requiredData.andThen(_.singular).andThen(_.as[ResourceObject]).andThen(_.as[MyClass])
+//      val f = json.requiredData.andThen(_.singular).andThen(_.as[ResourceObject]).andThen(_.as[MyClass])
     }
   }
 
@@ -381,16 +392,16 @@ class DerivedResourceObjectDecoderTest extends AnyFunSpec with Matchers with Par
       trait NoDecoderId
 
       final case class Square(
-        id: UUID @@ IdTag,
-        label: Option[String] @@ AttributeTag = None,
-        color: List[Color] @@ AttributeTag,
-        sideLength: Int @@ AttributeTag,
-        parent: Option[NoDecoderId] @@ RelationshipTag = None
+          id: UUID @@ IdTag,
+          label: Option[String] @@ AttributeTag = None,
+          color: List[Color] @@ AttributeTag,
+          sideLength: Int @@ AttributeTag,
+          parent: Option[NoDecoderId] @@ RelationshipTag = None
       )
 
       object Square {
-        //        implicit def decoder: ResourceObjectDecoder[Square] =
-        //          semiauto.deriveResourceObjectDecoderForCaseClass[Square]("square")
+//        implicit def decoder: ResourceObjectDecoder[Square] =
+//          semiauto.deriveResourceObjectDecoderForCaseClass[Square]("square")
       }
     }
   }
@@ -401,8 +412,7 @@ class DerivedResourceObjectDecoderTest extends AnyFunSpec with Matchers with Par
     implicit val decoder = semiauto.deriveResourceObjectOptionalIdDecoderForCaseClass[MyClass]("my_class")
 
     it("should handle Some id") {
-      val json = parseAs[ResourceObjectOptionalId](
-        """
+      val json = parseAs[ResourceObjectOptionalId]("""
         {
           "type": "my_class",
           "id": "8"
@@ -413,8 +423,7 @@ class DerivedResourceObjectDecoderTest extends AnyFunSpec with Matchers with Par
     }
 
     it("should handle None id") {
-      val json = parseAs[ResourceObjectOptionalId](
-        """
+      val json = parseAs[ResourceObjectOptionalId]("""
         {
           "type": "my_class"
         }
@@ -424,8 +433,7 @@ class DerivedResourceObjectDecoderTest extends AnyFunSpec with Matchers with Par
     }
 
     it("should fail on a null ID") {
-      val json = parse(
-        """
+      val json = parse("""
         {
           "type": "my_class",
           "id": null
@@ -433,7 +441,7 @@ class DerivedResourceObjectDecoderTest extends AnyFunSpec with Matchers with Par
       """)
 
       JAnyDecoder[ResourceObjectOptionalId].decode(json) shouldBe JsonTypeMismatch(
-        json.asObject.andThen(_.fields).map(_ ("id").value).getOrElse(???),
+        json.asObject.andThen(_.fields).map(_("id").value).getOrElse(???),
         JString
       ).invalidNec
     }
@@ -446,17 +454,16 @@ class DerivedResourceObjectDecoderTest extends AnyFunSpec with Matchers with Par
     }
 
     final case class MyClassFoo(
-      id: String @@ IdTag,
-      a: String with MyTrait @@ AttributeTag,
-      b: String with MyTrait @@ AttributeTag
+        id: String @@ IdTag,
+        a: String with MyTrait @@ AttributeTag,
+        b: String with MyTrait @@ AttributeTag
     )
     implicit val decoder = semiauto.deriveResourceObjectDecoderForCaseClass[MyClassFoo]("my_class")
 
     it("should double up prechecks") {
       ResourceObjectDecoder[MyClassFoo]
         .decode(
-          parseAs[ResourceObject](
-            """
+          parseAs[ResourceObject]("""
             {
               "type": "my_class",
               "id": "ID",
@@ -474,10 +481,10 @@ class DerivedResourceObjectDecoderTest extends AnyFunSpec with Matchers with Par
 
   describe("decode metadata") {
     final case class MyClass(
-      id: String @@ IdTag,
-      a: String @@ AttributeTag,
-      b: String @@ MetaTag,
-      c: Int @@ MetaTag
+        id: String @@ IdTag,
+        a: String @@ AttributeTag,
+        b: String @@ MetaTag,
+        c: Int @@ MetaTag
     )
 
     object MyClass {
@@ -487,8 +494,7 @@ class DerivedResourceObjectDecoderTest extends AnyFunSpec with Matchers with Par
     it("should decode b and c") {
       ResourceObjectDecoder[MyClass]
         .decode(
-          parseAs[ResourceObject](
-            """
+          parseAs[ResourceObject]("""
             {
               "type": "my_class",
               "id": "ID",
@@ -544,23 +550,24 @@ class DerivedResourceObjectDecoderTest extends AnyFunSpec with Matchers with Par
           |}""".stripMargin
 
       final case class Briefcase(
-                                  id: String @@ IdTag,
-                                  description: String @@ AttributeTag,
-                                  size: Int @@ AttributeTag,
-                                  value: Double @@ AttributeTag,
-                                  archived: Boolean @@ MetaTag,
-                                  version: Int @@ MetaTag
-                                )
+          id: String @@ IdTag,
+          description: String @@ AttributeTag,
+          size: Int @@ AttributeTag,
+          value: Double @@ AttributeTag,
+          archived: Boolean @@ MetaTag,
+          version: Int @@ MetaTag
+      )
 
       object Briefcase {
-        implicit val decoder: CaseClassResourceDecoder[ResourceObject, Briefcase] = semiauto.deriveResourceObjectDecoderForCaseClass[Briefcase]("briefcase")
+        implicit val decoder: CaseClassResourceDecoder[ResourceObject, Briefcase] =
+          semiauto.deriveResourceObjectDecoderForCaseClass[Briefcase]("briefcase")
       }
 
       val doc = parseAs[Document](in)
 
       val actualBriefcases = doc.dtquery(_ ~> data ~> multiple ~> as[ResourceObject] ~> as[Briefcase]) match {
         case Valid(briefcases) => briefcases
-        case Invalid(error) => fail(s"Could not decode data array of briefcase: $error")
+        case Invalid(error)    => fail(s"Could not decode data array of briefcase: $error")
       }
 
       val expectedBriefcases = List(

@@ -18,7 +18,7 @@ import cats.data.NonEmptyChain
 import cats.syntax.validated._
 import cats.syntax.apply._
 import org.scalawag.bateman.json.decoding.query.{Query, TraverseQuery, root}
-import org.scalawag.bateman.json.decoding.{ContextualDecoder, DecodeResult, Decoder, JArray, JObject, JString}
+import org.scalawag.bateman.json.decoding.{ContextualDecoder, DecodeResult, Decoder, JObject, JString}
 import org.scalawag.bateman.json.generic.decoding.JSource
 import org.scalawag.bateman.json.generic.{SourceTag, semiauto}
 import org.scalawag.bateman.json.validIfEmpty
@@ -118,13 +118,23 @@ final case class Document(
   def dquery[To](fn: Query[Document, Document, Document] => Query[Document, To, Document]): DecodeResult[To] =
     fn(root[Document, Document])(this, this)
 
-  def dtquery[F[_], To](fn: Query[Document, Document, Document] => TraverseQuery[F, Document, To, Document]): DecodeResult[F[To]] =
+  def dtquery[F[_], To](
+      fn: Query[Document, Document, Document] => TraverseQuery[F, Document, To, Document]
+  ): DecodeResult[F[To]] =
     fn(root[Document, Document])(this, this)
 
   def primaryDatumAs[To](implicit decoder: ContextualDecoder[ResourceLike, To, Document]): DecodeResult[To] = {
     import org.scalawag.bateman.json.decoding.query._
     import org.scalawag.bateman.jsonapi.query
     dquery[To](_ ~> query.data ~> query.required ~> as[To])
+  }
+
+  def primaryDataAs[To](implicit
+      decoder: ContextualDecoder[ResourceLike, To, Document]
+  ): DecodeResult[List[To]] = {
+    import org.scalawag.bateman.json.decoding.query._
+    import org.scalawag.bateman.jsonapi.query
+    dtquery[List, To](_ ~> query.data ~> query.multiple ~> as[To])
   }
 }
 
