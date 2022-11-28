@@ -70,7 +70,7 @@ class Macros(override protected val c: Context) extends MacroBase(c) {
       val name = instanceName("encoder", cs)
       maybeNamedImplicit(
         name,
-        q"""implicitly[org.scalawag.bateman.json.generic.encoding.CaseClassEncoder[$cs]]"""
+        q"""implicitly[org.scalawag.bateman.json.encoding.Encoder[$cs, org.scalawag.bateman.json.encoding.JAny]]"""
       )
     }
 
@@ -97,7 +97,7 @@ class Macros(override protected val c: Context) extends MacroBase(c) {
       val to = weakTypeOf[To]
       maybeNamedImplicit(
         name,
-        q"""implicitly[org.scalawag.bateman.json.generic.decoding.CaseClassDecoder[$cs, $to]]"""
+        q"""implicitly[org.scalawag.bateman.json.decoding.ContextualDecoder[org.scalawag.bateman.json.decoding.JAny, $cs, $to]]"""
       )
     }
 
