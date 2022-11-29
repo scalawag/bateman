@@ -19,7 +19,7 @@ import org.scalawag.bateman.json.{NotNull, Null, Nullable}
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 import java.util.UUID
 
-trait Encoder[-A, +B] {
+trait Encoder[A, +B] {
   def encode(a: A): B
 
   def contramap[C](fn: C => A): Encoder[C, B] = { c =>

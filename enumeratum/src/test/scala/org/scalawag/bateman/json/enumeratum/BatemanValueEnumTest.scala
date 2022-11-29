@@ -38,7 +38,7 @@ class BatemanValueEnumTest extends AnyFunSpec with Matchers {
     }
 
     it("should encode") {
-      ShirtSize.Small.toJAny shouldBe encoding.JNumber(1)
+      (ShirtSize.Small: ShirtSize).toJAny shouldBe encoding.JNumber(1)
     }
 
     it("should decode") {
@@ -69,7 +69,7 @@ class BatemanValueEnumTest extends AnyFunSpec with Matchers {
     }
 
     it("should encode") {
-      TriStateBool.False.toJAny shouldBe encoding.JString("F")
+      (TriStateBool.False: TriStateBool).toJAny shouldBe encoding.JString("F")
     }
 
     it("should decode") {

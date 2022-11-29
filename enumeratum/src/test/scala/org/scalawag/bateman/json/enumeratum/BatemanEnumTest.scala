@@ -35,7 +35,7 @@ class BatemanEnumTest extends AnyFunSpec with Matchers {
   }
 
   it("should encode") {
-    Color.Red.toJAny shouldBe encoding.JString("red")
+    (Color.Red: Color).toJAny shouldBe encoding.JString("red")
   }
 
   it("should decode") {
