@@ -120,8 +120,8 @@ class Macros(override protected val c: Context) extends MacroBase(c) {
       deriver: Tree
   ): Tree =
     q"""{
-      ..${if (decode) decoderPreChecks[To](subclasses) else Nil}
-      ..${if (encode) encoderPreChecks(subclasses) else Nil}
+      ..${if (decode) decoderPreChecks[To](subclasses.filterNot(_.isAbstract)) else Nil}
+      ..${if (encode) encoderPreChecks(subclasses.filterNot(_.isAbstract)) else Nil}
       $deriver
     }"""
 
