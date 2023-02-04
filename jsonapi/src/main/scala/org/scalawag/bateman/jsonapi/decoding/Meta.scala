@@ -21,11 +21,15 @@ import org.scalawag.bateman.json.decoding.{DecodeResult, Decoder, JAny, JObject,
 import org.scalawag.bateman.json.encoding
 import org.scalawag.bateman.json.generic.decoding.JSource
 
+import scala.util.Try
+
 final case class Meta(src: JObject, mappings: Map[JString, JAny]) {
   private val bareMap: Map[String, JAny] = mappings.map { case (k, v) => k.value -> v }
   def get(key: String): Option[JAny] = bareMap.get(key)
 
   def toEncoding: Map[String, encoding.JAny] = mappings map { case (k, v) => k.value -> v.toEncoding }
+
+  override def toString: String = s"Meta: ${Try(toEncoding.toJAny.spaces2).getOrElse(super.toString())}"
 }
 
 object Meta {

@@ -19,18 +19,11 @@ import cats.syntax.validated._
 import cats.syntax.traverse._
 import org.scalawag.bateman.json.{NotNull, Null, Nullable}
 import org.scalawag.bateman.json.syntax._
-import org.scalawag.bateman.json.decoding.{
-  DecodeResult,
-  Decoder,
-  JAny,
-  JArray,
-  JNull,
-  JObject,
-  JsonTypeMismatch,
-  UnspecifiedField
-}
+import org.scalawag.bateman.json.decoding.{DecodeResult, Decoder, JAny, JArray, JNull, JObject, JsonTypeMismatch, UnspecifiedField}
 import org.scalawag.bateman.json.generic.decoding.JSource
 import org.scalawag.bateman.jsonapi.encoding
+
+import scala.util.Try
 
 trait Data[+A] {
   val src: JAny
@@ -79,6 +72,8 @@ trait PluralData[A] extends Data[A] {
 
 sealed trait PrimaryData extends Data[ResourceLike] {
   def toEncoding: encoding.PrimaryData
+
+  override def toString: String = Try(toEncoding.toString).getOrElse(super.toString())
 }
 
 object PrimaryData {
@@ -118,6 +113,8 @@ object PrimaryData {
 
 sealed trait RelationshipData extends Data[ResourceIdentifier] {
   def toEncoding: encoding.RelationshipData
+
+  override def toString: String = Try(toEncoding.toString).getOrElse(super.toString())
 }
 
 object RelationshipData {
@@ -137,6 +134,8 @@ case class ResourceIdentifierData(src: JAny, data: ResourceIdentifier)
     with RelationshipData {
   override def toEncoding: encoding.ResourceIdentifierData =
     encoding.ResourceIdentifierData(data.toEncoding)
+
+  override def toString: String = Try(toEncoding.toString).getOrElse(super.toString())
 }
 
 object ResourceIdentifierData {
@@ -150,6 +149,7 @@ case class ResourceObjectData(src: JAny, data: ResourceObject) extends SingularD
   override def toEncoding: encoding.ResourceObjectData =
     encoding.ResourceObjectData(data.toEncoding)
 
+  override def toString: String = Try(toEncoding.toString).getOrElse(super.toString())
 }
 
 object ResourceObjectData {
@@ -164,6 +164,8 @@ case class ResourceObjectOptionalIdData(src: JAny, data: ResourceObjectOptionalI
     with PrimaryData {
   override def toEncoding: encoding.ResourceObjectOptionalIdData =
     encoding.ResourceObjectOptionalIdData(data.toEncoding)
+
+  override def toString: String = Try(toEncoding.toString).getOrElse(super.toString())
 }
 
 object ResourceObjectOptionalIdData {
@@ -179,6 +181,8 @@ case class ResourceIdentifiersData(src: JArray, data: List[ResourceIdentifier])
     with RelationshipData {
   override def toEncoding: encoding.ResourceIdentifiersData =
     encoding.ResourceIdentifiersData(data.map(_.toEncoding))
+
+  override def toString: String = Try(toEncoding.toString).getOrElse(super.toString())
 }
 
 object ResourceIdentifiersData {
@@ -193,6 +197,8 @@ case class ResourceObjectsData(src: JArray, data: List[ResourceObject])
     with PrimaryData {
   override def toEncoding: encoding.ResourceObjectsData =
     encoding.ResourceObjectsData(data.map(_.toEncoding))
+
+  override def toString: String = Try(toEncoding.toString).getOrElse(super.toString())
 }
 
 object ResourceObjectsData {

@@ -15,19 +15,12 @@
 package org.scalawag.bateman.jsonapi.encoding
 
 import org.scalawag.bateman.jsonapi.encoding
-import org.scalawag.bateman.json.encoding.{
-  Encoder,
-  JAny,
-  JAnyEncoder,
-  JArray,
-  JArrayEncoder,
-  JNull,
-  JObject,
-  JObjectEncoder,
-  JStringEncoder
-}
+import org.scalawag.bateman.json.encoding.{Encoder, JAny, JAnyEncoder, JArray, JArrayEncoder, JNull, JObject, JObjectEncoder, JStringEncoder}
 import org.scalawag.bateman.json.generic.semiauto
 import cats.syntax.contravariant._
+import org.scalawag.bateman.jsonapi.encoding.ResourceObject.encoder
+
+import scala.util.Try
 
 sealed trait HasMeta[A] {
   def meta: Option[Map[String, JAny]]
@@ -48,7 +41,9 @@ object Link {
 
 final case class BareLink(
     href: String
-) extends Link
+) extends Link {
+  override def toString: String = s"BareLink: ${Try(BareLink.encoder.encode(this).spaces2).getOrElse(super.toString())}"
+}
 
 object BareLink {
   implicit val encoder: Encoder[BareLink, JAny] = JStringEncoder[String].contramap(_.href)
@@ -60,6 +55,8 @@ final case class RichLink(
 ) extends Link
     with HasMeta[RichLink] {
   override def mapMeta(fn: Option[Map[String, JAny]] => Option[Map[String, JAny]]): RichLink = copy(meta = fn(meta))
+
+  override def toString: String = s"RichLink: ${Try(RichLink.encoder.encode(this).spaces2).getOrElse(super.toString())}"
 }
 
 object RichLink {
@@ -69,7 +66,9 @@ object RichLink {
 final case class ErrorSource(
     pointer: Option[String] = None,
     parameter: Option[String] = None
-)
+) {
+  override def toString: String = s"ErrorSource: ${Try(ErrorSource.encoder.encode(this).spaces2).getOrElse(super.toString())}"
+}
 
 object ErrorSource {
   implicit val encoder: JObjectEncoder[ErrorSource] = semiauto.deriveEncoderForCaseClass[ErrorSource]()
@@ -86,6 +85,8 @@ final case class Error(
     meta: Option[Map[String, JAny]] = None
 ) extends HasMeta[Error] {
   override def mapMeta(fn: Option[Map[String, JAny]] => Option[Map[String, JAny]]): Error = copy(meta = fn(meta))
+
+  override def toString: String = s"Error: ${Try(Error.encoder.encode(this).spaces2).getOrElse(super.toString())}"
 }
 
 object Error {
@@ -95,7 +96,9 @@ object Error {
 final case class Jsonapi(
     version: Option[String] = None,
     meta: Option[Map[String, JAny]] = None
-)
+) {
+  override def toString: String = s"Jsonapi: ${Try(Jsonapi.encoder.encode(this).spaces2).getOrElse(super.toString())}"
+}
 
 object Jsonapi {
   implicit val encoder: Encoder[Jsonapi, JObject] = semiauto.deriveEncoderForCaseClass[Jsonapi]()
@@ -103,7 +106,9 @@ object Jsonapi {
 
 sealed trait Data
 
-sealed trait PrimaryData extends Data
+sealed trait PrimaryData extends Data {
+  override def toString: String = s"PrimaryData: ${Try(PrimaryData.encoder.encode(this).spaces2).getOrElse(super.toString())}"
+}
 
 object PrimaryData {
   // These make it possible to create a PrimaryData without having to use the specific Data.* constructor
@@ -127,7 +132,9 @@ object PrimaryData {
   }
 }
 
-sealed trait RelationshipData extends Data
+sealed trait RelationshipData extends Data {
+  override def toString: String = s"RelationshipData: ${Try(RelationshipData.encoder.encode(this).spaces2).getOrElse(super.toString())}"
+}
 
 object RelationshipData {
   // These make it possible to create a RelationshipData without having to use the specific *Data constructor
@@ -148,35 +155,45 @@ case object NullData extends NullData {
   implicit def encoder: Encoder[NullData, JAny] = Encoder { _ => JNull }
 }
 
-case class ResourceIdentifierData(data: encoding.ResourceIdentifier) extends PrimaryData with RelationshipData
+case class ResourceIdentifierData(data: encoding.ResourceIdentifier) extends PrimaryData with RelationshipData {
+  override def toString: String = s"ResourceIdentifierData: ${Try(ResourceIdentifierData.encoder.encode(this).spaces2).getOrElse(super.toString())}"
+}
 
 object ResourceIdentifierData {
   implicit def encoder: Encoder[ResourceIdentifierData, JAny] =
     JAnyEncoder[encoding.ResourceIdentifier].contramap(_.data)
 }
 
-case class ResourceObjectData(data: encoding.ResourceObject) extends PrimaryData
+case class ResourceObjectData(data: encoding.ResourceObject) extends PrimaryData {
+  override def toString: String = s"ResourceObjectData: ${Try(ResourceObjectData.encoder.encode(this).spaces2).getOrElse(super.toString())}"
+}
 
 object ResourceObjectData {
   implicit def encoder: Encoder[ResourceObjectData, JAny] =
     JAnyEncoder[encoding.ResourceObject].contramap(_.data)
 }
 
-case class ResourceObjectOptionalIdData(data: encoding.ResourceObjectOptionalId) extends PrimaryData
+case class ResourceObjectOptionalIdData(data: encoding.ResourceObjectOptionalId) extends PrimaryData {
+  override def toString: String = s"ResourceObjectOptionalIdData: ${Try(ResourceObjectOptionalIdData.encoder.encode(this).spaces2).getOrElse(super.toString())}"
+}
 
 object ResourceObjectOptionalIdData {
   implicit def encoder: Encoder[ResourceObjectOptionalIdData, JAny] =
     JAnyEncoder[encoding.ResourceObjectOptionalId].contramap(_.data)
 }
 
-case class ResourceIdentifiersData(data: List[encoding.ResourceIdentifier]) extends PrimaryData with RelationshipData
+case class ResourceIdentifiersData(data: List[encoding.ResourceIdentifier]) extends PrimaryData with RelationshipData {
+  override def toString: String = s"ResourceIdentifiersData: ${Try(ResourceIdentifiersData.encoder.encode(this).spaces2).getOrElse(super.toString())}"
+}
 
 object ResourceIdentifiersData {
   implicit def encoder: Encoder[ResourceIdentifiersData, JArray] =
     JArrayEncoder[List[encoding.ResourceIdentifier]].contramap(_.data)
 }
 
-case class ResourceObjectsData(data: List[encoding.ResourceObject]) extends PrimaryData
+case class ResourceObjectsData(data: List[encoding.ResourceObject]) extends PrimaryData {
+  override def toString: String = s"ResourceObjectsData: ${Try(ResourceObjectsData.encoder.encode(this).spaces2).getOrElse(super.toString())}"
+}
 
 object ResourceObjectsData {
   implicit def encoder: Encoder[ResourceObjectsData, JArray] =
@@ -189,6 +206,8 @@ final case class Relationship(
     links: Option[Map[String, Link]] = None
 ) extends HasMeta[Relationship] {
   override def mapMeta(fn: Option[Map[String, JAny]] => Option[Map[String, JAny]]): Relationship = copy(meta = fn(meta))
+
+  override def toString: String = s"Relationship: ${Try(Relationship.encoder.encode(this).spaces2).getOrElse(super.toString())}"
 }
 
 object Relationship {
@@ -212,6 +231,8 @@ final case class ResourceIdentifier(
     with HasMeta[ResourceIdentifier] {
   override def mapMeta(fn: Option[Map[String, JAny]] => Option[Map[String, JAny]]): ResourceIdentifier =
     copy(meta = fn(meta))
+
+  override def toString: String = s"ResourceIdentifier: ${Try(ResourceIdentifier.encoder.encode(this).spaces2).getOrElse(super.toString())}"
 }
 
 object ResourceIdentifier {
@@ -238,6 +259,8 @@ final case class ResourceObjectOptionalId(
 
   override def mapMeta(fn: Option[Map[String, JAny]] => Option[Map[String, JAny]]): ResourceObjectOptionalId =
     copy(meta = fn(meta))
+
+  override def toString: String = s"ResourceObjectOptionalId: ${Try(ResourceObjectOptionalId.encoder.encode(this).spaces2).getOrElse(super.toString())}"
 }
 
 object ResourceObjectOptionalId {
@@ -261,6 +284,8 @@ final case class ResourceObject(
     copy(meta = fn(meta))
 
   def getResourceIdentifier: ResourceIdentifier = ResourceIdentifier(this.`type`, this.id)
+
+  override def toString: String = s"ResourceObject: ${Try(ResourceObject.encoder.encode(this).spaces2).getOrElse(super.toString())}"
 }
 
 object ResourceObject {
@@ -313,6 +338,8 @@ final case class Document(
 
   def mapMeta(fn: Option[Map[String, JAny]] => Option[Map[String, JAny]]): Document =
     copy(disposition = disposition.mapMeta(fn))
+
+  override def toString: String = s"Document: ${Try(Document.encoder.encode(this).spaces2).getOrElse(super.toString())}"
 }
 
 case object Document {

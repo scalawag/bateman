@@ -20,6 +20,8 @@ import org.scalawag.bateman.json.generic.{SourceTag, semiauto}
 import org.scalawag.bateman.jsonapi.encoding
 import shapeless.tag.@@
 
+import scala.util.Try
+
 final case class ErrorSource(
     src: JSource @@ SourceTag,
     pointer: Option[JString] = None,
@@ -30,6 +32,8 @@ final case class ErrorSource(
       pointer = pointer.map(_.value),
       parameter = parameter.map(_.value)
     )
+
+  override def toString: String = Try(toEncoding.toString).getOrElse(super.toString())
 }
 
 object ErrorSource {
@@ -58,6 +62,8 @@ final case class Error(
       source = source.map(_.toEncoding),
       meta = meta.map(_.toEncoding)
     )
+
+  override def toString: String = Try(toEncoding.toString).getOrElse(super.toString())
 }
 
 object Error {

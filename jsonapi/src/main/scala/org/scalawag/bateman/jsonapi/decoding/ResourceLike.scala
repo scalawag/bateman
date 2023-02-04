@@ -18,23 +18,14 @@ import cats.syntax.validated._
 import cats.syntax.traverse._
 import cats.syntax.apply._
 import org.scalawag.bateman.json.syntax._
-import org.scalawag.bateman.json.decoding.{
-  DecodeResult,
-  Decoder,
-  JAny,
-  JAnyDecoder,
-  JObject,
-  JPointer,
-  JString,
-  JsonTypeMismatch,
-  UnexpectedValue,
-  UnspecifiedField
-}
+import org.scalawag.bateman.json.decoding.{DecodeResult, Decoder, JAny, JAnyDecoder, JObject, JPointer, JString, JsonTypeMismatch, UnexpectedValue, UnspecifiedField}
 import org.scalawag.bateman.json.generic.decoding.JSource
 import org.scalawag.bateman.json.generic.{SourceTag, semiauto}
 import org.scalawag.bateman.json.{ProgrammerError, validIfEmpty}
 import org.scalawag.bateman.jsonapi.encoding
 import shapeless.tag.@@
+
+import scala.util.Try
 
 sealed trait ResourceLike extends HasMeta {
   val src: JSource
@@ -221,6 +212,8 @@ final case class ResourceObject(
       meta = meta.map(_.toEncoding),
       links = links.map(_.toEncoding)
     )
+
+  override def toString: String = Try(toEncoding.toString).getOrElse(super.toString())
 }
 
 object ResourceObject {

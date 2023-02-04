@@ -17,12 +17,17 @@ package org.scalawag.bateman.jsonapi.decoding
 import cats.syntax.apply._
 import org.scalawag.bateman.json.decoding.{DecodeResult, Decoder, JAny, JObject, JString}
 import org.scalawag.bateman.json.encoding
+import org.scalawag.bateman.json.syntax.RichBateman
+
+import scala.util.Try
 
 final case class Attributes(src: JObject, mappings: Map[JString, JAny]) {
   private val bareMap: Map[String, JAny] = mappings.map { case (k, v) => k.value -> v }
   def get(key: String): Option[JAny] = bareMap.get(key)
 
   def toEncoding: Map[String, encoding.JAny] = mappings map { case (k, v) => k.value -> v.toEncoding }
+
+  override def toString: String = s"Attributes: ${Try(toEncoding.toJAny.spaces2).getOrElse(super.toString())}"
 }
 
 object Attributes {

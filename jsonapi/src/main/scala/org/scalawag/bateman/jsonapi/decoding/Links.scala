@@ -21,11 +21,15 @@ import org.scalawag.bateman.json.decoding.{DecodeResult, Decoder, JObject, JStri
 import org.scalawag.bateman.json.generic.decoding.JSource
 import org.scalawag.bateman.jsonapi.encoding
 
+import scala.util.Try
+
 final case class Links(src: JObject, mappings: Map[JString, Link]) {
   private val bareMap: Map[String, Link] = mappings.map { case (k, v) => k.value -> v }
   def get(key: String): Option[Link] = bareMap.get(key)
 
   def toEncoding: Map[String, encoding.Link] = mappings map { case (k, v) => k.value -> v.toEncoding }
+
+  override def toString: String = s"Links: ${Try(toEncoding.toJAny.spaces2).getOrElse(super.toString())}"
 }
 
 object Links {

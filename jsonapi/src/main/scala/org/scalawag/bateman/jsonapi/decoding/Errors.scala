@@ -19,8 +19,12 @@ import org.scalawag.bateman.json.syntax._
 import org.scalawag.bateman.json.decoding.{DecodeResult, Decoder, JArray}
 import org.scalawag.bateman.jsonapi.encoding
 
+import scala.util.Try
+
 final case class Errors(src: JArray, errors: List[Error]) {
   def toEncoding: List[encoding.Error] = errors.map(_.toEncoding)
+
+  override def toString: String = s"Errors: ${Try(toEncoding.toJAny.spaces2).getOrElse(super.toString())}"
 }
 
 object Errors {

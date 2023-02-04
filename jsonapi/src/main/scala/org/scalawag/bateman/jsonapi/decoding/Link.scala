@@ -20,6 +20,8 @@ import org.scalawag.bateman.json.generic.{SourceTag, semiauto}
 import org.scalawag.bateman.jsonapi.encoding
 import shapeless.tag.@@
 
+import scala.util.Try
+
 sealed trait Link {
   def toEncoding: encoding.Link
 }
@@ -38,6 +40,8 @@ final case class BareLink(href: JString) extends Link {
     encoding.BareLink(
       href = href.value
     )
+
+  override def toString: String = Try(toEncoding.toString).getOrElse(super.toString())
 }
 
 object BareLink {
@@ -54,6 +58,8 @@ final case class RichLink(src: JSource @@ SourceTag, href: Option[JString] = Non
       href = href.map(_.value),
       meta = meta.map(_.toEncoding)
     )
+
+  override def toString: String = Try(toEncoding.toString).getOrElse(super.toString())
 }
 
 object RichLink {

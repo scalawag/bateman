@@ -36,6 +36,8 @@ trait JSourceLike {
 
   def unexpectedValue(name: String): UnexpectedValue =
     UnexpectedValue(getFieldSourceUnsafe(name))
+
+  override def toString: String = s"JSource: ${root.toEncoding.spaces2}"
 }
 
 final case class JSource(root: JObject, fields: Map[String, JPointer] = Map.empty) extends JSourceLike

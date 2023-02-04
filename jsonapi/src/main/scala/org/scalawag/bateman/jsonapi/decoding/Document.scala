@@ -25,6 +25,8 @@ import org.scalawag.bateman.json.validIfEmpty
 import org.scalawag.bateman.jsonapi.encoding
 import shapeless.tag.@@
 
+import scala.util.Try
+
 // None for all these Options means that the key didn't appear in the document. If they're set to "null" or empty,
 // they will have a Some.
 
@@ -136,6 +138,8 @@ final case class Document(
     import org.scalawag.bateman.jsonapi.query
     dtquery[List, To](_ ~> query.data ~> query.multiple ~> as[To])
   }
+
+  override def toString: String = Try(toEncoding.toString).getOrElse(super.toString())
 }
 
 case object Document {
@@ -148,6 +152,8 @@ final case class Jsonapi(
     meta: Option[Meta] = None
 ) {
   def toEncoding: encoding.Jsonapi = encoding.Jsonapi(version = version.map(_.value), meta = meta.map(_.toEncoding))
+
+  override def toString: String = Try(toEncoding.toString).getOrElse(super.toString())
 }
 
 object Jsonapi {

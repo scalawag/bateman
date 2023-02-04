@@ -20,6 +20,8 @@ import org.scalawag.bateman.json.generic.{SourceTag, semiauto}
 import org.scalawag.bateman.jsonapi.encoding
 import shapeless.tag.@@
 
+import scala.util.Try
+
 final case class Relationship(
     src: JSource @@ SourceTag,
     data: Option[RelationshipData] = None,
@@ -34,6 +36,8 @@ final case class Relationship(
       meta = meta.map(_.toEncoding),
       links = links.map(_.toEncoding)
     )
+
+  override def toString: String = Try(toEncoding.toString).getOrElse(super.toString)
 }
 
 object Relationship {

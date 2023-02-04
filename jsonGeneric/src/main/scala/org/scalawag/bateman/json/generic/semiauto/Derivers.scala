@@ -30,6 +30,7 @@ import org.scalawag.bateman.json.generic.encoding.{
   TraitEncoderFactory
 }
 import shapeless.Lazy
+import shapeless.Lazy.mkLazy
 
 object Derivers {
 
@@ -38,7 +39,7 @@ object Derivers {
         discriminatorField: OptionLike[String] = None,
         config: OptionLike[Config] = None
     )(implicit
-        encoderFactory: Lazy[TraitEncoderFactory[A]],
+        encoderFactory: Lazy[TraitEncoderFactory[A]] = mkLazy,
         defaultConfig: Config = Config.default
     ): TraitEncoder[A] =
       encoderFactory.value(discriminatorField, config.value.getOrElse(defaultConfig))
@@ -49,7 +50,7 @@ object Derivers {
         discriminatorValue: OptionLike[String] = None,
         config: OptionLike[Config] = None
     )(implicit
-        encoderFactory: Lazy[CaseClassEncoderFactory[A]],
+        encoderFactory: Lazy[CaseClassEncoderFactory[A]] = mkLazy,
         defaultConfig: Config = Config.default
     ): CaseClassEncoder[A] =
       encoderFactory.value(discriminatorValue.value, config.value.getOrElse(defaultConfig))
@@ -60,7 +61,7 @@ object Derivers {
         discriminatorField: OptionLike[String] = None,
         config: OptionLike[Config] = None
     )(implicit
-        decoderFactory: Lazy[TraitDecoderFactory[A, Context]],
+        decoderFactory: Lazy[TraitDecoderFactory[A, Context]] = mkLazy,
         defaultConfig: Config = Config.default
     ): TraitDecoder[A, Context] =
       decoderFactory.value(discriminatorField, config.value.getOrElse(defaultConfig))
@@ -71,7 +72,7 @@ object Derivers {
         discriminatorValue: OptionLike[String] = None,
         config: OptionLike[Config] = None
     )(implicit
-        decoderFactory: Lazy[CaseClassDecoderFactory[A, Context]],
+        decoderFactory: Lazy[CaseClassDecoderFactory[A, Context]] = mkLazy,
         defaultConfig: Config = Config.default
     ): CaseClassDecoder[A, Context] =
       decoderFactory.value(discriminatorValue.value, config.value.getOrElse(defaultConfig))
@@ -82,8 +83,8 @@ object Derivers {
         discriminatorField: OptionLike[String] = None,
         config: OptionLike[Config] = None
     )(implicit
-        encoderFactory: Lazy[TraitEncoderFactory[A]],
-        decoderFactory: Lazy[TraitDecoderFactory[A, Context]],
+        encoderFactory: Lazy[TraitEncoderFactory[A]] = mkLazy,
+        decoderFactory: Lazy[TraitDecoderFactory[A, Context]] = mkLazy,
         defaultConfig: Config = Config.default
     ): TraitCodec[A, Context] =
       TraitCodec(
@@ -97,8 +98,8 @@ object Derivers {
         discriminatorValue: OptionLike[String] = None,
         config: OptionLike[Config] = None
     )(implicit
-        encoderFactory: Lazy[CaseClassEncoderFactory[A]],
-        decoderFactory: Lazy[CaseClassDecoderFactory[A, Context]],
+        encoderFactory: Lazy[CaseClassEncoderFactory[A]] = mkLazy,
+        decoderFactory: Lazy[CaseClassDecoderFactory[A, Context]] = mkLazy,
         defaultConfig: Config = Config.default
     ): CaseClassCodec[A, Context] =
       CaseClassCodec(
