@@ -17,6 +17,7 @@ package org.scalawag.bateman.jsonapi.encoding
 import cats.data.NonEmptyChain
 import cats.syntax.validated._
 import org.scalawag.bateman.json.validIfEmpty
+import scala.collection.compat._
 
 /** Used to track the inclusion of related resources. This represents a node in the tree containing all the
   * include paths.
@@ -71,7 +72,7 @@ object IncludeSpec {
   def apply(spec: String, lengthLimit: Int = 1024, depthLimit: Int = 8): EncodeResult[IncludeSpec] = {
     def go(prefix: List[String], paths: Array[Array[String]]): IncludeSpec = {
       val children =
-        paths.groupBy(_.head).mapValues(_.map(_.tail)).toMap map {
+        paths.groupBy(_.head).view.mapValues(_.map(_.tail)).toMap map {
           case (h, pp) => h -> go(prefix :+ h, pp.filterNot(_.isEmpty))
         }
       Always(prefix.mkString("."), children)

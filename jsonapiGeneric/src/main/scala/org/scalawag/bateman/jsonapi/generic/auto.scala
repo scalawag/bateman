@@ -20,7 +20,6 @@ import org.scalawag.bateman.json.decoding.ContextualDecoder
 import org.scalawag.bateman.json.encoding.Encoder
 import org.scalawag.bateman.jsonapi.decoding.{ResourceDecoder, ResourceObjectOptionalId}
 import org.scalawag.bateman.jsonapi.generic.decoding.CaseClassResourceDecoderFactory
-import org.scalawag.bateman.jsonapi.{decoding, encoding}
 import shapeless.Lazy
 
 import scala.reflect.ClassTag

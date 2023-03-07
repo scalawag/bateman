@@ -59,7 +59,7 @@ final case class PartialResource(
   def addDeferredEncoding(deferredEncoding: DeferredEncoding): PartialResource =
     addDeferredEncodings(Iterable(deferredEncoding))
   def addDeferredEncoding(deferredEncoding: Option[DeferredEncoding]): PartialResource =
-    addDeferredEncodings(deferredEncoding.toIterable)
+    addDeferredEncodings(deferredEncoding.toList)
   def addDeferredEncodings(deferredEncodings: Iterable[DeferredEncoding]): PartialResource =
     this.copy(deferrals = this.deferrals ++ deferredEncodings)
 

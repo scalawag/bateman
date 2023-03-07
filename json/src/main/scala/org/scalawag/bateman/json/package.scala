@@ -62,7 +62,7 @@ package object json {
 
   /** Returns [[None]] if its argument is empty and a [[Some]] containing the argument if it is not.  */
 
-  def noneIfEmpty[A <: Traversable[_]](a: A): Option[A] = if (a.isEmpty) None else Some(a)
+  def noneIfEmpty[A <: Iterable[_]](a: A): Option[A] = if (a.isEmpty) None else Some(a)
 
   /** Returns an invalid result containing all the errors unless errors is empty, in which case, it returns a valid
     * result containing its second argument. */

@@ -18,6 +18,7 @@ import cats.data.NonEmptyChain
 import cats.syntax.validated._
 import org.scalawag.bateman.json.{encoding, validIfEmpty}
 import org.scalawag.bateman.json.decoding.parser.ParseResult
+import scala.collection.compat._
 
 /** Represents the type of JSON value as metadata. */
 
@@ -261,7 +262,8 @@ final case class JObject(
     val duplicateErrors = duplicateSets.flatMap { ff =>
       ff.tail.map(DuplicateField(_, ff.head))
     }
-    validIfEmpty(duplicateErrors, fieldsByName.mapValues(_.head).toMap)
+    val thing = fieldsByName.view
+    validIfEmpty(duplicateErrors, fieldsByName.view.mapValues(_.head).toMap)
   }
 
   /** Retrieves the value of the field with the specified name, if it exists.

@@ -82,8 +82,8 @@ class HListResourceDecoderTest extends AnyFunSpec with Matchers with ParserTestU
       """)
 
       val decoded = doc.cquery(doc)(_ ~> data ~> required ~> as[ResourceObject] ~> as[Square])
-      val un1 = doc.src.root.query(_ ~> "data" ~> "relationships" ~> "parent").getOrElse(fail)
-      val un2 = doc.src.root.query(_ ~> "data" ~> "meta" ~> "version").getOrElse(fail)
+      val un1 = doc.src.root.query(_ ~> "data" ~> "relationships" ~> "parent").getOrElse(fail())
+      val un2 = doc.src.root.query(_ ~> "data" ~> "meta" ~> "version").getOrElse(fail())
       decoded.leftMap(_.iterator.toSet) shouldBe Set(UnexpectedValue(un1), UnexpectedValue(un2)).invalid
     }
   }

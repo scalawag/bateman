@@ -85,7 +85,7 @@ class DerivedResourceObjectEncoderTest extends AnyFunSpec with Matchers with Tes
       val enc =
         ResourceEncoder[Square, ResourceObject]
           .encodeResource(square, fieldsSpec = FieldsSpec(Map("square" -> Set("label", "parent"))))
-          .getOrElse(fail)
+          .getOrElse(fail())
       println(enc)
       val json = Encoder[ResourceObject, JObject].encode(enc.root)
       println(json.render(PrettySpaces2))
@@ -154,8 +154,8 @@ class DerivedResourceObjectEncoderTest extends AnyFunSpec with Matchers with Tes
     import DerivedResourceObjectEncoderTest._
 
     // Uses the encoder just to get the ResourceObject
-    def aro(a: A) = ResourceObjectEncoder[A].encodeResource(a).map(_.root).getOrElse(fail)
-    def bro(b: B) = ResourceObjectEncoder[B].encodeResource(b).map(_.root).getOrElse(fail)
+    def aro(a: A) = ResourceObjectEncoder[A].encodeResource(a).map(_.root).getOrElse(fail())
+    def bro(b: B) = ResourceObjectEncoder[B].encodeResource(b).map(_.root).getOrElse(fail())
 
     it("should not include the A") {
       val b = B("foo", A("bar", 17))

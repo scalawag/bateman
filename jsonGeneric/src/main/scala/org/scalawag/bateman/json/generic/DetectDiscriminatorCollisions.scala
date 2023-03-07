@@ -23,7 +23,7 @@ object DetectDiscriminatorCollisions extends ErrorFormatters {
     val dups = discriminators.filter(_._2.size > 1)
     if (dups.nonEmpty) {
       val discs = dups.map {
-        case (d, cc) => s" - $label for classes ${formatAndList(cc.toIterator)} use the discriminator '$d'"
+        case (d, cc) => s" - $label for classes ${formatAndList(cc.iterator)} use the discriminator '$d'"
       }
       val msg = discs.mkString(s"There are multiple concrete $label with the same discriminator value:\n", "\n", "")
       throw ProgrammerError(msg)

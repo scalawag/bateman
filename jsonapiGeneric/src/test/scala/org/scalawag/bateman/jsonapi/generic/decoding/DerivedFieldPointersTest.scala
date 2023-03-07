@@ -151,14 +151,14 @@ class DerivedFieldPointersTest extends AnyFunSpec with Matchers with ParserTestU
 
     val xx = doc.dquery(_ ~> data ~> required ~> as[ResourceObject] ~> as[XX]).shouldSucceed
     xx.src.getFieldSource("x").shouldSucceed shouldBe doc.data.get.src.asObject
-      .getOrElse(fail)
+      .getOrElse(fail())
       .fields
-      .getOrElse(fail)("relationships")
+      .getOrElse(fail())("relationships")
       .value
       .asObject
-      .getOrElse(fail)
+      .getOrElse(fail())
       .fields
-      .getOrElse(fail)("x")
+      .getOrElse(fail())("x")
       .value
     xx.x.src.get.getFieldSource("c").shouldSucceed shouldBe JBoolean(
       false,

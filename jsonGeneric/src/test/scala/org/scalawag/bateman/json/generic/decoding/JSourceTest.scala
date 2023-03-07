@@ -134,7 +134,7 @@ class JSourceTest extends AnyFunSpec with Matchers with ParserTestUtils {
     xx.x.src shouldBe
       Some(
         JSource(
-          json.fields.getOrElse(fail)("x").value.asObject.getOrElse(fail),
+          json.fields.getOrElse(fail())("x").value.asObject.getOrElse(fail()),
           Map(
             "a" -> JPointer.Root / "a",
             "b" -> JPointer.Root / "b",

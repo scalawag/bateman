@@ -166,7 +166,7 @@ class JsonParser private (input: String, source: Option[String] = None) {
   private val lineForIndex: List[Int] =
     Source
       .fromString(input)
-      .getLines
+      .getLines()
       .map(_.length)
       .scanLeft(0)(_ + _ + 1)
       .toList
