@@ -262,7 +262,6 @@ final case class JObject(
     val duplicateErrors = duplicateSets.flatMap { ff =>
       ff.tail.map(DuplicateField(_, ff.head))
     }
-    val thing = fieldsByName.view
     validIfEmpty(duplicateErrors, fieldsByName.view.mapValues(_.head).toMap)
   }
 
