@@ -91,7 +91,7 @@ class Performance extends AnyFunSpec with Matchers {
     }
     println(s"$ft x")
 
-    val src = input.toStream
+    val src = input.to(LazyList)
     val (bt, br) = time {
       for (_ <- 1 to iterations) yield parser.toJAny(src.to(LazyList))
     }

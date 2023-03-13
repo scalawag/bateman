@@ -33,19 +33,19 @@ sealed trait BatemanValueEnum[
 
 object BatemanValueEnum {
   def encoder[EncodingType <: encoding.JAny, ValueType, EntryType <: ValueEnumEntry[ValueType]](
-      enum: ValueEnum[ValueType, EntryType]
+      `enum`: ValueEnum[ValueType, EntryType]
   )(implicit valueEncoder: Encoder[ValueType, EncodingType]): Encoder[EntryType, EncodingType] = { entry =>
     valueEncoder.encode(entry.value)
   }
 
   def decoder[DecodingType <: decoding.JAny, ValueType, EntryType <: ValueEnumEntry[ValueType]](
-      enum: ValueEnum[ValueType, EntryType]
+      `enum`: ValueEnum[ValueType, EntryType]
   )(implicit valueDecoder: Decoder[DecodingType, ValueType]): Decoder[DecodingType, EntryType] =
     Decoder[DecodingType, EntryType] { in: DecodingType =>
       valueDecoder.decode(in).andThen { v =>
-        enum.withValueOpt(v) match {
+        `enum`.withValueOpt(v) match {
           case Some(member) => member.validNec
-          case None         => InvalidValue(in, s"$v is not a member of enum $enum").invalidNec
+          case None         => InvalidValue(in, s"$v is not a member of enum ${`enum`}").invalidNec
         }
       }
     }

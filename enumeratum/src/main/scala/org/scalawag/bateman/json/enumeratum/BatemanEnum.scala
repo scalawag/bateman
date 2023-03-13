@@ -27,14 +27,14 @@ trait BatemanEnum[A <: EnumEntry] { this: Enum[A] =>
 }
 
 object BatemanEnum {
-  def encoder[A <: EnumEntry](enum: Enum[A]): Encoder[A, encoding.JString] =
+  def encoder[A <: EnumEntry](`enum`: Enum[A]): Encoder[A, encoding.JString] =
     encoding.JStringEncoder[String].contramap(_.entryName)
 
-  def decoder[A <: EnumEntry](enum: Enum[A]): Decoder[decoding.JString, A] =
+  def decoder[A <: EnumEntry](`enum`: Enum[A]): Decoder[decoding.JString, A] =
     Decoder { in =>
-      enum.withNameOption(in.value) match {
+      `enum`.withNameOption(in.value) match {
         case Some(member) => member.validNec
-        case None         => InvalidValue(in, s"'${in.value}' is not a member of enum $enum").invalidNec
+        case None         => InvalidValue(in, s"'${in.value}' is not a member of enum ${`enum`}").invalidNec
       }
     }
 }

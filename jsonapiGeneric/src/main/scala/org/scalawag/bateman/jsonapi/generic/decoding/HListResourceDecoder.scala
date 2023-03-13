@@ -77,22 +77,22 @@ object HListResourceDecoderFactoryFactory {
             //       the case class.
 
             val ids = input.in match {
-              case r: ResourceIdentifierLike => r.optionalId.toIterable.map(JPointer.Root / "id" -> _)
+              case r: ResourceIdentifierLike => r.optionalId.toList.map(JPointer.Root / "id" -> _)
               case _                         => Iterable.empty
             }
 
             val meta =
-              input.in.meta.toIterable.flatMap(_.mappings).map {
+              input.in.meta.toList.flatMap(_.mappings).map {
                 case (n, v) => JPointer.Root / "meta" / n.value -> v
               }
 
             val (attributes, relationships) = input.in match {
               case r: ResourceObjectLike =>
                 (
-                  r.attributes.toIterable.flatMap(_.mappings).map {
+                  r.attributes.toList.flatMap(_.mappings).map {
                     case (n, v) => JPointer.Root / "attributes" / n.value -> v
                   },
-                  r.relationships.toIterable.flatMap(_.mappings).map {
+                  r.relationships.toList.flatMap(_.mappings).map {
                     case (n, v) => JPointer.Root / "relationships" / n.value -> v.src.root
                   }
                 )

@@ -386,7 +386,7 @@ class DerivedDecoderTest extends AnyFunSpec with Matchers with ParserTestUtils {
 
       val da = JObjectDecoder[XNamedClass].decode(json)
       da shouldBe InvalidDiscriminator(
-        json("class").andThen(_.asString).getOrElse(fail),
+        json("class").andThen(_.asString).getOrElse(fail()),
         Iterable("y_named_class", "z-named-class")
       ).invalidNec
 

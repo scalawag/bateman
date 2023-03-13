@@ -42,7 +42,7 @@ class OptionTest extends AnyFunSpec with Matchers with ParserTestUtils with Data
 //  val jsonNumber = parseAs[JObject]("""{"a": 31}""")
 //  val jsonNull = parseAs[JObject]("""{"a": null}""")
 //
-//  val jsonNullA = jsonNull.fields.getOrElse(fail)("a").value.asNull.getOrElse(fail)
+//  val jsonNullA = jsonNull.fields.getOrElse(fail())("a").value.asNull.getOrElse(fail())
 
   implicit val aenc = semiauto.deriveEncoderForCaseClass[A]()
   implicit val benc = semiauto.deriveEncoderForCaseClass[B]()

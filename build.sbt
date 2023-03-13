@@ -20,22 +20,27 @@ ThisBuild / versionScheme := Some("early-semver")
 ThisBuild / organization := "org.scalawag.bateman"
 
 val Versions = new Object {
-  val cats = "2.8.0"
-  val circe = "0.14.3"
+  val cats = "2.9.0"
+  val circe = "0.14.5"
   val enumeratum = "1.7.0"
   val fastparse = "2.3.3"
-  val scalatest = "3.2.14"
+  val scalatest = "3.2.15"
   val shapeless = "2.3.10"
   val scalacheck = "1.17.0"
+  val scalaJavaTime = "2.5.0"
+  val secureRandom = "1.0.0"
+  val paradise = "2.1.1"
+  val collectionCompat = "2.9.0"
+  val kindProjector = "0.13.2"
 }
 
-val jvmScalaVersions = Seq("2.12.17", "2.13.9")
+val jvmScalaVersions = Seq("2.12.17", "2.13.10")
 val jsScalaVersions = jvmScalaVersions
 
 val commonSettings = Seq(
   organization := "org.scalawag.bateman",
 //  scalacOptions += "-Xlog-implicits",
-  addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full),
+  addCompilerPlugin("org.typelevel" % "kind-projector" % Versions.kindProjector cross CrossVersion.full),
   scalacOptions ++= Seq(
     "-language:higherKinds",
     "-language:implicitConversions",
@@ -89,12 +94,12 @@ val json = projectMatrix
     name := s"$projectBaseName-json",
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "cats-core" % Versions.cats,
-      "org.scala-lang.modules" %%% "scala-collection-compat" % "2.7.0",
-      "io.github.cquiroz" %%% "scala-java-time" % "2.2.2",
+      "org.scala-lang.modules" %%% "scala-collection-compat" % Versions.collectionCompat,
+      "io.github.cquiroz" %%% "scala-java-time" % Versions.scalaJavaTime,
       "org.typelevel" %% "cats-core" % Versions.cats,
     ),
     libraryDependencies ++= Seq(
-      "io.github.cquiroz" %%% "scala-java-time" % "2.2.2"
+      "io.github.cquiroz" %%% "scala-java-time" % Versions.scalaJavaTime
     ).map(_ % Test)
   )
   .jvmPlatform(scalaVersions = jvmScalaVersions)
@@ -130,7 +135,7 @@ val jsonGeneric = projectMatrix
     libraryDependencies ++= {
       CrossVersion.partialVersion(scalaVersion.value) match {
         case Some((2, n)) if n <= 12 =>
-          List(compilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full))
+          List(compilerPlugin("org.scalamacros" % "paradise" % Versions.paradise cross CrossVersion.full))
         case _ =>
           Nil
       }
@@ -146,12 +151,12 @@ val jsonLiteral = projectMatrix
     name := s"$projectBaseName-json-literal",
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-      "io.github.cquiroz" %%% "scala-java-time" % "2.2.2" % Test,
+      "io.github.cquiroz" %%% "scala-java-time" % Versions.scalaJavaTime % Test,
     ),
     libraryDependencies ++= {
       CrossVersion.partialVersion(scalaVersion.value) match {
         case Some((2, n)) if n <= 12 =>
-          List(compilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full))
+          List(compilerPlugin("org.scalamacros" % "paradise" % Versions.paradise cross CrossVersion.full))
         case _ =>
           Nil
       }
@@ -178,7 +183,7 @@ val jsonapiGeneric = projectMatrix
     libraryDependencies ++= {
       if (virtualAxes.value.contains(VirtualAxis.js)) {
         // This is insecure, but it used for unit testing only.
-        Seq("org.scala-js" %%% "scalajs-fake-insecure-java-securerandom" % "1.0.0" % Test)
+        Seq("org.scala-js" %%% "scalajs-fake-insecure-java-securerandom" % Versions.secureRandom % Test)
       } else
         Seq.empty
     }

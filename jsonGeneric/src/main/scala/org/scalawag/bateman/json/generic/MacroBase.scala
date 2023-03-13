@@ -190,7 +190,7 @@ abstract class MacroBase(protected val c: Context) {
   protected implicit val typeEq: Eq[Type] = _ =:= _
   protected implicit val classSymbolEq: Eq[ClassSymbol] = Eq.fromUniversalEquals
 
-  protected implicit class TraversableOps[A](aa: Traversable[A]) {
+  protected implicit class TraversableOps[A](aa: Iterable[A]) {
     def groupByEq[K](f: A => K)(implicit K: Eq[K]): Map[K, List[A]] = {
       @tailrec
       def collapse(l: List[(K, List[A])], r: List[(K, List[A])]): List[(K, List[A])] =
