@@ -21,7 +21,7 @@ ThisBuild / organization := "org.scalawag.bateman"
 
 val Versions = new Object {
   val cats = "2.2.0"
-  val circe = "0.13.0"
+  val circe = "0.14.5"
   val enumeratum = "1.6.1"
   val fastparse = "2.3.1"
   val scalatest = "3.2.3"
