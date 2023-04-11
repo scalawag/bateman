@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,14 +14,15 @@
 
 package org.scalawag.bateman.json.enumeratum
 
-import cats.syntax.validated._
+import cats.syntax.either._
 import enumeratum.EnumEntry.Lowercase
 import enumeratum.{Enum, EnumEntry}
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalawag.bateman.json.decoding.{InvalidValue, JLocation, JPointer, JsonTypeMismatch}
+import org.scalawag.bateman.json.focus.JFocus
+import org.scalawag.bateman.json.{InvalidValue, JAny, JNumber, JString, JsonTypeMismatch}
 import org.scalawag.bateman.json.syntax._
-import org.scalawag.bateman.json.{decoding, encoding}
+import org.scalawag.bateman.json.focus.weak._
 
 class BatemanEnumTest extends AnyFunSpec with Matchers {
   sealed trait Color extends EnumEntry with Lowercase
@@ -35,20 +36,20 @@ class BatemanEnumTest extends AnyFunSpec with Matchers {
   }
 
   it("should encode") {
-    Color.Red.toJAny shouldBe encoding.JString("red")
+    (Color.Red: Color).toJAny shouldBe JString("red")
   }
 
   it("should decode") {
-    decoding.JString("blue", JLocation(1, 1), JPointer.Root).as[Color] shouldBe Color.Blue.validNec
+    JString("blue").asRootFocus.decode[Color] shouldBe Color.Blue.rightNec
   }
 
   it("should fail to decode (value)") {
-    val in = decoding.JString("Red", JLocation(1, 1), JPointer.Root)
-    in.as[Color] shouldBe InvalidValue(in, "'Red' is not a member of enum Color").invalidNec
+    val in = JString("Red").asRootFocus
+    in.decode[Color] shouldBe InvalidValue(in, "'Red' is not a member of enum Color").leftNec
   }
 
   it("should fail to decode (type)") {
-    val in: decoding.JAny = decoding.JNumber("8", JLocation(1, 1), JPointer.Root)
-    in.as[Color] shouldBe JsonTypeMismatch(in, decoding.JString).invalidNec
+    val in: JFocus[JAny] = JNumber(8).asRootFocus
+    in.decode[Color] shouldBe JsonTypeMismatch(in, JString).leftNec
   }
 }

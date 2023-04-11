@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/*
 package org.scalawag.bateman.json.generic
 
 import cats.Eq
@@ -24,10 +25,10 @@ import scala.annotation.tailrec
 import scala.reflect.macros.whitebox.Context
 
 /** This contains macros that validate the input classes prior to generating the codecs using shapeless.
-  * This puts most of the logic into non-macro code (which was a goal). The macros generate the creation of
-  * the factory that is used to create the actual codec. That's because if the macro call is made from library code,
-  * the developer doesn't get an error message that reflects where the problem is in _their_ code.
-  */
+ * This puts most of the logic into non-macro code (which was a goal). The macros generate the creation of
+ * the factory that is used to create the actual codec. That's because if the macro call is made from library code,
+ * the developer doesn't get an error message that reflects where the problem is in _their_ code.
+ */
 
 abstract class MacroBase(protected val c: Context) {
   import c.universe._
@@ -37,9 +38,9 @@ abstract class MacroBase(protected val c: Context) {
 
   protected def abortOnNothingOrAny[B](a: Type): MacroResult[Type] =
     if (a =:= typeOf[Nothing] || a =:= typeOf[Any])
-      "It looks like the type argument probably wasn't inferred properly.".invalidNec
+      "It looks like the type argument probably wasn't inferred properly.".leftNec
     else
-      a.validNec
+      a.rightNec
 
   protected val debug = Option(System.getProperty("org.scalawag.bateman.debugMacros")).exists(_.nonEmpty)
 
@@ -90,9 +91,9 @@ abstract class MacroBase(protected val c: Context) {
     val symbol = a.typeSymbol
     if (symbol.isClass && symbol.asClass.isCaseClass) {
       val classSymbol = symbol.asClass
-      classSymbol.validNec
+      classSymbol.rightNec
     } else
-      "must be a case class".invalidNec
+      "must be a case class".leftNec
   }
 
   protected def asCaseClass(a: Type): MacroResult[CaseClass] =
@@ -115,14 +116,14 @@ abstract class MacroBase(protected val c: Context) {
               if (isAssignableTo(tagClass, batemanTag)) {
                 supportedTags.find(_ == tagClass) match {
                   case Some(supportedTag) =>
-                    Field(fieldNameTerm, fieldName, bareType, Some(supportedTag)).validNec
+                    Field(fieldNameTerm, fieldName, bareType, Some(supportedTag)).rightNec
                   case None =>
-                    s"field '$fieldName' is tagged with the unsupported tag ${tagClass.fullName}".invalidNec
+                    s"field '$fieldName' is tagged with the unsupported tag ${tagClass.fullName}".leftNec
                 }
               } else
-                Field(fieldNameTerm, fieldName, fieldType, None).validNec
+                Field(fieldNameTerm, fieldName, fieldType, None).rightNec
             } else
-              Field(fieldNameTerm, fieldName, fieldType, None).validNec
+              Field(fieldNameTerm, fieldName, fieldType, None).rightNec
           }
 
       fields.map(CaseClass(x, _))
@@ -136,32 +137,32 @@ abstract class MacroBase(protected val c: Context) {
         if (classSymbol.isSealed) {
           val subclasses = classSymbol.knownDirectSubclasses.map(_.asClass)
           if (subclasses.isEmpty)
-            s"has no subclasses".invalidNec
+            s"has no subclasses".leftNec
           else
-            SealedTrait(classSymbol, subclasses).validNec
-        } else s"is not sealed".invalidNec
-      } else s"is not a sealed trait".invalidNec
-    } else s"is not a sealed trait".invalidNec
+            SealedTrait(classSymbol, subclasses).rightNec
+        } else s"is not sealed".leftNec
+      } else s"is not a sealed trait".leftNec
+    } else s"is not a sealed trait".leftNec
   }
 
   protected def validateSourceField[From: WeakTypeTag](fields: List[Field]): MacroResult[Unit] =
     fields.find(_.hasTag(sourceTag)).map { f =>
       val srcType = weakTypeOf[From]
       val error =
-        s"field '${f.name}' (with SourceTag) must have a type to which $srcType (or Option[$srcType]) can be assigned".invalidNec
+        s"field '${f.name}' (with SourceTag) must have a type to which $srcType (or Option[$srcType]) can be assigned".leftNec
       val fieldType = f.typ.typeSymbol.asClass
 
       if (isAssignableTo(srcType.typeSymbol.asClass, fieldType)) {
-        ().validNec
+        ().rightNec
       } else if (isAssignableTo(fieldType, optionType)) {
         val List(optionTypeArg) = f.typ.typeArgs
         if (isAssignableTo(srcType.typeSymbol.asClass, optionTypeArg.typeSymbol.asClass))
-          ().validNec
+          ().rightNec
         else
           error
       } else
         error
-    } getOrElse ().validNec
+    } getOrElse ().rightNec
 
   // I just left this in here, even though it's not being used at the moment, because I kept going back and forth
   // between thinking that it was valuable to capture the values of the pre-check implicits as they were resolved
@@ -214,3 +215,4 @@ abstract class MacroBase(protected val c: Context) {
     }
   }
 }
+ */

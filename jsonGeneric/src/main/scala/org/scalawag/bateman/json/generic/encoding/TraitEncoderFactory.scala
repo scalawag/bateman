@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,17 +14,12 @@
 
 package org.scalawag.bateman.json.generic.encoding
 
-import cats.syntax.monoid._
-import org.scalawag.bateman.json.OptionLike
-import org.scalawag.bateman.json.encoding.{Encoder, JObject, JObjectEncoder}
-import org.scalawag.bateman.json.generic.encoding.CoproductEncoderFactoryFactory.Params
-import org.scalawag.bateman.json.generic.{Config, DetectDiscriminatorCollisions, MemberLabels, TraitInfo}
-import shapeless.{:+:, CNil, Coproduct, Generic, Lazy}
-
-trait TraitEncoder[Trait] extends JObjectEncoder[Trait]
+import org.scalawag.bateman.json.JObjectEncoder
+import org.scalawag.bateman.json.generic.{DiscriminatorCollision, Discriminators, MemberLabels, TraitDeriverParams}
+import shapeless.{Coproduct, Generic}
 
 trait TraitEncoderFactory[Trait] {
-  def apply(discriminatorFieldOverride: OptionLike[String], config: Config): TraitEncoder[Trait]
+  def apply(params: TraitDeriverParams[JObjectEncoder]): JObjectEncoder[Trait]
 }
 
 object TraitEncoderFactory {
@@ -40,39 +35,16 @@ object TraitEncoderFactory {
 
   implicit def traitEncoder[Trait, Gen <: Coproduct](implicit
       gen: Generic.Aux[Trait, Gen],
-      subclasses: MemberLabels[Trait],
-      concreteDiscriminatorValues: ConcreteDiscriminatorValues[Gen],
-      genericEncoderFactoryFactory: CoproductEncoderFactoryFactory[Gen]
-  ): TraitEncoderFactory[Trait] = {
-    val info = TraitInfo(subclasses())
-    val genericEncoderFactory = genericEncoderFactoryFactory(info)
-
-    DetectDiscriminatorCollisions("encoders", concreteDiscriminatorValues(info))
-
-    (discriminatorFieldOverride, config) => {
-      val params = Params(config, discriminatorFieldOverride.value)
+      genericEncoderFactory: CoproductEncoderFactory[Gen]
+  ): TraitEncoderFactory[Trait] =
+    params => {
       val genericEncoder = genericEncoderFactory(params)
 
-      instance => {
-        genericEncoder.encode(gen.to(instance))
+      if (params.discriminator.duplicateValuesForbidden)
+        DiscriminatorCollision.detect(genericEncoder.discriminatorValues)
+
+      (instance, discriminators) => {
+        genericEncoder.encode(gen.to(instance), discriminators)
       }
     }
-  }
-
-  // This type class is used to collect all the discriminators from the concrete encoders used by a TraitEncoder.
-  trait ConcreteDiscriminatorValues[A <: Coproduct] {
-    def apply(info: TraitInfo): Map[String, List[String]]
-  }
-
-  object ConcreteDiscriminatorValues {
-    implicit val forCNil: ConcreteDiscriminatorValues[CNil] = { _ => Map.empty }
-
-    implicit def forCCons[Head, Tail <: Coproduct](implicit
-        headEncoder: Lazy[CaseClassEncoder[Head]],
-        tailDiscriminatorValues: ConcreteDiscriminatorValues[Tail]
-    ): ConcreteDiscriminatorValues[Head :+: Tail] = { info =>
-      val tailDiscriminators = tailDiscriminatorValues(info.tail)
-      Map(headEncoder.value.discriminatorValue -> List(info.subclassNames.head)) combine tailDiscriminators
-    }
-  }
 }

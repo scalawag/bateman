@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@ package org.scalawag.bateman.json
 
 import cats.syntax.traverse._
 import cats.syntax.functor._
+import cats.syntax.parallel._
 import cats.{Applicative, Eval, Traverse}
-import org.scalawag.bateman.json.decoding.JNull
 
 sealed trait Nullable[+A] {
   def toOption: Option[A]
@@ -39,16 +39,12 @@ object Nullable {
 
 sealed trait Null extends Nullable[Nothing] {
   override def toOption: Option[Nothing] = None
-  override def map[B](f: Nothing => B): Nullable[B] = this
+  override def map[B](f: Nothing => B): Nullable[B] = this // TODO?
 }
 
-object Null extends Null {
-  def apply[A](src: JNull): Null = Sourced(src)
-  final case class Sourced(src: JNull) extends Null
-  override def toString: String = "Null"
-}
+case object Null extends Null
 
-final case class NotNull[+A](a: A) extends Nullable[A] {
-  override val toOption: Option[A] = Some(a)
-  override def map[B](f: A => B): Nullable[B] = NotNull(f(a))
+final case class NotNull[+A](value: A) extends Nullable[A] {
+  override val toOption: Option[A] = Some(value)
+  override def map[B](f: A => B): Nullable[B] = NotNull(f(value))
 }

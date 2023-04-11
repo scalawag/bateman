@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,384 +14,421 @@
 
 package org.scalawag.bateman.jsonapi.encoding
 
-import org.scalawag.bateman.jsonapi.encoding
-import org.scalawag.bateman.json.encoding.{
-  Encoder,
-  JAny,
-  JAnyEncoder,
-  JArray,
-  JArrayEncoder,
-  JNull,
-  JObject,
-  JObjectEncoder,
-  JStringEncoder
+import org.scalawag.bateman.json.generic.Config
+import org.scalawag.bateman.json.generic.semiauto.unchecked._
+import org.scalawag.bateman.json.syntax._
+import org.scalawag.bateman.json.{JAny, JAnyEncoder, JObject, JObjectEncoder, JStringEncoder, Nullable}
+import org.scalawag.bateman.jsonapi._
+
+sealed trait Document {
+  type Self <: Document
+
+  /** The metadata for this document.
+    * [[None]] means that it will be excluded from the encoded document.
+    * [[Some]] means that it will be included, even if empty.
+    */
+  val meta: Option[Meta]
+
+  /** The `meta` metadata for this document.
+    * [[None]] means that it will be excluded from the encoded document.
+    * [[Some]] means that it will be included, even if empty.
+    */
+  val jsonapi: Option[Jsonapi]
+
+  /** The `links` for this document.
+    * [[None]] means that it will be excluded from the encoded document.
+    * [[Some]] means that it will be included, even if empty.
+    */
+  val links: Option[Links]
+
+  /** Adds (or overwrites) the specified key/value pair into the document's `meta` object. */
+  def withMeta[A: JAnyEncoder](key: String, value: A): Self = withMetas(key -> value.toJAny)
+
+  /** Adds (or overwrites) the specified key/value pairs into the document's `meta` object. */
+  def withMetas(meta: (String, JAny)*): Self
+
+  /** Adds (or overwrites) the specified link to the document's `links`. */
+  def withLink(name: String, value: Link): Self = withLinks(name -> value)
+
+  /** Adds (or overwrites) the specified key/value pairs into the document's `meta` object. */
+  def withLinks(links: (String, Link)*): Self
+
+  /** Replaces the document's `jsonapi` value with the one specified. */
+  def withJsonapi(jsonapi: Jsonapi): Self
 }
-import org.scalawag.bateman.json.generic.semiauto
-import cats.syntax.contravariant._
 
-sealed trait HasMeta[A] {
-  def meta: Option[Map[String, JAny]]
-
-  def mapMeta(fn: Option[Map[String, JAny]] => Option[Map[String, JAny]]): A
-
-  def addMeta(meta: Map[String, JAny]): A = mapMeta(m => Some(m.getOrElse(Map.empty) ++ meta))
-}
-
-sealed trait Link
-
-object Link {
-  implicit val encoder: Encoder[Link, JAny] = {
-    case x: BareLink => Encoder[BareLink, JAny].encode(x)
-    case x: RichLink => Encoder[RichLink, JAny].encode(x)
+case object Document {
+  implicit val batemanEncoder: JObjectEncoder[Document] = {
+    case (doc: DataDocument, discs)     => JObjectEncoder[DataDocument].encode(doc, discs)
+    case (doc: ErrorDocument, discs)    => JObjectEncoder[ErrorDocument].encode(doc, discs)
+    case (doc: MetadataDocument, discs) => JObjectEncoder[MetadataDocument].encode(doc, discs)
   }
+
+  /** Creates a document with the specified key/value pair in its `meta` object. */
+  def withMeta[A: JAnyEncoder](key: String, value: A): MetadataDocument = withMetas(key -> value.toJAny)
+
+  /** Creates a document with the specified key/value pairs in its `meta` object. */
+  def withMetas(meta: (String, JAny)*): MetadataDocument = MetadataDocument(requiredMeta = meta)
+
+  /** Creates a document with the specified primary data. */
+  def withData[A: JObjectEncoder](data: A): DataDocument = DataDocument(data = data.toJAny)
+
+  /** Creates a document with the specified primary data. */
+  def withData[A: JObjectEncoder](data: Nullable[A]): DataDocument = DataDocument(data = data.toJAny)
+
+  /** Creates a document with the specified primary data. */
+  def withData[A: JObjectEncoder](data: Seq[A]): DataDocument = DataDocument(data = data.toJAny)
+
+  /** Creates a document with the specified error. */
+  def withError(error: Error): ErrorDocument =
+    withErrors(error)
+
+  /** Creates a document with the specified errors. */
+  def withErrors(errors: Error*): ErrorDocument = encoding.ErrorDocument(errors = errors)
 }
 
-final case class BareLink(
-    href: String
-) extends Link
+/** A JSON:API document that contains [[https://jsonapi.org/format/#document-top-level primary data]].
+  *
+  * [[None]] for any these [[Option]]s means that the key will not appear in the encoded document.
+  * [[Some]] means that they will appear, even if empty.
+  */
+final case class DataDocument(
+    override val jsonapi: Option[Jsonapi] = None,
+    data: JAny,
+    included: Option[Included] = None,
+    override val meta: Option[Meta] = None,
+    override val links: Option[Links] = None
+) extends Document {
+  override type Self = DataDocument
 
-object BareLink {
-  implicit val encoder: Encoder[BareLink, JAny] = JStringEncoder[String].contramap(_.href)
+  override def withMetas(meta: (String, JAny)*): DataDocument =
+    this.copy(meta = Some(this.meta.getOrElse(Nil) ++ meta))
+
+  override def withLinks(links: (String, Link)*): DataDocument =
+    this.copy(links = Some(this.links.getOrElse(Nil) ++ links))
+
+  override def withJsonapi(jsonapi: Jsonapi): DataDocument =
+    this.copy(jsonapi = Some(jsonapi))
+
+  /** Adds the specified resource objects to the included array of this document. */
+  def withIncluded(resources: ResourceObject*): DataDocument =
+    this.copy(included = Some(this.included.getOrElse(Nil) ++ resources))
 }
 
-final case class RichLink(
-    href: Option[String] = None,
-    meta: Option[Map[String, JAny]] = None
-) extends Link
-    with HasMeta[RichLink] {
-  override def mapMeta(fn: Option[Map[String, JAny]] => Option[Map[String, JAny]]): RichLink = copy(meta = fn(meta))
+object DataDocument {
+  implicit val batemanEncoder: JObjectEncoder[DataDocument] = deriveEncoderForCaseClass[DataDocument]()
 }
 
-object RichLink {
-  implicit val encoder: Encoder[RichLink, JObject] = semiauto.deriveEncoderForCaseClass[RichLink]()
+/** A JSON:API document that contains [[https://jsonapi.org/format/#document-top-level errors]].
+  *
+  * [[None]] for any these [[Option]]s means that the key will not appear in the encoded document.
+  * [[Some]] means that they will appear, even if empty.
+  */
+
+final case class ErrorDocument(
+    override val jsonapi: Option[Jsonapi] = None,
+    errors: Errors,
+    override val meta: Option[Meta] = None,
+    override val links: Option[Links] = None
+) extends Document {
+  override type Self = ErrorDocument
+
+  override def withMetas(meta: (String, JAny)*): ErrorDocument =
+    this.copy(meta = Some(this.meta.getOrElse(Nil) ++ meta))
+
+  override def withLinks(links: (String, Link)*): ErrorDocument =
+    this.copy(links = Some(this.links.getOrElse(Nil) ++ links))
+
+  override def withJsonapi(jsonapi: Jsonapi): ErrorDocument =
+    this.copy(jsonapi = Some(jsonapi))
+
+  /** Adds the specified error to this error document. */
+  def withError(error: Error): ErrorDocument =
+    withErrors(error)
+
+  /** Adds the specified errors to this error document. */
+  def withErrors(errors: Error*): ErrorDocument =
+    this.copy(errors = this.errors ++ errors)
 }
 
-final case class ErrorSource(
-    pointer: Option[String] = None,
-    parameter: Option[String] = None
+object ErrorDocument {
+  implicit val batemanEncoder: JObjectEncoder[ErrorDocument] = deriveEncoderForCaseClass[ErrorDocument]()
+}
+
+/** A JSON:API document that contains at least [[https://jsonapi.org/format/#document-top-level metadata]].
+  * It can be turned into a [[DataDocument]] or an [[ErrorDocument]] by adding either data or errors.
+  *
+  * [[None]] for any these [[Option]]s means that the key will not appear in the encoded document.
+  * [[Some]] means that they will appear, even if empty.
+  */
+
+final case class MetadataDocument(
+    override val jsonapi: Option[Jsonapi] = None,
+    requiredMeta: Meta,
+    override val links: Option[Links] = None
+) extends Document {
+  override type Self = MetadataDocument
+
+  override val meta: Option[Meta] = Some(requiredMeta)
+
+  override def withMetas(meta: (String, JAny)*): MetadataDocument =
+    new MetadataDocument(this.jsonapi, this.requiredMeta ++ meta, this.links)
+
+  override def withLinks(links: (String, Link)*): MetadataDocument =
+    new MetadataDocument(this.jsonapi, this.requiredMeta, Some(this.links.getOrElse(Nil) ++ links))
+
+  override def withJsonapi(jsonapi: Jsonapi): MetadataDocument =
+    new MetadataDocument(Some(jsonapi), this.requiredMeta, this.links)
+
+  /** Returns an error document including the specified error. */
+  def withError(error: Error): ErrorDocument =
+    withErrors(error)
+
+  /** Returns an error document including the specified errors. */
+  def withErrors(errors: Error*): ErrorDocument =
+    encoding.ErrorDocument(this.jsonapi, errors, this.meta, this.links)
+
+  /** Adds primary data with the JSON representation of the specified value to the document. */
+  def withData[A: JObjectEncoder](data: A): DataDocument =
+    DataDocument(this.jsonapi, data.toJAny, None, this.meta, this.links)
+
+  /** Adds the primary data with the JSON representation of the specified value or `null` to the document. */
+  def withData[A: JObjectEncoder](data: Nullable[A]): DataDocument =
+    DataDocument(this.jsonapi, data.toJAny, None, this.meta, this.links)
+
+  /** Adds the primary data with an array of the JSON representations of the specified values to the document. */
+  def withData[A: JObjectEncoder](data: Seq[A]): DataDocument =
+    DataDocument(this.jsonapi, data.toJAny, None, this.meta, this.links)
+}
+
+object MetadataDocument {
+  private val requiredMetaToMeta: Config => Config =
+    _.withExplicitFieldNameMapping {
+      case "requiredMeta" => "meta"
+    }
+
+  implicit val batemanEncoder: JObjectEncoder[MetadataDocument] =
+    deriveEncoderForCaseClass[MetadataDocument](requiredMetaToMeta)
+}
+
+final case class Jsonapi(
+    version: Option[String] = None,
+    meta: Option[Meta] = None
 )
 
+object Jsonapi {
+  implicit val batemanEncoder: JObjectEncoder[Jsonapi] =
+    deriveEncoderForCaseClass[Jsonapi]()
+}
+
+sealed trait ErrorSource
+
 object ErrorSource {
-  implicit val encoder: JObjectEncoder[ErrorSource] = semiauto.deriveEncoderForCaseClass[ErrorSource]()
+
+  final case class Pointer(pointer: String) extends ErrorSource
+
+  object Pointer {
+    implicit val batemanEncoder: JObjectEncoder[Pointer] = deriveEncoderForCaseClass[Pointer]()
+  }
+
+  final case class Parameter(parameter: String) extends ErrorSource
+
+  object Parameter {
+    implicit val batemanEncoder: JObjectEncoder[Parameter] = deriveEncoderForCaseClass[Parameter]()
+  }
+
+  final case class Header(header: String) extends ErrorSource
+
+  object Header {
+    implicit val batemanEncoder: JObjectEncoder[Header] = deriveEncoderForCaseClass[Header]()
+  }
+
+  implicit val batemanEncoder: JObjectEncoder[ErrorSource] = {
+    case (src: Pointer, discs)   => JObjectEncoder[Pointer].encode(src, discs)
+    case (src: Parameter, discs) => JObjectEncoder[Parameter].encode(src, discs)
+    case (src: Header, discs)    => JObjectEncoder[Header].encode(src, discs)
+  }
 }
 
 final case class Error(
     id: Option[String] = None,
-    links: Option[Map[String, Link]] = None,
     status: Option[String] = None,
     code: Option[String] = None,
     title: Option[String] = None,
     detail: Option[String] = None,
     source: Option[ErrorSource] = None,
-    meta: Option[Map[String, JAny]] = None
-) extends HasMeta[Error] {
-  override def mapMeta(fn: Option[Map[String, JAny]] => Option[Map[String, JAny]]): Error = copy(meta = fn(meta))
+    links: Option[Links] = None,
+    meta: Option[Meta] = None
+) {
+  def withId(id: String): Error = this.copy(id = Some(id))
+  def withStatus(status: Int): Error = this.copy(status = Some(status.toString))
+  def withCode(code: String): Error = this.copy(code = Some(code))
+  def withTitle(title: String): Error = this.copy(title = Some(title))
+  def withDetail(detail: String): Error = this.copy(detail = Some(detail))
+  def withSource(source: ErrorSource): Error = this.copy(source = Some(source))
+  def withLink(key: String, value: Link): Error =
+    this.copy(links = Some(this.links.getOrElse(Nil) :+ (key, value)))
+  def withMeta[A: JAnyEncoder](key: String, value: A): Error =
+    this.copy(meta = Some(this.meta.getOrElse(Nil) :+ (key, value.toJAny)))
 }
 
 object Error {
-  implicit val encoder: Encoder[Error, JObject] = semiauto.deriveEncoderForCaseClass[Error]()
+  implicit val batemanEncoder: JObjectEncoder[Error] =
+    deriveEncoderForCaseClass[Error]()
 }
 
-final case class Jsonapi(
-    version: Option[String] = None,
-    meta: Option[Map[String, JAny]] = None
-)
+sealed trait Resource {
+  type Self <: Resource
 
-object Jsonapi {
-  implicit val encoder: Encoder[Jsonapi, JObject] = semiauto.deriveEncoderForCaseClass[Jsonapi]()
-}
+//  val id: Option[String]
+  val localId: Boolean
+  val resourceType: String
+  val meta: Option[Meta]
 
-sealed trait Data
-
-sealed trait PrimaryData extends Data
-
-object PrimaryData {
-  // These make it possible to create a PrimaryData without having to use the specific Data.* constructor
-  implicit def fromResourceIdentifier(data: ResourceIdentifier): PrimaryData =
-    ResourceIdentifierData(data)
-  implicit def fromResourceIdentifiers(data: List[ResourceIdentifier]): PrimaryData =
-    ResourceIdentifiersData(data)
-  implicit def fromResourceObject(data: ResourceObject): PrimaryData =
-    ResourceObjectData(data)
-  implicit def fromResourceObjects(data: List[ResourceObject]): PrimaryData =
-    ResourceObjectsData(data)
-  implicit def fromResourceObjectOptionalId(data: ResourceObjectOptionalId): PrimaryData =
-    ResourceObjectOptionalIdData(data)
-
-  implicit def encoder: Encoder[PrimaryData, JAny] = {
-    case d: ResourceIdentifierData       => ResourceIdentifierData.encoder.encode(d)
-    case d: ResourceObjectData           => ResourceObjectData.encoder.encode(d)
-    case d: ResourceObjectOptionalIdData => ResourceObjectOptionalIdData.encoder.encode(d)
-    case d: ResourceIdentifiersData      => ResourceIdentifiersData.encoder.encode(d)
-    case d: ResourceObjectsData          => ResourceObjectsData.encoder.encode(d)
-  }
-}
-
-sealed trait RelationshipData extends Data
-
-object RelationshipData {
-  // These make it possible to create a RelationshipData without having to use the specific *Data constructor
-  implicit def fromResourceIdentifier(data: ResourceIdentifier): RelationshipData =
-    ResourceIdentifierData(data)
-  implicit def fromResourceIdentifiers(data: List[ResourceIdentifier]): RelationshipData =
-    ResourceIdentifiersData(data)
-
-  implicit def encoder: Encoder[RelationshipData, JAny] = {
-    case d: NullData                => NullData.encoder.encode(d)
-    case d: ResourceIdentifierData  => ResourceIdentifierData.encoder.encode(d)
-    case d: ResourceIdentifiersData => ResourceIdentifiersData.encoder.encode(d)
-  }
-}
-
-sealed trait NullData extends PrimaryData with RelationshipData
-case object NullData extends NullData {
-  implicit def encoder: Encoder[NullData, JAny] = Encoder { _ => JNull }
-}
-
-case class ResourceIdentifierData(data: encoding.ResourceIdentifier) extends PrimaryData with RelationshipData
-
-object ResourceIdentifierData {
-  implicit def encoder: Encoder[ResourceIdentifierData, JAny] =
-    JAnyEncoder[encoding.ResourceIdentifier].contramap(_.data)
-}
-
-case class ResourceObjectData(data: encoding.ResourceObject) extends PrimaryData
-
-object ResourceObjectData {
-  implicit def encoder: Encoder[ResourceObjectData, JAny] =
-    JAnyEncoder[encoding.ResourceObject].contramap(_.data)
-}
-
-case class ResourceObjectOptionalIdData(data: encoding.ResourceObjectOptionalId) extends PrimaryData
-
-object ResourceObjectOptionalIdData {
-  implicit def encoder: Encoder[ResourceObjectOptionalIdData, JAny] =
-    JAnyEncoder[encoding.ResourceObjectOptionalId].contramap(_.data)
-}
-
-case class ResourceIdentifiersData(data: List[encoding.ResourceIdentifier]) extends PrimaryData with RelationshipData
-
-object ResourceIdentifiersData {
-  implicit def encoder: Encoder[ResourceIdentifiersData, JArray] =
-    JArrayEncoder[List[encoding.ResourceIdentifier]].contramap(_.data)
-}
-
-case class ResourceObjectsData(data: List[encoding.ResourceObject]) extends PrimaryData
-
-object ResourceObjectsData {
-  implicit def encoder: Encoder[ResourceObjectsData, JArray] =
-    JArrayEncoder[List[encoding.ResourceObject]].contramap(_.data)
-}
-
-final case class Relationship(
-    data: Option[RelationshipData] = None,
-    meta: Option[Map[String, JAny]] = None,
-    links: Option[Map[String, Link]] = None
-) extends HasMeta[Relationship] {
-  override def mapMeta(fn: Option[Map[String, JAny]] => Option[Map[String, JAny]]): Relationship = copy(meta = fn(meta))
-}
-
-object Relationship {
-  implicit val encoder: Encoder[Relationship, JObject] = semiauto.deriveEncoderForCaseClass[Relationship]()
-}
-
-sealed trait ResourceLike {
-  val `type`: String
-  val meta: Option[Map[String, JAny]]
-}
-
-sealed trait ResourceIdentifierLike extends ResourceLike {
-  val id: String
+  def withMeta[A: JAnyEncoder](key: String, value: A): Self
 }
 
 final case class ResourceIdentifier(
-    `type`: String,
+    resourceType: String,
     id: String,
-    meta: Option[Map[String, JAny]] = None
-) extends ResourceIdentifierLike
-    with HasMeta[ResourceIdentifier] {
-  override def mapMeta(fn: Option[Map[String, JAny]] => Option[Map[String, JAny]]): ResourceIdentifier =
-    copy(meta = fn(meta))
+    localId: Boolean = false,
+    meta: Option[Meta] = None
+) extends Resource {
+  override type Self = ResourceIdentifier
+  override def withMeta[A: JAnyEncoder](key: String, value: A): ResourceIdentifier =
+    this.copy(meta = Some(this.meta.getOrElse(Nil) :+ (key, value.toJAny)))
 }
 
 object ResourceIdentifier {
-  implicit val encoder: Encoder[ResourceIdentifier, JObject] = semiauto.deriveEncoderForCaseClass[ResourceIdentifier]()
-}
+  // Needs custom encoder to support id/lid logic.
+  implicit val batemanEncoder: JObjectEncoder[ResourceIdentifier] = (ri, _) => {
+    import org.scalawag.bateman.json.focus.weak._
+    import org.scalawag.bateman.json.state._
+    import org.scalawag.bateman.jsonapi.lens._
 
-trait ResourceObjectLike extends ResourceLike {
-  val optionalId: Option[String]
-  val attributes: Option[Map[String, JAny]]
-  val relationships: Option[Map[String, Relationship]]
-  val links: Option[Map[String, Link]]
-}
+    val create = for {
+      _ <- encodeTo(resourceType, ri.resourceType.toJAny)
+      _ <-
+        if (ri.localId)
+          encodeTo(lid, ri.id)
+        else
+          encodeTo(id, ri.id)
+      _ <- encodeTo(meta, ri.meta)
+    } yield ()
 
-final case class ResourceObjectOptionalId(
-    `type`: String,
-    id: Option[String] = None,
-    attributes: Option[Map[String, JAny]] = None,
-    relationships: Option[Map[String, Relationship]] = None,
-    meta: Option[Map[String, JAny]] = None,
-    links: Option[Map[String, Link]] = None
-) extends ResourceObjectLike
-    with HasMeta[ResourceObjectOptionalId] {
-  override val optionalId: Option[String] = id
+    create.runS(JObject.Empty.asRootFocus).flatMap(_.asObject).getOrThrow.value
+  }
 
-  override def mapMeta(fn: Option[Map[String, JAny]] => Option[Map[String, JAny]]): ResourceObjectOptionalId =
-    copy(meta = fn(meta))
-}
-
-object ResourceObjectOptionalId {
-  implicit val encoder: Encoder[ResourceObjectOptionalId, JObject] =
-    semiauto.deriveEncoderForCaseClass[ResourceObjectOptionalId]()
+  def withLid(resourceType: String, id: String): ResourceIdentifier =
+    ResourceIdentifier(resourceType, id, localId = true)
 }
 
 final case class ResourceObject(
-    `type`: String,
-    id: String,
-    attributes: Option[Map[String, JAny]] = None,
-    relationships: Option[Map[String, Relationship]] = None,
-    meta: Option[Map[String, JAny]] = None,
-    links: Option[Map[String, Link]] = None
-) extends ResourceObjectLike
-    with ResourceIdentifierLike
-    with HasMeta[ResourceObject] {
-  override val optionalId: Option[String] = Some(id)
+    resourceType: String,
+    id: Option[String] = None,
+    localId: Boolean = false,
+    attributes: Option[Attributes] = None,
+    relationships: Option[Relationships] = None,
+    meta: Option[Meta] = None,
+    links: Option[Links] = None
+) extends Resource {
+  override type Self = ResourceObject
 
-  override def mapMeta(fn: Option[Map[String, JAny]] => Option[Map[String, JAny]]): ResourceObject =
-    copy(meta = fn(meta))
-
-  def getResourceIdentifier: ResourceIdentifier = ResourceIdentifier(this.`type`, this.id)
+  def withMeta[A: JAnyEncoder](key: String, value: A): ResourceObject =
+    this.copy(meta = Some(this.meta.getOrElse(Seq.empty) :+ (key, value.toJAny)))
+  def withAttribute[A: JAnyEncoder](key: String, value: A): ResourceObject =
+    this.copy(attributes = Some(this.attributes.getOrElse(Seq.empty) :+ (key, value.toJAny)))
+  def withRelationship(key: String, value: Relationship): ResourceObject =
+    this.copy(relationships = Some(this.relationships.getOrElse(Seq.empty) :+ (key, value)))
+  def withLink(key: String, value: Link): ResourceObject =
+    this.copy(links = Some(this.links.getOrElse(Seq.empty) :+ (key, value)))
 }
 
 object ResourceObject {
-  implicit val encoder: Encoder[ResourceObject, JObject] = semiauto.deriveEncoderForCaseClass[ResourceObject]()
+  // Needs custom encoder to support id/lid logic.
+  implicit val batemanEncoder: JObjectEncoder[ResourceObject] = (ro, _) => {
+    import org.scalawag.bateman.json.focus.weak._
+    import org.scalawag.bateman.json.state._
+    import org.scalawag.bateman.jsonapi.lens._
 
-  implicit val ordering: Ordering[ResourceObject] = { (l, r) =>
-    Iterable(l.`type` compare r.`type`, l.id compare r.id).find(_ != 0).getOrElse(0)
+    val create = for {
+      _ <- encodeTo(resourceType, ro.resourceType.toJAny)
+      _ <-
+        if (ro.localId)
+          encodeTo(lid, ro.id)
+        else
+          encodeTo(id, ro.id)
+      _ <- encodeTo(attributes, ro.attributes)
+      _ <- encodeTo(relationships, ro.relationships)
+      _ <- encodeTo(meta, ro.meta)
+      _ <- encodeTo(links, ro.links)
+    } yield ()
+
+    create.runS(JObject.Empty.asRootFocus).flatMap(_.asObject).getOrThrow.value
   }
+
+  def apply(resourceType: String, id: String): ResourceObject = ResourceObject(resourceType, Some(id))
+
+  def withLid(resourceType: String, id: String): ResourceObject = ResourceObject(resourceType, Some(id), localId = true)
 }
 
-// None for all these None means that the key didn't appear in the document. If they're set to "null" or empty, they
-// will have a Some.
-
-final case class Document(
-    disposition: Document.Disposition,
-    jsonapi: Option[Jsonapi] = None,
-    links: Option[Map[String, Link]] = None
-) extends HasMeta[Document] {
-
-  val data: Option[PrimaryData] =
-    disposition match {
-      case Document.DataDisposition(data, _, _) => Some(data)
-      case _                                    => None
-    }
-
-  val included: Option[List[ResourceObject]] =
-    disposition match {
-      case Document.DataDisposition(_, included, _) => included
-      case _                                        => None
-    }
-
-  val errors: Option[List[Error]] = disposition match {
-    case Document.ErrorsDisposition(errors, _) => Some(errors)
-    case _                                     => None
-  }
-
-  val meta: Option[Map[String, JAny]] = disposition match {
-    case Document.MetaDisposition(meta)       => Some(meta)
-    case Document.DataDisposition(_, _, meta) => meta
-    case Document.ErrorsDisposition(_, meta)  => meta
-  }
-
-  // Sorts the included resource objects for easier diffing. Order should not be significant.
-  def sortIncludes: encoding.Document =
-    disposition match {
-      case _: Document.MetaDisposition    => this
-      case _: Document.ErrorsDisposition  => this
-      case disp: Document.DataDisposition => this.copy(disposition = disp.copy(included = disp.included.map(_.sorted)))
-    }
-
-  def mapMeta(fn: Option[Map[String, JAny]] => Option[Map[String, JAny]]): Document =
-    copy(disposition = disposition.mapMeta(fn))
+final case class Relationship(
+    data: Option[JAny] = None,
+    meta: Option[Meta] = None,
+    links: Option[Links] = None
+) {
+  def withMeta[A: JAnyEncoder](key: String, value: A): Relationship =
+    this.copy(meta = Some(this.meta.getOrElse(Seq.empty) :+ (key, value.toJAny)))
+  def withLink(key: String, value: Link): Relationship =
+    this.copy(links = Some(this.links.getOrElse(Seq.empty) :+ (key, value)))
 }
 
-case object Document {
+object Relationship {
+  implicit val batemanEncoder: JObjectEncoder[Relationship] =
+    deriveEncoderForCaseClass[Relationship]()
 
-  /** Documents must have `meta`, `data` or `errors`. If it's either of the latter two, `meta` is optional as well.
-    * This encodes that constraint statically into the JSON:API document model.
-    *
-    * https://jsonapi.org/format/#document-top-level
-    */
-  sealed trait Disposition {
-    def mapMeta(fn: Option[Map[String, JAny]] => Option[Map[String, JAny]]): Disposition
+  def apply[A: JObjectEncoder](data: A): Relationship = new Relationship(Some(data.toJAny))
+  def apply[A: JObjectEncoder](data: Nullable[A]): Relationship = new Relationship(Some(data.toJAny))
+  def apply[A: JObjectEncoder](data: Seq[A]): Relationship = new Relationship(Some(data.toJAny))
+}
+
+sealed trait Link
+
+object Link {
+  implicit val batemanEncoder: JAnyEncoder[Link] = {
+    case in: BareLink => in.toJAny
+    case in: RichLink => in.toJAny
   }
 
-  final case class MetaDisposition(
-      meta: Map[String, JAny]
-  ) extends Disposition {
-    override def mapMeta(fn: Option[Map[String, JAny]] => Option[Map[String, JAny]]): Disposition =
-      copy(meta = fn(Some(meta)).getOrElse(Map.empty))
-  }
+  implicit def fromString(href: String): BareLink = BareLink(href)
+}
 
-  final case class DataDisposition(
-      data: PrimaryData,
-      included: Option[List[ResourceObject]] = None,
-      meta: Option[Map[String, JAny]] = None
-  ) extends Disposition
-      with HasMeta[DataDisposition] {
-    override def mapMeta(fn: Option[Map[String, JAny]] => Option[Map[String, JAny]]): DataDisposition =
-      copy(meta = fn(meta))
+final case class BareLink(href: String) extends Link
 
-    override def equals(obj: Any): Boolean =
-      obj match {
-        case that: DataDisposition =>
-          // Order of `included` is not significant for comparison.
-          this.data == that.data && this.meta == that.meta && this.included.map(_.sorted) == that.included.map(_.sorted)
-        case _ => false
-      }
-  }
+object BareLink {
+  import cats.syntax.contravariant._
+  implicit val batemanEncoder: JStringEncoder[BareLink] = JStringEncoder[String].contramap(_.href)
+}
 
-  final case class ErrorsDisposition(
-      errors: List[Error],
-      meta: Option[Map[String, JAny]] = None
-  ) extends Disposition
-      with HasMeta[ErrorsDisposition] {
-    override def mapMeta(fn: Option[Map[String, JAny]] => Option[Map[String, JAny]]): ErrorsDisposition =
-      copy(meta = fn(meta))
-  }
+final case class RichLink(
+    href: String,
+    rel: Option[String] = None,
+    describedby: Option[Link] = None,
+    title: Option[String] = None,
+    linkType: Option[String] = None,
+    hreflang: Option[String] = None,
+    meta: Option[Meta] = None
+) extends Link {
+  def withMeta[A: JAnyEncoder](key: String, value: A): RichLink =
+    this.copy(meta = Some(this.meta.getOrElse(Seq.empty) :+ (key, value.toJAny)))
+}
 
-  def forData(
-      data: PrimaryData,
-      included: Option[List[ResourceObject]] = None,
-      meta: Option[Map[String, JAny]] = None,
-      jsonapi: Option[Jsonapi] = None,
-      links: Option[Map[String, Link]] = None,
-  ): Document = Document(DataDisposition(data, included, meta), jsonapi, links)
+object RichLink {
+  private val linkTypeToType: Config => Config =
+    _.withExplicitFieldNameMapping {
+      case "linkType" => "type"
+    }
 
-  def forErrors(
-      errors: List[Error],
-      meta: Option[Map[String, JAny]] = None,
-      jsonapi: Option[Jsonapi] = None,
-      links: Option[Map[String, Link]] = None,
-  ): Document = Document(ErrorsDisposition(errors, meta), jsonapi, links)
-
-  def forMeta(
-      meta: Map[String, JAny],
-      jsonapi: Option[Jsonapi] = None,
-      links: Option[Map[String, Link]] = None,
-  ): Document = Document(MetaDisposition(meta), jsonapi, links)
-
-  implicit val encoder: Encoder[Document, JObject] = { in =>
-    def optionally[A](name: String, oa: Option[A])(implicit enc: Encoder[A, JAny]) =
-      oa.map(a => name -> enc.encode(a))
-
-    JObject.fromOptions(
-      optionally("errors", in.errors),
-      optionally("data", in.data),
-      optionally("included", in.included),
-      optionally("meta", in.meta),
-      optionally("jsonapi", in.jsonapi),
-      optionally("links", in.links)
-    )
-  }
+  implicit val batemanEncoder: JObjectEncoder[RichLink] =
+    deriveEncoderForCaseClass[RichLink](linkTypeToType)
 }

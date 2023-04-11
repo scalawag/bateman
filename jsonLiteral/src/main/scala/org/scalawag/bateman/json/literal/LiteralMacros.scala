@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,8 +14,9 @@
 
 package org.scalawag.bateman.json.literal
 
-import org.scalawag.bateman.json.encoding.{JAny, JArray, JBoolean, JNull, JNumber, JObject, JString}
-import scala.reflect.{ClassTag, classTag}
+import org.scalawag.bateman.json.{JAny, JArray, JBoolean, JErrors, JField, JNull, JNumber, JObject, JString, JType}
+
+import scala.reflect.ClassTag
 import scala.reflect.macros.whitebox.Context
 import scala.collection.compat.immutable.LazyList
 import scala.util.Random
@@ -29,19 +30,19 @@ class LiteralMacros(val c: Context) {
       case s: JString if mapping.contains(s.value) =>
         q"${mapping(s.value)}"
       case _: JNull =>
-        q"_root_.org.scalawag.bateman.json.encoding.JNull"
+        q"_root_.org.scalawag.bateman.json.JNull"
       case b: JBoolean =>
-        q"_root_.org.scalawag.bateman.json.encoding.JBoolean(${b.value})"
+        q"_root_.org.scalawag.bateman.json.JBoolean(${b.value})"
       case n: JNumber =>
-        q"""_root_.org.scalawag.bateman.json.encoding.JNumber.unsafe(${Literal(Constant(n.value))})"""
+        q"""_root_.org.scalawag.bateman.json.JNumber.unsafe(${Literal(Constant(n.value))})"""
       case s: JString =>
-        q"""_root_.org.scalawag.bateman.json.encoding.JString(${Literal(Constant(s.value))})"""
+        q"""_root_.org.scalawag.bateman.json.JString(${Literal(Constant(s.value))})"""
       case a: JArray =>
         val items = a.items.map(toTree(_, mapping))
-        q"_root_.org.scalawag.bateman.json.encoding.JArray(..$items)"
+        q"_root_.org.scalawag.bateman.json.JArray(..$items)"
       case o: JObject =>
-        val fields = o.fields.map { case (k, v) => q"(${Literal(Constant(k))},${toTree(v, mapping)})" }
-        q"_root_.org.scalawag.bateman.json.encoding.JObject(..$fields)"
+        val fields = o.fieldList.map { case JField(k, v) => q"(${Literal(Constant(k.value))},${toTree(v, mapping)})" }
+        q"_root_.org.scalawag.bateman.json.JObject(..$fields)"
     }
 
   private def interleave[A, B](aa: Iterable[A], bb: Iterable[B]): Iterable[Either[A, B]] =
@@ -60,7 +61,7 @@ class LiteralMacros(val c: Context) {
 
   private case class InterpolatedExpression(term: TermName, decl: Tree, standIn: String)
 
-  private def commonStringContext[A <: JAny: ClassTag](args: c.Expr[Any]*): Tree =
+  private def commonStringContext[A <: JAny: ClassTag: JType.Summoner](args: c.Expr[Any]*): Tree =
     c.prefix.tree match {
       case Apply(_, Apply(_, parts) :: Nil) =>
         // Get the StringContext parts from lexical context
@@ -81,7 +82,7 @@ class LiteralMacros(val c: Context) {
             val term = TermName(s"arg$n")
             InterpolatedExpression(
               term,
-              q"""val $term = _root_.org.scalawag.bateman.json.encoding.JAnyEncoder.encode($arg)""",
+              q"""val $term = _root_.org.scalawag.bateman.json.JAnyEncoder.encode($arg)""",
               standin
             )
         }
@@ -92,19 +93,24 @@ class LiteralMacros(val c: Context) {
         // Parse the JSON text (with stand-ins)
         val jany = org.scalawag.bateman.json
           .parse(text)
-          .map(_.toEncoding)
           .fold(
-            e => c.abort(c.enclosingPosition, e.description),
-            identity
+            { e =>
+              // If there were interpolations, don't include the location (because it's all wrong).
+              if (args.isEmpty)
+                c.abort(c.enclosingPosition, e.getMessage)
+              else
+                c.abort(c.enclosingPosition, s"syntax error: ${e.reason}")
+            },
+            { jany =>
+              // If there were interpolations, remove the location information (because it's all wrong).
+              if (args.isEmpty)
+                jany
+              else
+                jany.value.stripLocation.asRootFocus
+            }
           )
-
-        jany match {
-          case _: A => // NOOP
-          case _ =>
-            val actual = jany.getClass.getSimpleName.stripSuffix("$")
-            val expected = classTag[A].runtimeClass.getSimpleName.stripSuffix("$")
-            c.abort(c.enclosingPosition, s"JSON text parsed to a $actual instead of a $expected")
-        }
+          .narrow[A]
+          .fold(ee => c.abort(c.enclosingPosition, JErrors.formatErrorReport(ee)), _.value)
 
         // Walk the resulting JAny, turning it into direct JAny constructor calls and replacing the stand-ins
         // with their associated terms.
@@ -117,7 +123,6 @@ class LiteralMacros(val c: Context) {
         """
     }
 
-  final def janyStringContext(args: c.Expr[Any]*): Tree = commonStringContext[JAny](args: _*)
   final def jarrayStringContext(args: c.Expr[Any]*): Tree = commonStringContext[JArray](args: _*)
   final def jobjectStringContext(args: c.Expr[Any]*): Tree = commonStringContext[JObject](args: _*)
 }

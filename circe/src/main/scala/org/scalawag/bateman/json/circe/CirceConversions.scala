@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,17 +15,17 @@
 package org.scalawag.bateman.json.circe
 
 import io.circe.{Json, JsonNumber}
-import org.scalawag.bateman.json.encoding._
+import org.scalawag.bateman.json._
 
 object CirceConversions {
   def toCirce(in: JAny): Json =
     in match {
-      case JNull            => Json.Null
-      case JString(s)       => Json.fromString(s)
-      case JNumber(n)       => Json.fromJsonNumber(JsonNumber.fromDecimalStringUnsafe(n)) // TODO: check this somehow
-      case JBoolean(b)      => Json.fromBoolean(b)
-      case JArray(arr @ _*) => Json.fromValues(arr.map(toCirce))
-      case JObject(ff @ _*) => Json.fromFields(ff.map(f => f._1 -> toCirce(f._2)))
+      case _: JNull    => Json.Null
+      case s: JString  => Json.fromString(s.value)
+      case n: JNumber  => Json.fromJsonNumber(JsonNumber.fromDecimalStringUnsafe(n.value))
+      case b: JBoolean => Json.fromBoolean(b.value)
+      case a: JArray   => Json.fromValues(a.items.map(toCirce))
+      case o: JObject  => Json.fromFields(o.fieldList.map(f => f.name.value -> toCirce(f.value)))
     }
 
   def fromCirce(in: Json): JAny =

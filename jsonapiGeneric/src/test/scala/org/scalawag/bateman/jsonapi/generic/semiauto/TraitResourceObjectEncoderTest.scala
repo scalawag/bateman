@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,9 +29,9 @@ import shapeless.tag.@@
 class TraitResourceObjectEncoderTest extends AnyFunSpec with Matchers with ParserTestUtils {
   it("should generate a basic encoder") {
     final case class MyClass(
-        id: String @@ IdTag,
-        a: Int @@ AttributeTag,
-        b: Option[ResourceIdentifier] @@ RelationshipTag
+        @Id id: String,
+        @Attribute a: Int,
+        @Relationship b: Option[ResourceIdentifier]
     )
 
     implicit val idEncoder = IdTag.encoder[String, JString]
@@ -52,10 +52,10 @@ class TraitResourceObjectEncoderTest extends AnyFunSpec with Matchers with Parse
 
   it("should generate a basic encoder with source injection") {
     final case class MyClass(
-        id: String @@ IdTag,
-        a: Int @@ AttributeTag,
-        b: Option[ResourceIdentifier] @@ RelationshipTag,
-        src: decoding.ResourceObject @@ SourceTag
+        @Id id: String,
+        @Attribute a: Int,
+        @Relationship b: Option[ResourceIdentifier],
+        @Source src: decoding.ResourceObject
     )
 
     implicit val idEncoder = IdTag.encoder[String, JString]
@@ -76,10 +76,10 @@ class TraitResourceObjectEncoderTest extends AnyFunSpec with Matchers with Parse
 
   it("should generate a basic encoder with optional source injection") {
     final case class MyClass(
-        id: String @@ IdTag,
-        a: Int @@ AttributeTag,
-        b: Option[ResourceIdentifier] @@ RelationshipTag,
-        src: Option[decoding.ResourceObject] @@ SourceTag
+        @Id id: String,
+        @Attribute a: Int,
+        @Relationship b: Option[ResourceIdentifier],
+        @Source src: Option[decoding.ResourceObject]
     )
 
     implicit val idEncoder = IdTag.encoder[String, JString]
@@ -115,14 +115,14 @@ class TraitResourceObjectEncoderTest extends AnyFunSpec with Matchers with Parse
   it("should fail for a case class with no id encoder") {
     assertTypeError("""
       sealed trait MyId
-      final case class MyClass(id: MyId @@ IdTag)
+      final case class MyClass(@Id id: MyId)
       deriveResourceObjectEncoderForCaseClass[MyClass]("my_class")
     """)
   }
 
   it("should fail for a case class with an invalid src type") {
     assertTypeError("""
-      final case class MyClass(id: String @@ IdTag, src: Int @@ SourceTag)
+      final case class MyClass(@Id id: String, @Source src: Int)
       deriveResourceObjectEncoderForCaseClass[MyClass]("my_class")
     """)
   }

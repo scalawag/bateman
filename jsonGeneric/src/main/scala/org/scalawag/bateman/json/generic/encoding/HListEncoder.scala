@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,121 +14,14 @@
 
 package org.scalawag.bateman.json.generic.encoding
 
-import org.scalawag.bateman.json.encoding.{Encoder, JAny, JObject}
-import org.scalawag.bateman.json.generic.{CaseClassInfo, Config, DiscriminatorValueParam, SourceTag}
-import org.scalawag.bateman.json.generic.encoding.HListEncoderFactoryFactory.{Input, Params}
-import shapeless.{::, HList, HNil, Lazy}
-import shapeless.tag.@@
+import org.scalawag.bateman.json.{JObject, JObjectEncoder}
+import org.scalawag.bateman.json.generic.encoding.HListEncoderFactory.Input
+import shapeless.HList
 
-import scala.reflect.{ClassTag, classTag}
-
-trait HListEncoder[In <: HList, Defaults <: HList] {
-  def encode(input: Input[In]): JObject
-}
-
-trait HListEncoderFactory[In <: HList, Defaults <: HList] {
-  def apply(params: Params): HListEncoder[In, Defaults]
-}
-
-trait HListEncoderFactoryFactory[In <: HList, Defaults <: HList] {
-  def apply(typeInfo: CaseClassInfo[Defaults]): HListEncoderFactory[In, Defaults]
-}
-
-object HListEncoderFactoryFactory {
-  final case class Params(config: Config, discriminatorValueOverride: Option[String]) extends DiscriminatorValueParam
-
-  final case class Input[In <: HList](in: In)
-
-  object Input {
-    implicit class InputOps[H, T <: HList](input: Input[H :: T]) {
-      def tail: Input[T] = input.copy(in = input.in.tail)
-    }
-  }
-
-  /** An encoder that produces the JObject representing HNil, which is just an empty JObject.  */
-
-  implicit val hnilEncoder: HListEncoderFactoryFactory[HNil, HNil] = { _ => _ => _ => JObject() }
-
-  /** Generates an encoder for a labelled [[HList]] whose head is a [[Head]] wrapped in an [[Option]].
-    *
-    * @param headEncoder can encode a [[Head]] to a [[JAny]]
-    * @param tailEncoder can encode the remaining items in the input [[HList]]
-    * @param config configures how the input should be encoded
-    * @tparam Head the type of the head (without its containing [[Option]])
-    * @tparam Tail the type of the tail, for which there must be an encoder
-    * @return the generated encoder
-    */
-
-  implicit def hconsEncoder[Head, Tail <: HList, DefaultsTail <: HList](implicit
-      headEncoder: Lazy[Encoder[Head, JAny]],
-      tailEncoderFactoryFactory: HListEncoderFactoryFactory[Tail, DefaultsTail]
-  ): HListEncoderFactoryFactory[Head :: Tail, Option[Head] :: DefaultsTail] =
-    info => {
-      val tailEncoderFactory = tailEncoderFactoryFactory(info.tail)
-      def defaultEncoded = info.defaults.head.map(headEncoder.value.encode)
-
-      params => {
-        val tailEncoder = tailEncoderFactory(params)
-
-        input => {
-          val fieldName = params.config.fieldNameMapping(info.fieldNames.head)
-          val encodedTail = tailEncoder.encode(input.tail)
-
-          // See if the input value is the same as the default value and, if so configured, skip it.
-          val inputEncoded = headEncoder.value.encode(input.in.head)
-          if (params.config.encodeDefaultValues || !defaultEncoded.contains(inputEncoded))
-            JObject((fieldName -> inputEncoded) +: encodedTail.fields: _*)
-          else
-            encodedTail
-        }
-      }
-    }
-
-  implicit def hconsOptionEncoder[Head, Tail <: HList, DefaultsTail <: HList](implicit
-      headEncoder: Lazy[Encoder[Head, JAny]],
-      tailEncoderFactoryFactory: HListEncoderFactoryFactory[Tail, DefaultsTail]
-  ): HListEncoderFactoryFactory[Option[Head] :: Tail, Option[Option[Head]] :: DefaultsTail] =
-    info => {
-      val tailEncoderFactory = tailEncoderFactoryFactory(info.tail)
-
-      params => {
-        val tailEncoder = tailEncoderFactory(params)
-
-        input => {
-          val fieldName = params.config.fieldNameMapping(info.fieldNames.head)
-          val encodedTail = tailEncoder.encode(input.tail)
-
-          // See if the input value is the same as the default value and, if so configured, skip it.
-          if (params.config.encodeDefaultValues || !info.defaults.head.contains(input.in.head))
-            JObject(input.in.head.map(headEncoder.value.encode).map(fieldName -> _).toList ++ encodedTail.fields: _*)
-          else
-            encodedTail
-        }
-      }
-    }
-
-  /** Generates an encoder for a labelled [[HList]] whose head is any type and is tagged with [[SourceTag]].
-    * Source fields don't get encoded. Just this just defers to the tail encoder.
-    *
-    * @param tailEncoder can encode the remaining items in the input [[HList]]
-    * @tparam Head the type of the head (without its containing [[Option]])
-    * @tparam Tail the type of the tail, for which there must be an encoder
-    * @return the generated encoder
-    */
-
-  implicit def hconsSourceEncoder[Head, Tail <: HList, DefaultsTail <: HList](implicit
-      tailEncoderFactoryFactory: HListEncoderFactoryFactory[Tail, DefaultsTail],
-  ): HListEncoderFactoryFactory[(Head @@ SourceTag) :: Tail, Option[Head @@ SourceTag] :: DefaultsTail] =
-    info => {
-      val tailEncoderFactory = tailEncoderFactoryFactory(info.tail)
-
-      params => {
-        val tailEncoder = tailEncoderFactory(params)
-
-        input => {
-          // Never contribute anything to this encoding... just return what the tail encoder said.
-          tailEncoder.encode(input.tail)
-        }
-      }
-    }
-}
+/** An encoder that can turn the generic HList representation of a case class and turn it into a JObject.
+  *
+  * @tparam A the generic representation of the case class
+  * @tparam Defaults the generic representation of the case class defaults (as [[Option]]s)
+  * @tparam Annotations the generic representations annotations of the field annotations (as HLists)
+  */
+trait HListEncoder[A <: HList, Defaults <: HList, Annotations <: HList] extends JObjectEncoder[Input[A]]

@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@ object naming {
     def fromWords(words: List[String]): String
 
     protected def capitalize(word: String): String = word.take(1).map(_.toUpper) ++ word.drop(1)
+
+    def to(that: Case): CaseTransformation = CaseTransformation(this, that)
   }
 
   abstract class CaseBasedCase(val groupConsecutiveCapitals: Boolean) extends Case {

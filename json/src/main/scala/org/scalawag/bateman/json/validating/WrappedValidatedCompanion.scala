@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,21 +14,17 @@
 
 package org.scalawag.bateman.json.validating
 
-import org.scalawag.bateman.json.decoding.{JAny, JAnyContextualDecoder}
+import org.scalawag.bateman.json.{Decoder, JAny, JAnyDecoder}
 
 /** Adds semantic validation to the type [[Out]]'s companion object and marks it as validated by wrapping the input
   * type in a case class.
   *
   * @param wrap a function to wrap the input type [[In]] in the tye [[Out]] upon successful validation
-  * @param decoder the decoder used to get from a [[JAny]] to the input type [[In]]
   * @tparam In the input type of the validator
   * @tparam Out the output type of the validator
-  * @tparam Context the context required by the underlying decoder
   */
 
-abstract class WrappedValidatedCompanion[In, Out, Context](wrap: In => Out)(implicit
-    decoder: JAnyContextualDecoder[In, Context]
-) extends ValidatedCompanion[In, Out, Context] {
+abstract class WrappedValidatedCompanion[In, Out](wrap: In => Out) extends ValidatedCompanion[In, Out] {
   def validate(in: In): List[String]
 
   override val validator: Validator[In, Out] = Validator(wrap)(validate)

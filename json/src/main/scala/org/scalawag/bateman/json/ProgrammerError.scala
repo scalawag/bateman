@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,4 +14,11 @@
 
 package org.scalawag.bateman.json
 
-case class ProgrammerError(description: String) extends RuntimeException("Programmer Error: " + description)
+/** An error that should never happen once the code passes its tests. These errors can not arise due to
+  *  bad user input. They should be treated as bugs.
+  */
+class ProgrammerError(val description: String) extends RuntimeException("Programmer Error: " + description)
+
+object ProgrammerError {
+  def apply(description: String): ProgrammerError = new ProgrammerError(description)
+}

@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,9 +15,9 @@
 package org.scalawag.bateman.json
 
 object syntax {
-  implicit class RichBateman[A](a: A) {
-    def as[B](implicit dec: decoding.Decoder[A, B]): decoding.DecodeResult[B] = dec.decode(a)
-    def to[B](implicit enc: encoding.Encoder[A, B]): B = enc.encode(a)
-    def toJAny(implicit enc: encoding.Encoder[A, encoding.JAny]): encoding.JAny = a.to[encoding.JAny]
+  implicit class AnyBatemanOps[A](a: A) {
+    def encodeTo[B](implicit enc: Encoder[A, B]): B = to[B]
+    def to[B](implicit enc: Encoder[A, B]): B = enc.encode(a)
+    def toJAny[B <: JAny](implicit enc: Encoder[A, B]): B = a.to[B]
   }
 }

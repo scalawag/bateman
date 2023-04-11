@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,58 +14,13 @@
 
 package org.scalawag.bateman.jsonapi
 
-import cats.Id
-import cats.data.{NonEmptyChain, ValidatedNec}
-import org.scalawag.bateman.json.encoding.JAny
-import org.scalawag.bateman.jsonapi.encoding.ResourceEncoder.{Encoded, PartiallyEncoded}
+import cats.data.{NonEmptyChain, EitherNec}
 
 package object encoding {
-  type EncodeResult[+A] = ValidatedNec[EncodeError, A]
+  type EncodeResult[+A] = EitherNec[EncodeError, A]
 
   object EncodeResult {
     def formatErrorReport(errors: NonEmptyChain[EncodeError]): String =
       errors.map(_.toJsonApiError.detail).iterator.mkString(" - ", "\n - ", "")
-  }
-
-  class AliasEncoderCompanion[Out <: ResourceLike] {
-    def apply[In](implicit enc: ResourceEncoder[In, Out]): ResourceEncoder[In, Out] = enc
-
-    def encodeResource[In](
-        in: In,
-        includeSpec: IncludeSpec = IncludeSpec.Never,
-        fieldsSpec: FieldsSpec = FieldsSpec.All
-    )(implicit
-        enc: ResourceEncoder[In, Out]
-    ): EncodeResult[PartiallyEncoded[Out]] = enc.encodeResource(in, includeSpec, fieldsSpec)
-
-    def encodeInfallibly[In](
-        in: In,
-        includeSpec: InfallibleIncludeSpec = IncludeSpec.Opportunistically,
-        fieldsSpec: InfallibleFieldsSpec = FieldsSpec.All
-    )(implicit
-        enc: ResourceEncoder[In, Out]
-    ): Encoded[Out] = enc.encodeInfallibly(in, includeSpec, fieldsSpec)
-
-    def encode[In](in: In)(implicit
-        enc: ResourceEncoder[In, Out]
-    ): Out = enc.encode(in)
-  }
-
-  type ResourceIdentifierEncoder[A] = ResourceEncoder[A, ResourceIdentifier]
-
-  object ResourceIdentifierEncoder extends AliasEncoderCompanion[ResourceIdentifier]
-
-  type ResourceObjectEncoder[A] = ResourceEncoder[A, ResourceObject]
-
-  object ResourceObjectEncoder extends AliasEncoderCompanion[ResourceObject]
-
-  type ResourceObjectOptionalIdEncoder[A] = ResourceEncoder[A, ResourceObjectOptionalId]
-
-  object ResourceObjectOptionalIdEncoder extends AliasEncoderCompanion[ResourceObjectOptionalId]
-
-  type Loader[F[_]] = ResourceIdentifier => F[Option[ResourceObject]]
-
-  object Loader {
-    def none: Loader[Id] = { _ => None }
   }
 }

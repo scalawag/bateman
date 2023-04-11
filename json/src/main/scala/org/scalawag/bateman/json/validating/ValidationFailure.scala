@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ package org.scalawag.bateman.json.validating
 
 import cats.data.NonEmptyChain
 import cats.data.ValidatedNec
-import org.scalawag.bateman.json.decoding.JPointer
+import org.scalawag.bateman.json.JPointer
 
 /** Represents a failure to validate a given value. This supports nested validation, so it's possible to gather all
   * the validation failures of the individual elements of a JSON structure and present them as the failures of the
@@ -30,8 +30,8 @@ import org.scalawag.bateman.json.decoding.JPointer
 
 case class ValidationFailure(description: String, pointer: JPointer = JPointer.Root) {
   lazy val fullDescription: String = pointer match {
-    case JPointer.Root     => description
-    case c: JPointer.Child => s"$c: $description"
+    case JPointer.Root => description
+    case p             => s"$p: $description"
   }
 }
 

@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,26 +15,25 @@
 package org.scalawag.bateman.json.enumeratum
 
 import enumeratum.{Enum, EnumEntry}
-import cats.syntax.validated._
+import cats.syntax.either._
+import cats.syntax.functor._
 import cats.syntax.contravariant._
-import org.scalawag.bateman.json.decoding.{Decoder, InvalidValue}
-import org.scalawag.bateman.json.encoding.Encoder
-import org.scalawag.bateman.json.{decoding, encoding}
+import org.scalawag.bateman.json.{Decoder, Encoder, InvalidValue, JError, JString, JStringDecoder, JStringEncoder}
 
 trait BatemanEnum[A <: EnumEntry] { this: Enum[A] =>
-  implicit val batemanEncoder: Encoder[A, encoding.JString] = BatemanEnum.encoder(this)
-  implicit val batemanDecoder: Decoder[decoding.JString, A] = BatemanEnum.decoder(this)
+  implicit val batemanEncoder: Encoder[A, JString] = BatemanEnum.encoder(this)
+  implicit val batemanDecoder: Decoder[JString, A] = BatemanEnum.decoder(this)
 }
 
 object BatemanEnum {
-  def encoder[A <: EnumEntry](enum: Enum[A]): Encoder[A, encoding.JString] =
-    encoding.JStringEncoder[String].contramap(_.entryName)
+  def encoder[A <: EnumEntry](e: Enum[A]): JStringEncoder[A] =
+    JStringEncoder[String].contramap(_.entryName)
 
-  def decoder[A <: EnumEntry](enum: Enum[A]): Decoder[decoding.JString, A] =
-    Decoder { in =>
-      enum.withNameOption(in.value) match {
-        case Some(member) => member.validNec
-        case None         => InvalidValue(in, s"'${in.value}' is not a member of enum $enum").invalidNec
+  def decoder[A <: EnumEntry](e: Enum[A]): JStringDecoder[A] =
+    JStringDecoder { in =>
+      e.withNameOption(in.value.value) match {
+        case Some(member) => member.rightNec[JError]
+        case None         => InvalidValue(in, s"'${in.value.value}' is not a member of enum $e").leftNec
       }
     }
 }

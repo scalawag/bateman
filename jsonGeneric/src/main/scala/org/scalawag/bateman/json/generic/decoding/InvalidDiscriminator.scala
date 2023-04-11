@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,10 +14,12 @@
 
 package org.scalawag.bateman.json.generic.decoding
 
-import org.scalawag.bateman.json.decoding.{DecodeError, JLocation, JPointer, JString}
+import org.scalawag.bateman.json.focus.JFocus
+import org.scalawag.bateman.json.{JAny, JError, JLocation, JPointer}
 
-case class InvalidDiscriminator(discriminator: JString, valids: Iterable[String]) extends DecodeError {
-  override def location: JLocation = discriminator.location
+case class InvalidDiscriminator(discriminator: JFocus[JAny], valids: Set[JAny]) extends JError {
+  override def location: Option[JLocation] = discriminator.value.location
   override def pointer: JPointer = discriminator.pointer
-  override def description: String = s"discriminator must be one of the following: ${valids.mkString(", ")}"
+  override lazy val description: String =
+    s"discriminator must be one of the following: ${valids.map(_.render).toList.sorted.mkString("|")}"
 }

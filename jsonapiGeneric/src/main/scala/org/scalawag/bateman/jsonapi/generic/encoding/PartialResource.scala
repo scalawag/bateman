@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,11 +14,12 @@
 
 package org.scalawag.bateman.jsonapi.generic.encoding
 
-import cats.data.Validated.{Invalid, Valid}
-import org.scalawag.bateman.json.encoding.JAny
-import org.scalawag.bateman.json.validIfEmpty
-import org.scalawag.bateman.jsonapi.encoding
-import org.scalawag.bateman.jsonapi.encoding._
+import cats.syntax.semigroup._
+import org.scalawag.bateman.json.{JAny, JObject, rightIfEmpty}
+import org.scalawag.bateman.jsonapi._
+import org.scalawag.bateman.jsonapi.encoding.{EncodeError, EncodeResult, Inclusions}
+import org.scalawag.bateman.json.syntax._
+import org.scalawag.bateman.jsonapi.encoding.ResourceEncoder.Encoded
 
 /** When we generate an encoder for a ResourceLike, we need a place to store the fields the encoding _before_ we've
   * finished. We can't just use the target type because, it may have constraints that we can't fulfill. For example,
@@ -31,43 +32,48 @@ import org.scalawag.bateman.jsonapi.encoding._
   */
 
 final case class PartialResource(
+    resourceType: String,
     id: Option[String] = None,
-    metas: Map[String, JAny] = Map.empty,
-    attributes: Map[String, JAny] = Map.empty,
-    relationships: Map[String, encoding.Relationship] = Map.empty,
+    lid: Option[String] = None,
+    metas: List[(String, JAny)] = Nil,
+    attributes: List[(String, JAny)] = Nil,
+    relationships: List[(String, JAny)] = Nil,
     inclusions: Inclusions = Inclusions.empty,
-    deferrals: Set[DeferredEncoding] = Set.empty,
     errors: Set[EncodeError] = Set.empty
 ) {
   def addAttribute(name: String, value: JAny): PartialResource =
-    this.copy(attributes = this.attributes + (name -> value))
+    this.copy(attributes = (name -> value) :: this.attributes)
   def addMeta(name: String, value: JAny): PartialResource =
-    this.copy(metas = this.metas + (name -> value))
+    this.copy(metas = (name -> value) :: this.metas)
 
-  def addRelationship(name: String, relationship: Relationship): PartialResource =
-    this.copy(relationships = this.relationships + (name -> relationship))
-  def addRelationship(name: String, relationship: Option[Relationship]): PartialResource =
+  def addRelationship(name: String, value: JAny): PartialResource =
+    this.copy(relationships = (name -> value) :: this.relationships)
+  def addRelationship(name: String, relationship: Option[JAny]): PartialResource =
     relationship.map(addRelationship(name, _)).getOrElse(this)
-  def addInclusion(resourceObject: ResourceObject): PartialResource =
-    this.copy(inclusions = this.inclusions + resourceObject)
-  def addInclusion(resourceObject: Option[ResourceObject]): PartialResource =
-    resourceObject.map(addInclusion).getOrElse(this)
-  def addInclusions(resourceObjects: List[ResourceObject]): PartialResource =
-    this.copy(inclusions = this.inclusions ++ resourceObjects)
+  def addInclusions(inclusions: Iterable[JObject]): PartialResource = {
+    this.copy(inclusions = inclusions.foldLeft(this.inclusions)(_ + _))
+  }
   def addInclusions(inclusions: Inclusions): PartialResource =
-    this.copy(inclusions = this.inclusions ++ inclusions)
-  def addDeferredEncoding(deferredEncoding: DeferredEncoding): PartialResource =
-    addDeferredEncodings(Iterable(deferredEncoding))
-  def addDeferredEncoding(deferredEncoding: Option[DeferredEncoding]): PartialResource =
-    addDeferredEncodings(deferredEncoding.toIterable)
-  def addDeferredEncodings(deferredEncodings: Iterable[DeferredEncoding]): PartialResource =
-    this.copy(deferrals = this.deferrals ++ deferredEncodings)
+    this.copy(inclusions = this.inclusions combine inclusions)
+
+  def addError(error: EncodeError): PartialResource =
+    this.copy(errors = this.errors + error)
 
   def whenValid[A](r: EncodeResult[A])(fn: A => PartialResource): PartialResource =
     r match {
-      case Valid(a)    => fn(a)
-      case Invalid(ee) => this.copy(errors = errors ++ ee.iterator)
+      case Right(a) => fn(a)
+      case Left(ee) => this.copy(errors = errors ++ ee.iterator)
     }
 
-  def toEncodeResult: EncodeResult[PartialResource] = validIfEmpty(errors, this)
+  def toRootObject: JObject =
+    JObject.flatten(
+      Some("type" -> resourceType.toJAny),
+      if (id.isEmpty) None else Some("id" -> id.get.toJAny),
+      if (lid.isEmpty) None else Some("lid" -> lid.get.toJAny),
+      if (attributes.isEmpty) None else Some("attributes" -> JObject(attributes: _*)),
+      if (relationships.isEmpty) None else Some("relationships" -> JObject(relationships: _*)),
+      if (metas.isEmpty) None else Some("meta" -> JObject(metas: _*)),
+    )
+
+  def toEncoded: EncodeResult[Encoded] = rightIfEmpty(errors, Encoded(toRootObject, inclusions))
 }

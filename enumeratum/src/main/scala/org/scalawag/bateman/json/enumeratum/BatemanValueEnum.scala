@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,45 +14,54 @@
 
 package org.scalawag.bateman.json.enumeratum
 
-import cats.syntax.validated._
+import cats.syntax.either._
 import enumeratum.values._
-import org.scalawag.bateman.json.{decoding, encoding}
-import org.scalawag.bateman.json.decoding.{Decoder, InvalidValue, JNumberDecoder, JStringDecoder}
-import org.scalawag.bateman.json.encoding.{Encoder, JNumberEncoder, JStringEncoder}
+import org.scalawag.bateman.json.{
+  Decoder,
+  Encoder,
+  InvalidValue,
+  JAny,
+  JError,
+  JNumber,
+  JNumberDecoder,
+  JNumberEncoder,
+  JString,
+  JStringDecoder,
+  JStringEncoder
+}
 
 sealed trait BatemanValueEnum[
     ValueType,
-    DecodingType <: decoding.JAny,
-    EncodingType <: encoding.JAny,
+    JsonType <: JAny,
     EntryType <: ValueEnumEntry[ValueType]
 ] {
   this: ValueEnum[ValueType, EntryType] =>
-  implicit def batemanEncoder: Encoder[EntryType, EncodingType]
-  implicit def batemanDecoder: Decoder[DecodingType, EntryType]
+  implicit def batemanEncoder: Encoder[EntryType, JsonType]
+  implicit def batemanDecoder: Decoder[JsonType, EntryType]
 }
 
 object BatemanValueEnum {
-  def encoder[EncodingType <: encoding.JAny, ValueType, EntryType <: ValueEnumEntry[ValueType]](
-      enum: ValueEnum[ValueType, EntryType]
-  )(implicit valueEncoder: Encoder[ValueType, EncodingType]): Encoder[EntryType, EncodingType] = { entry =>
+  def encoder[ValueType, JsonType <: JAny, EntryType <: ValueEnumEntry[ValueType]](
+      e: ValueEnum[ValueType, EntryType]
+  )(implicit valueEncoder: Encoder[ValueType, JsonType]): Encoder[EntryType, JsonType] = { entry =>
     valueEncoder.encode(entry.value)
   }
 
-  def decoder[DecodingType <: decoding.JAny, ValueType, EntryType <: ValueEnumEntry[ValueType]](
-      enum: ValueEnum[ValueType, EntryType]
-  )(implicit valueDecoder: Decoder[DecodingType, ValueType]): Decoder[DecodingType, EntryType] =
-    Decoder[DecodingType, EntryType] { in: DecodingType =>
-      valueDecoder.decode(in).andThen { v =>
-        enum.withValueOpt(v) match {
-          case Some(member) => member.validNec
-          case None         => InvalidValue(in, s"$v is not a member of enum $enum").invalidNec
+  def decoder[ValueType, JsonType <: JAny, EntryType <: ValueEnumEntry[ValueType]](
+      e: ValueEnum[ValueType, EntryType]
+  )(implicit valueDecoder: Decoder[JsonType, ValueType]): Decoder[JsonType, EntryType] =
+    Decoder[JsonType, EntryType] { in =>
+      valueDecoder.decode(in).flatMap { v =>
+        e.withValueOpt(v) match {
+          case Some(member) => member.rightNec[JError]
+          case None         => InvalidValue(in, s"$v is not a member of enum $e").leftNec
         }
       }
     }
 }
 
 trait JNumberBatemanEnum[ValueType, EntryType <: ValueEnumEntry[ValueType]]
-    extends BatemanValueEnum[ValueType, decoding.JNumber, encoding.JNumber, EntryType] {
+    extends BatemanValueEnum[ValueType, JNumber, EntryType] {
   this: ValueEnum[ValueType, EntryType] =>
 }
 
@@ -81,7 +90,7 @@ trait ByteBatemanEnum[EntryType <: ByteEnumEntry] extends JNumberBatemanEnum[Byt
 }
 
 trait JStringBatemanEnum[ValueType, EntryType <: ValueEnumEntry[ValueType]]
-    extends BatemanValueEnum[ValueType, decoding.JString, encoding.JString, EntryType] {
+    extends BatemanValueEnum[ValueType, JString, EntryType] {
   this: ValueEnum[ValueType, EntryType] =>
 }
 

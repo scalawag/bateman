@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@
 
 package org.scalawag.bateman.json.validating
 
-import cats.data.ValidatedNec
-import org.scalawag.bateman.json.decoding.{ContextualDecoder, Decoder, JAny, JAnyDecoder}
+import cats.data.EitherNec
+import org.scalawag.bateman.json.{Decoder, JAny, JAnyDecoder}
 
 /** Designed to be extended by the companion objects for types that needs to be semantically validated. It provides
   * an implicit [[Validator]], an implicit [[Decoder]] and factory methods. There must already be a [[JAnyDecoder]]
@@ -26,7 +26,7 @@ import org.scalawag.bateman.json.decoding.{ContextualDecoder, Decoder, JAny, JAn
   * @tparam Out the output type of the validator
   */
 
-abstract class ValidatedCompanion[-In, Out, Context](implicit dec: ContextualDecoder[JAny, In, Context]) {
+trait ValidatedCompanion[In, Out] {
 
   /** A validator that must be provided by the companion object. */
   implicit val validator: Validator[In, Out]
@@ -36,7 +36,7 @@ abstract class ValidatedCompanion[-In, Out, Context](implicit dec: ContextualDec
     * @param in the value to be validated
     * @return a valid [[Out]] ''or'' a list of validation failures
     */
-  def apply(in: In): ValidatedNec[ValidationFailure, Out] = validator.validate(in)
+  def apply(in: In): EitherNec[ValidationFailure, Out] = validator.validate(in)
 
   /** Creates an [[Out]] from an [[In]] after validating it.
     *
@@ -49,5 +49,5 @@ abstract class ValidatedCompanion[-In, Out, Context](implicit dec: ContextualDec
   /** A decoder that decodes a [[JAny]] to an instance of [[Out]] by using the implicit decoder and then running
     * the result through the validation defined by [[validator]].
     */
-  implicit def decoder: ContextualDecoder[JAny, Out, Context] = dec.withValidation[Out]
+  implicit def decoder[A <: JAny](implicit dec: Decoder[A, In]): Decoder[A, Out] = dec.withValidation[Out]
 }

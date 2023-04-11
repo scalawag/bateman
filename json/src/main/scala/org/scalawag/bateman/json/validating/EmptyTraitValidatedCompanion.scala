@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 
 package org.scalawag.bateman.json.validating
 
-import org.scalawag.bateman.json.decoding.{JAny, JAnyContextualDecoder}
+import org.scalawag.bateman.json.JAny
 
 /** Adds semantic validation to the empty trait [[Trait]]'s companion object that marks values as validated by
   * mixing in the empty with their type.
@@ -22,10 +22,8 @@ import org.scalawag.bateman.json.decoding.{JAny, JAnyContextualDecoder}
   * @param d the decoder used to get from a [[JAny]] to the input type [[In]]
   * @tparam In the input type of the validator
   * @tparam Trait the empty trait to be mixed in with the input type on successful validation
-  * @tparam Context the context required by the underlying decoder
   */
-abstract class EmptyTraitValidatedCompanion[In, Trait, Context](implicit d: JAnyContextualDecoder[In, Context])
-    extends ValidatedCompanion[In, In with Trait, Context] {
+trait EmptyTraitValidatedCompanion[In, Trait] extends ValidatedCompanion[In, In with Trait] {
   def validate(in: In): List[String]
 
   override val validator: Validator[In, In with Trait] =

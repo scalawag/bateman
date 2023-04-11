@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,31 +28,25 @@ package object semiauto {
   // These all do essentially the same thing as the unchecked versions (below) except that they run the type through
   // a macro which does some extra validation on it to detect compile-time errors. They also attempt to check for the
   // codec dependencies individually to get the programmer a more targeted error message when they're missing one.
-  def deriveEncoderForTrait[A]: TraitEncoderDeriver[A] =
-    macro Macros.deriveEncoderForTrait[A]
-  def deriveEncoderForCaseClass[A]: CaseClassEncoderDeriver[A] =
-    macro Macros.deriveEncoderForCaseClass[A]
-  def deriveDecoderForTrait[A, Context]: TraitDecoderDeriver[A, Context] =
-    macro Macros.deriveDecoderForTrait[A, Context]
-  def deriveDecoderForCaseClass[A, Context]: CaseClassDecoderDeriver[A, Context] =
-    macro Macros.deriveDecoderForCaseClass[A, Context]
-  def deriveCodecForTrait[A, Context]: TraitCodecDeriver[A, Context] =
-    macro Macros.deriveCodecForTrait[A, Context]
-  def deriveCodecForCaseClass[A, Context]: CaseClassCodecDeriver[A, Context] =
-    macro Macros.deriveCodecForCaseClass[A, Context]
+//  def deriveEncoderForTrait[A]: TraitEncoderDeriver[A] =
+//    macro Macros.deriveEncoderForTrait[A]
+//  def deriveEncoderForCaseClass[A]: CaseClassEncoderDeriver[A] =
+//    macro Macros.deriveEncoderForCaseClass[A]
+//  def deriveDecoderForTrait[A]: TraitDecoderDeriver[A] =
+//    macro Macros.deriveDecoderForTrait[A]
+//  def deriveDecoderForCaseClass[A]: CaseClassDecoderDeriver[A] =
+//    macro Macros.deriveDecoderForCaseClass[A]
+//  def deriveCodecForTrait[A]: TraitCodecDeriver[A] =
+//    macro Macros.deriveCodecForTrait[A]
+//  def deriveCodecForCaseClass[A]: CaseClassCodecDeriver[A] =
+//    macro Macros.deriveCodecForCaseClass[A]
 
   object unchecked {
-    def deriveEncoderForTrait[A]: TraitEncoderDeriver[A] =
-      new TraitEncoderDeriver[A]
-    def deriveEncoderForCaseClass[A]: CaseClassEncoderDeriver[A] =
-      new CaseClassEncoderDeriver[A]
-    def deriveDecoderForTrait[A, Context]: TraitDecoderDeriver[A, Context] =
-      new TraitDecoderDeriver[A, Context]
-    def deriveDecoderForCaseClass[A, Context]: CaseClassDecoderDeriver[A, Context] =
-      new CaseClassDecoderDeriver[A, Context]
-    def deriveCodecForTrait[A, Context]: TraitCodecDeriver[A, Context] =
-      new TraitCodecDeriver[A, Context]
-    def deriveCodecForCaseClass[A, Context]: CaseClassCodecDeriver[A, Context] =
-      new CaseClassCodecDeriver[A, Context]
+    def deriveEncoderForTrait[A]: TraitEncoderDeriver[A] = new TraitEncoderDeriver[A]
+    def deriveEncoderForCaseClass[A]: CaseClassEncoderDeriver[A] = new CaseClassEncoderDeriver[A]
+    def deriveDecoderForTrait[A]: TraitDecoderDeriver[A] = new TraitDecoderDeriver[A]
+    def deriveDecoderForCaseClass[A]: CaseClassDecoderDeriver[A] = new CaseClassDecoderDeriver[A]
+    def deriveCodecForTrait[A]: TraitCodecDeriver[A] = new TraitCodecDeriver[A]
+    def deriveCodecForCaseClass[A]: CaseClassCodecDeriver[A] = new CaseClassCodecDeriver[A]
   }
 }

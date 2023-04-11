@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/*
 package org.scalawag.bateman.jsonapi.generic
 
 import scala.reflect.macros.whitebox.Context
@@ -24,10 +25,10 @@ import org.scalawag.bateman.jsonapi
 import org.scalawag.bateman.jsonapi.generic.decoding.JSource
 
 /** This contains macros that validate the input classes prior to generating the codecs using shapeless.
-  * This puts most of the logic into non-macro code (which was a goal). The macros generate the creation of
-  * the factory that is used to create the actual codec. That's because if the macro call is made from library code,
-  * the developer doesn't get an error message that reflects where the problem is in _their_ code.
-  */
+ * This puts most of the logic into non-macro code (which was a goal). The macros generate the creation of
+ * the factory that is used to create the actual codec. That's because if the macro call is made from library code,
+ * the developer doesn't get an error message that reflects where the problem is in _their_ code.
+ */
 
 class Macros(override protected val c: Context) extends MacroBase(c) {
   import c.universe._
@@ -45,39 +46,39 @@ class Macros(override protected val c: Context) extends MacroBase(c) {
 
   private def allFieldsTaggedOnce(fields: List[Field]): MacroResult[Unit] =
     fields
-      .traverse { f =>
+      .parTraverse { f =>
         if (f.tag.isEmpty) {
           if (f.name == "id")
-            s"field '${f.name}' must be tagged with $idTag".invalidNec
+            s"field '${f.name}' must be tagged with $idTag".leftNec
           else
-            s"field '${f.name}' must be tagged with ${attributeTag.name} or ${relationshipTag.name}".invalidNec
+            s"field '${f.name}' must be tagged with ${attributeTag.name} or ${relationshipTag.name}".leftNec
         } else if (f.tag.contains(idTag) && f.name != "id")
-          s"field '${f.name}' has the IdTag but is not named 'id'".invalidNec
+          s"field '${f.name}' has the IdTag but is not named 'id'".leftNec
         else
-          ().validNec
+          ().rightNec
       }
       .map(_ => ())
 
   private def requireId(fields: List[Field]): MacroResult[Unit] =
     if (fields.exists(_.name == "id"))
-      ().validNec
+      ().rightNec
     else
-      "field 'id' is missing".invalidNec
+      "field 'id' is missing".leftNec
 
   private def disallowTypeField(fields: List[Field]): MacroResult[Unit] =
     if (fields.exists(_.name == "type"))
-      "field named 'type' is not allowed".invalidNec
+      "field named 'type' is not allowed".leftNec
     else
-      ().validNec
+      ().rightNec
 
   private def disallowAttributesAndRelationships(fields: List[Field]): MacroResult[Unit] = {
-    fields.traverse { f =>
+    fields.parTraverse { f =>
       if (f.tag.contains(attributeTag))
-        s"field '${f.name}' (with AttributeTag) is not allowed in a resource identifier".invalidNec
+        s"field '${f.name}' (with AttributeTag) is not allowed in a resource identifier".leftNec
       else if (f.tag.contains(relationshipTag))
-        s"field '${f.name}' (with RelationshipTag) is not allowed in a resource identifier".invalidNec
+        s"field '${f.name}' (with RelationshipTag) is not allowed in a resource identifier".leftNec
       else
-        ().validNec
+        ().rightNec
     }
   }.map(_ => ())
 
@@ -330,3 +331,4 @@ class Macros(override protected val c: Context) extends MacroBase(c) {
       }
     }
 }
+ */

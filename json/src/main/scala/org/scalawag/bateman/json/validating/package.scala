@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,12 +14,12 @@
 
 package org.scalawag.bateman.json
 
-import cats.data.ValidatedNec
+import cats.data.EitherNec
 
 /** This package contains utilities for introducing semantic validation in such a way that it can be shared
   * between the decoders for a type and the factories used to construct those types programmatically.
   */
 
 package object validating {
-  type ValidationResult[+A] = ValidatedNec[ValidationFailure, A]
+  type ValidationResult[+A] = EitherNec[ValidationFailure, A]
 }

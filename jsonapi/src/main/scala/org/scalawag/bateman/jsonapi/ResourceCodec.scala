@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,33 +14,26 @@
 
 package org.scalawag.bateman.jsonapi
 
-import org.scalawag.bateman.json.decoding.{ContextualDecoder, DecodeResult}
-import org.scalawag.bateman.jsonapi.decoding.{Document, ResourceDecoder}
-import org.scalawag.bateman.jsonapi.encoding.{EncodeResult, FieldsSpec, IncludeSpec, ResourceEncoder, ResourceLike}
+import org.scalawag.bateman.json.{JAny, JObject, JObjectDecoder, JResult}
+import org.scalawag.bateman.json.focus.JFocus
+import org.scalawag.bateman.jsonapi.encoding.{EncodeResult, FieldsSpec, IncludeSpec, ResourceEncoder}
 
-class ResourceCodec[From, A, +To <: ResourceLike](
-    val decoder: ResourceDecoder[From, A],
-    val encoder: ResourceEncoder[A, To]
-) extends ResourceDecoder[From, A]
-    with ResourceEncoder[A, To] {
+class ResourceCodec[A](
+    val encoder: ResourceEncoder[A],
+    val decoder: JObjectDecoder[A],
+) extends ResourceEncoder[A]
+    with JObjectDecoder[A] {
   override def encodeResource(
       in: A,
       includeSpec: IncludeSpec,
-      fieldsSpec: FieldsSpec
-  ): EncodeResult[ResourceEncoder.PartiallyEncoded[To]] =
-    encoder.encodeResource(in, includeSpec, fieldsSpec)
-  override def decode(from: From, context: Document): DecodeResult[A] = decoder.decode(from, context)
-
-  implicit def toEncoder: ResourceEncoder[A, To] = encoder
-  implicit def toDecoder: ContextualDecoder[From, A, Document] = decoder
+      fieldsSpec: FieldsSpec,
+      discriminators: JObject
+  ): EncodeResult[ResourceEncoder.Encoded] =
+    encoder.encodeResource(in, includeSpec, fieldsSpec, discriminators)
+  override def decode(in: JFocus[JObject], discriminatorFields: Set[JFocus[JAny]]): JResult[A] =
+    decoder.decode(in, discriminatorFields)
 }
 
 object ResourceCodec {
-  def apply[From, A, To <: ResourceLike](implicit codec: ResourceCodec[From, A, To]): ResourceCodec[From, A, To] = codec
-
-  def apply[From, A, To <: ResourceLike](
-      decoder: ResourceDecoder[From, A],
-      encoder: ResourceEncoder[A, To]
-  ): ResourceCodec[From, A, To] =
-    new ResourceCodec(decoder, encoder)
+  def apply[A](implicit codec: ResourceCodec[A]): ResourceCodec[A] = codec
 }

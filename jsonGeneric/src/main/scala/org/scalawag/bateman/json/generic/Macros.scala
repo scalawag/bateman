@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,20 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/*
 package org.scalawag.bateman.json.generic
 
 import cats.syntax.traverse._
 import cats.syntax.validated._
-import org.scalawag.bateman.json.decoding.JObject
+import org.scalawag.bateman.json.JObject
 import org.scalawag.bateman.json.generic.decoding.JSource
 
 import scala.reflect.macros.whitebox.Context
 
 /** This contains macros that validate the input classes prior to generating the codecs using shapeless.
-  * This puts most of the logic into non-macro code (which was a goal). The macros generate the creation of
-  * the factory that is used to create the actual codec. That's because if the macro call is made from library code,
-  * the developer doesn't get an error message that reflects where the problem is in _their_ code.
-  */
+ * This puts most of the logic into non-macro code (which was a goal). The macros generate the creation of
+ * the factory that is used to create the actual codec. That's because if the macro call is made from library code,
+ * the developer doesn't get an error message that reflects where the problem is in _their_ code.
+ */
 
 class Macros(override protected val c: Context) extends MacroBase(c) {
   import c.universe._
@@ -41,9 +42,9 @@ class Macros(override protected val c: Context) extends MacroBase(c) {
       .traverse { sc =>
         asCaseClass(sc.typeSignature).andThen { cc =>
           if (cc.fields.exists(_.name == discriminatorField))
-            s"the subclass ${cc.sym} has a field '$discriminatorField' which collides with the configured discriminator".invalidNec
+            s"the subclass ${cc.sym} has a field '$discriminatorField' which collides with the configured discriminator".leftNec
           else
-            ().validNec
+            ().rightNec
         }
       }
       .map(_ => ())
@@ -60,7 +61,7 @@ class Macros(override protected val c: Context) extends MacroBase(c) {
         val name = instanceName("encoder", ff)
         maybeNamedImplicit(
           name,
-          q"""implicitly[_root_.shapeless.Lazy[org.scalawag.bateman.json.encoding.JAnyEncoder[$t]]]"""
+          q"""implicitly[_root_.shapeless.Lazy[org.scalawag.bateman.json.JAnyEncoder[$t]]]"""
         )
     }
   }
@@ -85,7 +86,7 @@ class Macros(override protected val c: Context) extends MacroBase(c) {
         val to = weakTypeOf[To]
         maybeNamedImplicit(
           name,
-          q"""implicitly[_root_.shapeless.Lazy[org.scalawag.bateman.json.decoding.ContextualDecoder[org.scalawag.bateman.json.decoding.JAny, $t, $to]]]"""
+          q"""implicitly[_root_.shapeless.Lazy[org.scalawag.bateman.json.Decoder[org.scalawag.bateman.json.JAny, $t, $to]]]"""
         )
     }
 
@@ -97,7 +98,7 @@ class Macros(override protected val c: Context) extends MacroBase(c) {
       val to = weakTypeOf[To]
       maybeNamedImplicit(
         name,
-        q"""implicitly[org.scalawag.bateman.json.generic.decoding.CaseClassDecoder[$cs, $to]]"""
+        q"""implicitly[org.scalawag.bateman.json.generic.JObjectDecoder[$cs, $to]]"""
       )
     }
 
@@ -153,7 +154,7 @@ class Macros(override protected val c: Context) extends MacroBase(c) {
             decode = false,
             encode = true,
             q"_root_.org.scalawag.bateman.json.generic.semiauto.unchecked.deriveEncoderForCaseClass[$a]"
-          ).validNec
+          ).rightNec
       }
     }
 
@@ -217,3 +218,4 @@ class Macros(override protected val c: Context) extends MacroBase(c) {
       }
     }
 }
+ */

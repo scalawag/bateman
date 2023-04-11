@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,28 +14,25 @@
 
 package org.scalawag.bateman.json.generic.decoding
 
-import org.scalawag.bateman.json.ProgrammerError
-import org.scalawag.bateman.json.decoding.{DecodeResult, JAny, JObject, JPointer, UnexpectedValue, UnspecifiedField}
+import org.scalawag.bateman.json.{JAny, JError, JObject, JResult}
+import cats.syntax.either._
+import org.scalawag.bateman.json.focus.JFocus
 
-trait JSourceLike {
-  val root: JObject
-  val fields: Map[String, JPointer]
+final case class JSource(root: JFocus[JObject], fields: Map[String, JFocus[JAny]] = Map.empty) {
+  def getFieldSource(name: String): JResult[JFocus[JAny]] = fields(name).rightNec
 
-  def getFieldSource(name: String): DecodeResult[JAny] = fields(name).navigate(root)
-  def getFieldSourceUnsafe(name: String): JAny =
-    getFieldSource(name).getOrElse {
-      throw ProgrammerError(s"Field $name is not represented in the source JSON text.")
-    }
+  //  def getFieldSourceUnsafe(name: String): JAny =
+  //    getFieldSource(name).getOrElse {
+  //      throw ProgrammerError(s"Field $name is not represented in the source JSON text.")
+  //    }
 
-  def unspecifiedField(name: String): UnspecifiedField =
-    fields.get(name) match {
-      case Some(p: JPointer.Child) => UnspecifiedField(root, p)
-      case Some(_)                 => throw ProgrammerError(s"Field $name was not sourced from a child in the JSON text.")
-      case None                    => throw ProgrammerError(s"Field $name is not represented in the source JSON text.")
-    }
+  //  def unspecifiedField(name: String): MissingField =
+  //    fields.get(name) match {
+  //      case Some(p: JPointer.Child) => MissingField(root, p)
+  //      case Some(_)                 => throw ProgrammerError(s"Field $name was not sourced from a child in the JSON text.")
+  //      case None                    => throw ProgrammerError(s"Field $name is not represented in the source JSON text.")
+  //    }
 
-  def unexpectedValue(name: String): UnexpectedValue =
-    UnexpectedValue(getFieldSourceUnsafe(name))
+  //  def unexpectedValue(name: String): UnexpectedValue =
+  //    UnexpectedValue(getFieldSourceUnsafe(name))
 }
-
-final case class JSource(root: JObject, fields: Map[String, JPointer] = Map.empty) extends JSourceLike

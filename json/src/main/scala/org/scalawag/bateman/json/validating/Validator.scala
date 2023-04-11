@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ package org.scalawag.bateman.json.validating
 
 import cats.data.NonEmptyChain
 import cats.syntax.validated._
-import org.scalawag.bateman.json.validIfEmpty
+import org.scalawag.bateman.json.rightIfEmpty
 
 /** Validates an instance of type [[In]], returning either a list of [[ValidationFailure]]s of, if there are no
   * failures, an instance of type [[Out]]. This is intentionally not specific to decoding, which already has a way
@@ -51,6 +51,6 @@ object Validator {
     */
   def apply[In, Out](transform: In => Out)(validate: In => List[String]): Validator[In, Out] = { in =>
     val errors = validate(in).map(ValidationFailure(_))
-    validIfEmpty(errors, transform(in))
+    rightIfEmpty(errors, transform(in))
   }
 }

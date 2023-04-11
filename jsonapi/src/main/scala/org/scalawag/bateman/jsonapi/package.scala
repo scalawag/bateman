@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,30 +14,14 @@
 
 package org.scalawag.bateman
 
+import org.scalawag.bateman.json._
+import org.scalawag.bateman.jsonapi.encoding.{Link, Relationship, ResourceObject}
+
 package object jsonapi {
-  type ResourceIdentifierCodec[A] = ResourceCodec[decoding.ResourceIdentifier, A, encoding.ResourceIdentifier]
-
-  object ResourceIdentifierCodec {
-    def apply[A](implicit
-        codec: ResourceCodec[decoding.ResourceIdentifier, A, encoding.ResourceIdentifier]
-    ): ResourceIdentifierCodec[A] = codec
-  }
-
-  type ResourceObjectCodec[A] = ResourceCodec[decoding.ResourceObject, A, encoding.ResourceObject]
-
-  object ResourceObjectCodec {
-    def apply[A](implicit
-        codec: ResourceCodec[decoding.ResourceObject, A, encoding.ResourceObject]
-    ): ResourceObjectCodec[A] = codec
-  }
-
-  type ResourceObjectOptionalIdCodec[A] =
-    ResourceCodec[decoding.ResourceObjectOptionalId, A, encoding.ResourceObjectOptionalId]
-
-  object ResourceObjectOptionalIdCodec {
-    def apply[A](implicit
-        codec: ResourceCodec[decoding.ResourceObjectOptionalId, A, encoding.ResourceObjectOptionalId]
-    ): ResourceObjectOptionalIdCodec[A] = codec
-  }
-
+  type Included = Seq[ResourceObject]
+  type Meta = Seq[(String, JAny)]
+  type Links = Seq[(String, Link)]
+  type Errors = Seq[encoding.Error]
+  type Attributes = Seq[(String, JAny)]
+  type Relationships = Seq[(String, Relationship)]
 }

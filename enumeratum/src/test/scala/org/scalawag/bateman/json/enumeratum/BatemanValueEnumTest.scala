@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,11 +15,10 @@
 package org.scalawag.bateman.json.enumeratum
 
 import enumeratum.values._
-import cats.syntax.validated._
+import cats.syntax.either._
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalawag.bateman.json.decoding.{InvalidValue, JLocation, JPointer, JsonTypeMismatch}
-import org.scalawag.bateman.json.{decoding, encoding}
+import org.scalawag.bateman.json.{InvalidValue, JAny, JLocation, JNumber, JPointer, JString, JsonTypeMismatch}
 import org.scalawag.bateman.json.syntax._
 
 class BatemanValueEnumTest extends AnyFunSpec with Matchers {
@@ -27,32 +26,24 @@ class BatemanValueEnumTest extends AnyFunSpec with Matchers {
     sealed abstract class ShirtSize(val value: Int) extends IntEnumEntry
 
     case object ShirtSize extends IntEnum[ShirtSize] with IntBatemanEnum[ShirtSize] {
-
       case object Small extends ShirtSize(1)
-
       case object Medium extends ShirtSize(2)
-
       case object Large extends ShirtSize(3)
 
       val values = findValues
     }
 
     it("should encode") {
-      ShirtSize.Small.toJAny shouldBe encoding.JNumber(1)
+      (ShirtSize.Small: ShirtSize).toJAny shouldBe JNumber(1)
     }
 
     it("should decode") {
-      decoding.JNumber("3", JLocation(1, 1), JPointer.Root).as[ShirtSize] shouldBe ShirtSize.Large.validNec
+      JNumber(3).asRootFocus.decode[ShirtSize] shouldBe ShirtSize.Large.rightNec
     }
 
     it("should fail to decode (value)") {
-      val in = decoding.JNumber("10", JLocation(1, 1), JPointer.Root)
-      in.as[ShirtSize] shouldBe InvalidValue(in, "10 is not a member of enum ShirtSize").invalidNec
-    }
-
-    it("should fail to decode (type)") {
-      val in: decoding.JAny = decoding.JString("L", JLocation(1, 1), JPointer.Root)
-      in.as[ShirtSize] shouldBe JsonTypeMismatch(in, decoding.JNumber).invalidNec
+      val in = JNumber(10).asRootFocus
+      in.decode[ShirtSize] shouldBe InvalidValue(in, "10 is not a member of enum ShirtSize").leftNec
     }
   }
 
@@ -69,26 +60,21 @@ class BatemanValueEnumTest extends AnyFunSpec with Matchers {
     }
 
     it("should encode") {
-      TriStateBool.False.toJAny shouldBe encoding.JString("F")
+      (TriStateBool.False: TriStateBool).toJAny shouldBe JString("F")
     }
 
     it("should decode") {
-      decoding.JString("M", JLocation(1, 1), JPointer.Root).as[TriStateBool] shouldBe TriStateBool.Maybe.validNec
+      JString("M").asRootFocus.decode[TriStateBool] shouldBe TriStateBool.Maybe.rightNec
     }
 
     it("should fail to decode (value)") {
-      val in = decoding.JString("?", JLocation(1, 1), JPointer.Root)
-      in.as[TriStateBool] shouldBe InvalidValue(in, "? is not a member of enum TriStateBool").invalidNec
+      val in = JString("?").asRootFocus
+      in.decode[TriStateBool] shouldBe InvalidValue(in, "? is not a member of enum TriStateBool").leftNec
     }
 
     it("should fail to decode (length)") {
-      val in = decoding.JString("Maybe", JLocation(1, 1), JPointer.Root)
-      in.as[TriStateBool] shouldBe InvalidValue(in, "expecting a one-character-long string").invalidNec
-    }
-
-    it("should fail to decode (type)") {
-      val in: decoding.JAny = decoding.JNumber("8", JLocation(1, 1), JPointer.Root)
-      in.as[TriStateBool] shouldBe JsonTypeMismatch(in, decoding.JString).invalidNec
+      val in = JString("Maybe").asRootFocus
+      in.decode[TriStateBool] shouldBe InvalidValue(in, "'Maybe' is not a string of exactly length one").leftNec
     }
   }
 }

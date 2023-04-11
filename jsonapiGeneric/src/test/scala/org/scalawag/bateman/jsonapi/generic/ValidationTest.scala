@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021 -- Justin Patterson
+// bateman -- Copyright 2021-2023 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import org.scalawag.bateman.json.encoding.Encoder
 import org.scalawag.bateman.json.generic.{TaggedValidation, TaggedValidator}
 import org.scalawag.bateman.json.validating.{ValidationFailure, ValidationResult}
 import org.scalawag.bateman.json.{ParserTestUtils, decoding, encoding}
-import org.scalawag.bateman.jsonapi.decoding.{Attributes, ResourceObjectDecoder, ResourceObjectOptionalId}
+import org.scalawag.bateman.jsonapi.decoding.{Attributes, ResourceObjectDecoder}
 import org.scalawag.bateman.jsonapi.encoding.ResourceObjectEncoder
 import org.scalawag.bateman.jsonapi.generic.ValidationTest.MyClass.AttributeTags.Name
 import shapeless.tag.@@
@@ -35,9 +35,9 @@ import java.util.UUID
 object ValidationTest {
 
   final case class MyClass private (
-      id: UUID @@ IdTag,
+      @Id id: UUID,
       name: String @@ MyClass.AttributeTags.Name,
-      last: String @@ AttributeTag
+      @Attribute last: String
   )
 
   object MyClass {
