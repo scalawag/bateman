@@ -56,6 +56,7 @@ val commonSettings = Seq(
     "-feature"
   ),
 //  addCompilerPlugin("io.tryp" % "splain" % "1.0.1" cross CrossVersion.patch),
+  scalaJSLinkerConfig ~= { _.withBatchMode(true) },
   scalacOptions ++= {
     CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((2, n)) if n <= 12 => List("-Ypartial-unification")
