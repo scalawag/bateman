@@ -45,8 +45,13 @@ class JFocusJArrayOpsTest extends BatemanTestBase {
       f shouldBe Some(json.items(2))
     }
 
-    it("should find no item") {
+    it("should find no item (high)") {
       val f: Option[JItemFocus[JAny, JRootFocus[JArray]]] = json.itemOption(8)
+      f shouldBe None
+    }
+
+    it("should find no item (low)") {
+      val f: Option[JItemFocus[JAny, JRootFocus[JArray]]] = json.itemOption(-1)
       f shouldBe None
     }
   }
@@ -58,9 +63,14 @@ class JFocusJArrayOpsTest extends BatemanTestBase {
       f shouldBe json.items(1).rightNec
     }
 
-    it("should find no item") {
+    it("should find no item (high)") {
       val f: JResult[JItemFocus[JAny, JRootFocus[JArray]]] = json.item(8)
       f shouldBe MissingIndex(json, 8).leftNec
+    }
+
+    it("should find no item (low)") {
+      val f: JResult[JItemFocus[JAny, JRootFocus[JArray]]] = json.item(-1)
+      f shouldBe MissingIndex(json, -1).leftNec
     }
 
   }

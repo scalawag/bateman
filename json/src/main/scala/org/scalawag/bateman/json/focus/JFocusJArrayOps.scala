@@ -25,7 +25,7 @@ class JFocusJArrayOps[A <: JStrongFocus[JArray]](me: A) {
     }
 
   def itemOption(index: Int): Option[JItemFocus[JAny, A]] =
-    items.drop(index).headOption
+    items.lift(index)
 
   def item(index: Int): JResult[JItemFocus[JAny, A]] =
     itemOption(index) match {
