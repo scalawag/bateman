@@ -18,17 +18,33 @@ import cats.syntax.either._
 import cats.data.NonEmptyChain
 import org.scalawag.bateman.json._
 
+/** Extends [[JStrongFocus]] with methods that can be used when the JSON value in focus is a [[JObject]]. */
 class JFocusJObjectOps[A <: JStrongFocus[JObject]](me: A) {
 
+  /** Refocuses on the values of the fields of the focused JSON object.
+    *
+    * @return a list of foci, one per field
+    */
   def fields: List[JFieldFocus[JAny, A]] =
     me.value.fieldList.zipWithIndex.map {
       case (JField(k, v), n) =>
         JFieldFocus(v, k, n, me)
     }
 
+  /** Refocuses on the values of the fields of the focused JSON object with the specified name.
+    *
+    * @return a list of foci, one per matching field
+    */
   def fields(name: String): List[JFieldFocus[JAny, A]] =
     fields.collect { case cur if cur.name.value == name => cur }
 
+  /** Refocuses on the value of the single field of the focused JSON object with the specified name.
+    * If there is a single matching field, a focus to its value is returned, wrapped in a [[Some]].
+    * If there is no matching field, [[None]] is returned.
+    * If there are multiple matching fields, an error is returned.
+    *
+    * @return an optional focus to the value of the single matching field
+    */
   def fieldOption(name: String): JResult[Option[JFieldFocus[JAny, A]]] =
     fields(name) match {
       case Nil       => None.rightNec
@@ -38,11 +54,23 @@ class JFocusJObjectOps[A <: JStrongFocus[JObject]](me: A) {
         DuplicateField(me, NonEmptyChain.fromSeq(curs).get).leftNec
     }
 
+  /** Refocuses on the value of the single field of the focused JSON object with the specified name.
+    * If there is a single matching field, a focus to its value is returned. Otherwise, an error is returned.
+    *
+    * @return a focus to the value of the single matching field
+    */
+
   def field(name: String): JResult[JFieldFocus[JAny, A]] =
     fieldOption(name).flatMap {
       case None        => MissingField(me, name).leftNec
       case Some(field) => field.rightNec
     }
+
+  /** Refocuses on the value of the field of the focused JSON object at the specified index.
+    * If the index is outside the bounds of the fields for this JSON object, an error is returned.
+    *
+    * @return a focus to the value of the field with the specified index
+    */
 
   def field(index: Int): JResult[JFieldFocus[JAny, A]] =
     fields.lift(index) match {

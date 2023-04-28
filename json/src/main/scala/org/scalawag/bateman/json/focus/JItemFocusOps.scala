@@ -21,8 +21,8 @@ import org.scalawag.bateman.json._
 import scala.reflect.ClassTag
 
 class JItemFocusOps[A <: JAny, P <: JStrongFocus[JArray]](me: JItemFocus[A, P]) {
-  def left: JResult[JItemFocus[JAny, P]] = me.parent.item(me.index - 1)
-  def right: JResult[JItemFocus[JAny, P]] = me.parent.item(me.index + 1)
+  def previous: JResult[JItemFocus[JAny, P]] = me.parent.item(me.index - 1)
+  def next: JResult[JItemFocus[JAny, P]] = me.parent.item(me.index + 1)
   def first: JItemFocus[JAny, P] = me.parent.items.head
   def last: JItemFocus[JAny, P] = me.parent.items.last
 

@@ -54,7 +54,7 @@ class JFocusJAnyWeakOps[A <: JAny](me: JFocus[A]) {
     *
     * Note that this is not defined by the structure of the JSON values (which do not contain upward references and
     * therefore do not reference their own root, directly or indirectly) but merely the value which was the root
-    * when the focus was created (usually through [[JAny.asRootFocus]]).
+    * when the focus was created (usually through [[JAny#asRootFocus]]).
     */
 
   def root: JFocus[JAny] =
@@ -245,6 +245,8 @@ class JFocusJAnyWeakOps[A <: JAny](me: JFocus[A]) {
                   // It's safe to do a .getOrElse(???) here because we just added the field, so we know it's there.
                   .getOrElse(???)
               )
+
+            case _ => ??? // This should not happen because we got here by the presence of this field name!
           }
       }
 

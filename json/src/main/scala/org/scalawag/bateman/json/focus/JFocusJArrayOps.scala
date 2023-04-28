@@ -17,16 +17,25 @@ package org.scalawag.bateman.json.focus
 import cats.syntax.either._
 import org.scalawag.bateman.json._
 
+/** Extends [[JStrongFocus]] with methods that can be used when the JSON value in focus is a [[JArray]]. */
+
 class JFocusJArrayOps[A <: JStrongFocus[JArray]](me: A) {
+
+  /** Refocuses on the items of the focused JSON array, one focus per item. */
   def items: List[JItemFocus[JAny, A]] =
     me.value.items.zipWithIndex.map {
       case (item, n) =>
         JItemFocus(item, n, me)
     }
 
+  /** Refocuses on the specified item of the focused JSON array.
+    * If there is an item at the specified index, a focus to it is returned, wrapped in a [[scala.Some Some]].
+    * If the index is out-of-bounds, [[scala.None None]] is returned.
+    */
   def itemOption(index: Int): Option[JItemFocus[JAny, A]] =
     items.lift(index)
 
+  /** Refocuses on the specified item of the focused JSON array. If the index is out-of-bounds, an error is returned. */
   def item(index: Int): JResult[JItemFocus[JAny, A]] =
     itemOption(index) match {
       case Some(x) => x.rightNec

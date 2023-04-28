@@ -71,11 +71,11 @@ sealed trait JAny {
 }
 
 object JAny {
-  implicit class RichJAny[A <: JAny](me: A) {
+  implicit class JAnyOps[A <: JAny](me: A) {
 
-    /** Arbitrarily makes this JSON value a root cursor for the purposes of querying/decoding/editing. You may have to
-      * do this for JSON values that you create programmatically. Parsing a JSON text produces a cursor, which can be
-      * used directly for the aforementioned activities without calling this method.
+    /** Arbitrarily creates a root focus from this JSON value for the purposes of navigating, extracting and
+      * transforming. You may have to do this for JSON values that you create programmatically. Parsing a JSON text
+      * returns a focus, which can be used directly for the aforementioned activities without calling this method.
       */
 
     def asRootFocus: JRootFocus[A] =
@@ -97,10 +97,7 @@ object JAny {
   }
 }
 
-/** Represents a JSON null value.
-  *
-  * @param location the lexical position of this value in the incoming JSON text (if applicable)
-  */
+/** Represents a JSON null value. */
 sealed trait JNull extends JAny
 
 /** Represents the type of JSON null as metadata. */
@@ -110,6 +107,10 @@ case object JNull extends JType with JNull {
   override val jType: JType = this
   override val location: Option[JLocation] = None
 
+  /** Represents a JSON null value.
+    *
+    * @param location the lexical position of this value in the incoming JSON text (if applicable)
+    */
   final case class JNullImpl private[bateman] (location: Option[JLocation] = None) extends JNull {
     override val jType: JType = JNull
   }
@@ -163,8 +164,8 @@ case object JBoolean extends JType {
   }
 }
 
-/** Represents a JSON number value. JSON numbers are represented internally as [[String]]s to preserve their precision
-  * and format.
+/** Represents a JSON number value. JSON numbers are represented internally as [[Predef.String String]]s to preserve
+  * their precision and format.
   *
   * @param value the [[String]] representation of this value
   * @param location the lexical position of this value in the incoming JSON text (if applicable)
