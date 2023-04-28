@@ -36,7 +36,7 @@ val Versions = new Object {
 }
 
 val jvmScalaVersions = Seq(Versions.scala212, Versions.scala213 /*, Versions.scala3*/ )
-val jsScalaVersions = jvmScalaVersions
+val jsScalaVersions = Seq(Versions.scala213)
 
 val commonSettings = Seq(
   organization := "org.scalawag.bateman",
