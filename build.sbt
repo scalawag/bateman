@@ -18,7 +18,6 @@ import CoverageAxis.ProjectMatrixOps
 val projectBaseName = "bateman"
 
 ThisBuild / versionScheme := Some("early-semver")
-ThisBuild / organization := "org.scalawag.bateman"
 
 Global / concurrentRestrictions := Tags.limitAll(2) :: Nil
 
@@ -36,7 +35,7 @@ val Versions = new Object {
 }
 
 val jvmScalaVersions = Seq(Versions.scala212, Versions.scala213 /*, Versions.scala3*/ )
-val jsScalaVersions = Seq(Versions.scala213)
+val jsScalaVersions = jvmScalaVersions
 
 val commonSettings = Seq(
   organization := "org.scalawag.bateman",
@@ -55,8 +54,6 @@ val commonSettings = Seq(
     "-Wconf:cat=deprecation&since>2.12:s,cat=deprecation&since<2.13:w",
     "-feature"
   ),
-//  addCompilerPlugin("io.tryp" % "splain" % "1.0.1" cross CrossVersion.patch),
-  scalaJSLinkerConfig ~= { _.withBatchMode(true) },
   scalacOptions ++= {
     CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((2, n)) if n <= 12 => List("-Ypartial-unification")
@@ -122,17 +119,6 @@ val json = projectMatrix
       } else
         Seq.empty
     }
-    //    libraryDependencies ++= {
-//      CrossVersion.partialVersion(scalaVersion.value) match {
-//        case Some((2, n)) =>
-//          List("com.chuusai" %%% "shapeless" % Versions.shapeless)
-//        case _ =>
-//          Nil
-//      }
-//    }
-//    libraryDependencies ++= Seq(
-//      "io.github.cquiroz" %%% "scala-java-time" % "2.2.2"
-//    ).map(_ % Test)
   )
   .jvmPlatform(scalaVersions = jvmScalaVersions)
   .jsPlatform(scalaVersions = jsScalaVersions)
@@ -143,10 +129,6 @@ val jsonLiteral = projectMatrix
   .settings(commonSettings)
   .settings(
     name := s"$projectBaseName-json-literal",
-    libraryDependencies ++= Seq(
-//      "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-//      "io.github.cquiroz" %%% "scala-java-time" % "2.2.2" % Test,
-    ),
     libraryDependencies ++= {
       CrossVersion.partialVersion(scalaVersion.value) match {
         case Some((2, n)) if n <= 12 =>
@@ -219,13 +201,6 @@ val jsonapiGeneric = projectMatrix
   .settings(commonSettings)
   .settings(
     name := s"$projectBaseName-jsonapi-generic",
-//    libraryDependencies ++= {
-//      if (virtualAxes.value.contains(VirtualAxis.js)) {
-////         This is insecure, but it used for unit testing only.
-//        Seq("org.scala-js" %%% "scalajs-fake-insecure-java-securerandom" % "1.0.0" % Test)
-//      } else
-//        Seq.empty
-//    }
   )
   .jvmPlatform(scalaVersions = jvmScalaVersions)
   .jsPlatform(scalaVersions = jsScalaVersions)
@@ -257,8 +232,59 @@ val enumeratum = projectMatrix
   .jsPlatform(scalaVersions = jsScalaVersions)
   .addCoverageAxis(Versions.scala213)
 
+val docs = project
+  .in(file("docs"))
+  .settings(commonSettings)
+  // This is needed to build the doc examples with mdoc
+  .dependsOn(
+    jsonLiteral.jvm(Versions.scala212),
+    enumeratum.jvm(Versions.scala212),
+    circe.jvm(Versions.scala212),
+    jsonapiGeneric.jvm(Versions.scala212)
+  )
+  .enablePlugins(ParadoxSitePlugin, ScalaUnidocPlugin)
+  .settings(
+    paradoxTheme := Some(builtinParadoxTheme("generic")),
+    crossPaths := false,
+    autoAPIMappings := true,
+    paradoxNavigationDepth := 3,
+    Compile / paradoxProperties ++= Map(
+      "scaladoc.base_url" -> ".../api",
+      "scaladoc.cats.base_url" -> "https://typelevel.org/cats/api/",
+    ),
+    Global / excludeLintKeys += paradoxNavigationDepth,
+    // unidoc seems to barf  on Scala 2.13 projects with a binary incompatibility error.
+    ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(
+      json.jvm(Versions.scala212),
+      jsonGeneric.jvm(Versions.scala212),
+      jsonLiteral.jvm(Versions.scala212),
+      jsonapi.jvm(Versions.scala212),
+      jsonapiGeneric.jvm(Versions.scala212),
+      circe.jvm(Versions.scala212),
+      enumeratum.jvm(Versions.scala212),
+    ),
+    ScalaUnidoc / siteSubdirName := "api",
+    addMappingsToSiteDir(ScalaUnidoc / packageDoc / mappings, ScalaUnidoc / siteSubdirName),
+  )
+  .enablePlugins(MdocPlugin)
+  .settings(
+    // Use mdoc and a preprocessor for paradox (to evaluate code fences only)
+    mdocIn := baseDirectory.value / "src" / "main" / "mdoc",
+    mdocOut := (Compile / paradox / sourceManaged).value,
+    // Without this, mdoc will puke on custom paradox link types
+    mdocExtraArguments ++= Seq("--no-link-hygiene"),
+    // For some reason, paradox isn't looking in its source_managed directory, so explicitly set this.
+    Compile / paradox / sourceDirectory := mdocOut.value,
+    // Always run mdoc before paradox
+    Compile / paradox := (Compile / paradox).dependsOn(mdoc.toTask("")).value,
+  )
+  .settings(
+    libraryDependencies += "org.scalawag.sarong" %% "sarong" % "0.1.1"
+  )
+
 val root = project
   .in(file("."))
+  .aggregate(docs)
   .aggregate(
     List(json, jsonGeneric, jsonLiteral, jsonapi, jsonapiGeneric, circe, enumeratum).flatMap(
       _.projectRefs
@@ -268,5 +294,5 @@ val root = project
   .settings(
     name := projectBaseName,
     publish / skip := true,
-    mimaPreviousArtifacts := Set.empty,
+    mimaPreviousArtifacts := Set.empty
   )
