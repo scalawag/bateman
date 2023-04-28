@@ -23,13 +23,17 @@ import org.scalawag.bateman.json.literal._
 import org.scalawag.bateman.jsonapi.generic.Annotations._
 import org.scalawag.bateman.jsonapi.MissingIncludedResourceObject
 import HListIncludedRelationshipDecoderTest._
-import org.scalawag.bateman.jsonapi.generic.auto._
+import org.scalawag.bateman.jsonapi.generic.semiauto.unchecked._
 import org.scalawag.bateman.jsonapi.lens._
 import org.scalawag.bateman.json.focus.weak._
 import org.scalawag.bateman.jsonapi.encoding.Inclusions
 
 object HListIncludedRelationshipDecoderTest {
   case class MyRefObj(@Id a: String, @Attribute b: String)
+
+  object MyRefObj {
+    implicit val refDecoder: JObjectDecoder[MyRefObj] = deriveResourceDecoderForCaseClass[MyRefObj]()
+  }
 
   object MyIdRelationship {
     case class MyClass(@IncludedRelationship a: MyRefObj)
@@ -487,6 +491,7 @@ class HListIncludedRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyIdRelationship") {
     import MyIdRelationship._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     invalidJsonApiStructure[MyClass]()
     casesForCardinalityId[MyClass]()
@@ -497,6 +502,7 @@ class HListIncludedRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyNullableRelationship") {
     import MyNullableRelationship._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     invalidJsonApiStructure[MyClass]()
     casesForCardinalityNullable[MyClass]()
@@ -508,6 +514,7 @@ class HListIncludedRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyListRelationship") {
     import MyListRelationship._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     invalidJsonApiStructure[MyClass]()
     casesForCardinalityList[MyClass]()
@@ -531,6 +538,7 @@ class HListIncludedRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyOptionIdRelationship") {
     import MyOptionIdRelationship._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     invalidJsonApiStructure[MyClass]()
     casesForCardinalityId[MyClass]()
@@ -541,6 +549,7 @@ class HListIncludedRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyOptionNullableRelationship") {
     import MyOptionNullableRelationship._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     invalidJsonApiStructure[MyClass]()
     casesForCardinalityNullable[MyClass]()
@@ -552,6 +561,7 @@ class HListIncludedRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyOptionListRelationship") {
     import MyOptionListRelationship._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     invalidJsonApiStructure[MyClass]()
     casesForCardinalityList[MyClass]()
@@ -575,6 +585,7 @@ class HListIncludedRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyIdRelationshipDefaulted") {
     import MyIdRelationshipDefaulted._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     invalidJsonApiStructure[MyClass]()
     casesForCardinalityId[MyClass]()
@@ -585,6 +596,7 @@ class HListIncludedRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyNullableRelationshipDefaulted") {
     import MyNullableRelationshipDefaulted._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     invalidJsonApiStructure[MyClass]()
     casesForCardinalityNullable[MyClass]()
@@ -596,6 +608,7 @@ class HListIncludedRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyListRelationshipDefaulted") {
     import MyListRelationshipDefaulted._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     invalidJsonApiStructure[MyClass]()
     casesForCardinalityList[MyClass]()
@@ -623,6 +636,7 @@ class HListIncludedRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyOptionIdRelationshipDefaulted") {
     import MyOptionIdRelationshipDefaulted._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     invalidJsonApiStructure[MyClass]()
     casesForCardinalityId[MyClass]()
@@ -633,6 +647,7 @@ class HListIncludedRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyOptionNullableRelationshipDefaulted") {
     import MyOptionNullableRelationshipDefaulted._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     invalidJsonApiStructure[MyClass]()
     casesForCardinalityNullable[MyClass]()
@@ -644,6 +659,7 @@ class HListIncludedRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyOptionListRelationshipDefaulted") {
     import MyOptionListRelationshipDefaulted._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     invalidJsonApiStructure[MyClass]()
     casesForCardinalityList[MyClass]()

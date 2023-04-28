@@ -20,7 +20,7 @@ val projectBaseName = "bateman"
 ThisBuild / versionScheme := Some("early-semver")
 ThisBuild / organization := "org.scalawag.bateman"
 
-Global / concurrentRestrictions := Tags.limitAll(1) :: Nil
+Global / concurrentRestrictions := Tags.limitAll(2) :: Nil
 
 val Versions = new Object {
   val cats = "2.9.0"

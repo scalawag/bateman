@@ -20,7 +20,7 @@ import org.scalawag.bateman.json.lens.{focus, _}
 import org.scalawag.bateman.json.literal._
 import org.scalawag.bateman.jsonapi.generic.Annotations.Type
 import HListTypeDecoderTest._
-import org.scalawag.bateman.jsonapi.generic.auto._
+import org.scalawag.bateman.jsonapi.generic.semiauto.unchecked._
 import org.scalawag.bateman.jsonapi.lens._
 
 object HListTypeDecoderTest {
@@ -47,6 +47,7 @@ class HListTypeDecoderTest extends HListDecoderTestBase {
 
   describe("MyStringType") {
     import MyStringType._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.failsWith[MyClass](MissingField(_, "type"))
@@ -60,6 +61,7 @@ class HListTypeDecoderTest extends HListDecoderTestBase {
 
     // This is needed to turn a String type into an Int value
     implicit val stringToIntDecoder: JStringDecoder[Int] = _.value.value.length.rightNec
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.failsWith[MyClass](MissingField(_, "type"))
@@ -70,6 +72,7 @@ class HListTypeDecoderTest extends HListDecoderTestBase {
 
   describe("MyOptionStringType") {
     import MyOptionStringType._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.failsWith[MyClass](MissingField(_, "type"))
@@ -83,6 +86,7 @@ class HListTypeDecoderTest extends HListDecoderTestBase {
 
     // This is needed to turn a String type into an Int value
     implicit val stringToIntDecoder: JStringDecoder[Int] = _.value.value.length.rightNec
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.failsWith[MyClass](MissingField(_, "type"))

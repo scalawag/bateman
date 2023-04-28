@@ -20,7 +20,7 @@ import org.scalawag.bateman.json.lens.{focus, _}
 import org.scalawag.bateman.json.literal._
 import org.scalawag.bateman.jsonapi.generic.Annotations.Meta
 import HListMetaDecoderTest._
-import org.scalawag.bateman.jsonapi.generic.auto._
+import org.scalawag.bateman.jsonapi.generic.semiauto.unchecked._
 import org.scalawag.bateman.jsonapi.lens._
 import org.scalawag.bateman.json.focus.weak._
 
@@ -133,6 +133,7 @@ class HListMetaDecoderTest extends HListDecoderTestBase {
 
   describe("MyIdMeta") {
     import MyIdMeta._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.failsWith[MyClass](MissingField(_, "meta"))
@@ -147,6 +148,7 @@ class HListMetaDecoderTest extends HListDecoderTestBase {
 
   describe("MyNullableMeta") {
     import MyNullableMeta._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.failsWith[MyClass](MissingField(_, "meta"))
@@ -161,6 +163,7 @@ class HListMetaDecoderTest extends HListDecoderTestBase {
 
   describe("MyListMeta") {
     import MyListMeta._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.failsWith[MyClass](MissingField(_, "meta"))
@@ -180,6 +183,7 @@ class HListMetaDecoderTest extends HListDecoderTestBase {
 
   describe("MyIdMetaWithDefault") {
     import MyIdMetaWithDefault._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.succeedsWith(MyClass(417))
@@ -194,6 +198,7 @@ class HListMetaDecoderTest extends HListDecoderTestBase {
 
   describe("MyNullableMetaWithDefault") {
     import MyNullableMetaWithDefault._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.succeedsWith(MyClass(NotNull(5)))
@@ -208,6 +213,7 @@ class HListMetaDecoderTest extends HListDecoderTestBase {
 
   describe("MyListMetaWithDefault") {
     import MyListMetaWithDefault._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.succeedsWith(MyClass(List(-1, 0, 1, 2)))
@@ -227,6 +233,7 @@ class HListMetaDecoderTest extends HListDecoderTestBase {
 
   describe("MyOptionIdMeta") {
     import MyOptionIdMeta._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.succeedsWith(MyClass(None))
@@ -241,6 +248,7 @@ class HListMetaDecoderTest extends HListDecoderTestBase {
 
   describe("MyOptionNullableMeta") {
     import MyOptionNullableMeta._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.succeedsWith(MyClass(None))
@@ -255,6 +263,7 @@ class HListMetaDecoderTest extends HListDecoderTestBase {
 
   describe("MyOptionListMeta") {
     import MyOptionListMeta._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.succeedsWith(MyClass(None))
@@ -274,6 +283,7 @@ class HListMetaDecoderTest extends HListDecoderTestBase {
 
   describe("MyOptionIdMetaWithDefault") {
     import MyOptionIdMetaWithDefault._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.succeedsWith(MyClass(None))
@@ -288,6 +298,7 @@ class HListMetaDecoderTest extends HListDecoderTestBase {
 
   describe("MyOptionNullableMetaWithDefault") {
     import MyOptionNullableMetaWithDefault._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.succeedsWith(MyClass(None))
@@ -302,6 +313,7 @@ class HListMetaDecoderTest extends HListDecoderTestBase {
 
   describe("MyOptionListMetaWithDefault") {
     import MyOptionListMetaWithDefault._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.succeedsWith(MyClass(None))

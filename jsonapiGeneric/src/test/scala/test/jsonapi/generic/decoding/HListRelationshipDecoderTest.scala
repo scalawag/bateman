@@ -20,14 +20,16 @@ import org.scalawag.bateman.json.literal._
 import org.scalawag.bateman.json.lens.{focus, _}
 import org.scalawag.bateman.jsonapi.generic.Annotations.{Id, Relationship}
 import HListRelationshipDecoderTest._
-import org.scalawag.bateman.jsonapi.generic.auto._
+import org.scalawag.bateman.jsonapi.generic.semiauto.unchecked._
 import org.scalawag.bateman.jsonapi.lens._
 
 object HListRelationshipDecoderTest {
 
   case class MyRefId(@Id a: String)
 
-//  implicit val decoderForMyRefId = deriveResourceDecoderForCaseClass[MyRefId]()
+  object MyRefId {
+    implicit val refDecoder: JObjectDecoder[MyRefId] = deriveResourceDecoderForCaseClass[MyRefId]()
+  }
 
   object MyIdRelationship {
     case class MyClass(@Relationship a: MyRefId)
@@ -268,6 +270,7 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyIdRelationship") {
     import MyIdRelationship._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.failsWith[MyClass](MissingField(_, "relationships"))
@@ -288,6 +291,7 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyNullableRelationship") {
     import MyNullableRelationship._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.failsWith[MyClass](MissingField(_, "relationships"))
@@ -308,6 +312,7 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyListRelationship") {
     import MyListRelationship._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.failsWith[MyClass](MissingField(_, "relationships"))
@@ -339,6 +344,7 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyOptionIdRelationship") {
     import MyOptionIdRelationship._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.succeedsWith(MyClass(None))
@@ -359,6 +365,7 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyOptionNullableRelationship") {
     import MyOptionNullableRelationship._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.succeedsWith(MyClass(None))
@@ -379,6 +386,7 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyOptionListRelationship") {
     import MyOptionListRelationship._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.succeedsWith(MyClass(None))
@@ -410,6 +418,7 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyIdRelationshipDefaulted") {
     import MyIdRelationshipDefaulted._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.succeedsWith(MyClass(MyRefId("A")))
@@ -430,6 +439,7 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyNullableRelationshipDefaulted") {
     import MyNullableRelationshipDefaulted._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.succeedsWith(MyClass(NotNull(MyRefId("B"))))
@@ -450,6 +460,7 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyListRelationshipDefaulted") {
     import MyListRelationshipDefaulted._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.succeedsWith(MyClass(List(MyRefId("C"), MyRefId("D"))))
@@ -481,6 +492,7 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyOptionIdRelationshipDefaulted") {
     import MyOptionIdRelationshipDefaulted._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.succeedsWith(MyClass(None))
@@ -501,6 +513,7 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyOptionNullableRelationshipDefaulted") {
     import MyOptionNullableRelationshipDefaulted._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.succeedsWith(MyClass(None))
@@ -521,6 +534,7 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
 
   describe("MyOptionListRelationshipDefaulted") {
     import MyOptionListRelationshipDefaulted._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.succeedsWith(MyClass(None))

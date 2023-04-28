@@ -19,7 +19,7 @@ import org.scalawag.bateman.json.lens.{focus, _}
 import org.scalawag.bateman.json.literal._
 import org.scalawag.bateman.jsonapi.generic.Annotations.Id
 import HListIdDecoderTest._
-import org.scalawag.bateman.jsonapi.generic.auto._
+import org.scalawag.bateman.jsonapi.generic.semiauto.unchecked._
 import org.scalawag.bateman.jsonapi.lens._
 
 object HListIdDecoderTest {
@@ -80,6 +80,7 @@ class HListIdDecoderTest extends HListDecoderTestBase {
 
   describe("MyStringId") {
     import MyStringId._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.failsWith[MyClass](MissingField(_, "id"))
@@ -91,6 +92,7 @@ class HListIdDecoderTest extends HListDecoderTestBase {
 
   describe("MyIntId") {
     import MyIntId._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.failsWith[MyClass](MissingField(_, "id"))
@@ -102,6 +104,7 @@ class HListIdDecoderTest extends HListDecoderTestBase {
 
   describe("MyOptionStringId") {
     import MyOptionStringId._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.succeedsWith(MyClass(None))
@@ -113,6 +116,7 @@ class HListIdDecoderTest extends HListDecoderTestBase {
 
   describe("MyOptionIntId") {
     import MyOptionIntId._
+    implicit val decoder: JObjectDecoder[MyClass] = deriveResourceDecoderForCaseClass[MyClass]()
 
     nonObjectResource.failsWith[MyClass](JsonTypeMismatch(_, JObject))
     emptyResource.succeedsWith(MyClass(None))
