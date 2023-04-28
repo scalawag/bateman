@@ -98,6 +98,8 @@ object Inclusions {
           case Some(f @ JFocus.Value(_: JNull))   => Nil.rightNec
           case Some(f @ JFocus.Value(_: JArray))  => f(* ~> narrow[JObject]).map(_.foci)
           case Some(f @ JFocus.Value(o: JObject)) => f.asObject.map(List(_))
+          case Some(f)                            => JsonTypeMismatch(f, JObject, JNull, JArray).leftNec
+          case None                               => Nil.rightNec
         }
 
     // Filter it down to the ones that have IncludeKeys and put them into a map.

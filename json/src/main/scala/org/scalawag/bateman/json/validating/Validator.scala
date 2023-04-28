@@ -18,10 +18,10 @@ import cats.data.NonEmptyChain
 import cats.syntax.validated._
 import org.scalawag.bateman.json.rightIfEmpty
 
-/** Validates an instance of type [[In]], returning either a list of [[ValidationFailure]]s of, if there are no
-  * failures, an instance of type [[Out]]. This is intentionally not specific to decoding, which already has a way
+/** Validates an instance of type `In`, returning either a list of [[ValidationFailure]]s or, if there are no
+  * failures, an instance of type `Out`. This is intentionally not specific to decoding, which already has a way
   * to represent the structure of the value being decoded. It allows factory methods for validated types to return
-  * deep validation failures (through [[ValidationFailure]]) while
+  * deep validation failures (through [[ValidationFailure]]'s pointer).
   *
   * @tparam In the input type to be validated
   * @tparam Out the output upon successful validation

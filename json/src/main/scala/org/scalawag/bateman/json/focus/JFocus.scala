@@ -39,7 +39,7 @@ sealed trait JFocus[+A <: JAny] {
   def pointer: JPointer
 
   /** A focus to the parent of the value in focus (its containing JSON object or array), if there is such
-    * a value. A root focus does not have a parent and will always return [[None]].
+    * a value. A root focus does not have a parent and will always return [[scala.None]].
     */
   def parentOption: Option[JFocus[JAny]]
 }

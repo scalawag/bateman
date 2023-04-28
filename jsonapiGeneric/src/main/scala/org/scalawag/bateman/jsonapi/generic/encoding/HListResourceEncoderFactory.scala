@@ -426,10 +426,10 @@ object HListResourceEncoderFactory {
 
   private def relationshipData[F[_]: Cardinality, A](fa: F[A]): JAny =
     fa match {
-      case Null                 => JNull
-      case NotNull(ri: JObject) => ri
-      case ri: JObject          => ri
-      case ris: List[JObject]   => JArray(ris: _*)
+      case Null                          => JNull
+      case NotNull(ri: JObject)          => ri
+      case ri: JObject                   => ri
+      case ris: List[JObject @unchecked] => JArray(ris: _*)
     }
 
   /** Turns any of the Option-headed instances here into non-Option-headed instances. */

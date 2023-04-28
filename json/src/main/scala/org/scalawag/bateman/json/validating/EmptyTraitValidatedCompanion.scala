@@ -14,12 +14,9 @@
 
 package org.scalawag.bateman.json.validating
 
-import org.scalawag.bateman.json.JAny
-
-/** Adds semantic validation to the empty trait [[Trait]]'s companion object that marks values as validated by
-  * mixing in the empty with their type.
+/** Adds semantic validation (that marks values as validated by mixing in the empty trait with the original type)
+  * to the empty trait's companion object.
   *
-  * @param d the decoder used to get from a [[JAny]] to the input type [[In]]
   * @tparam In the input type of the validator
   * @tparam Trait the empty trait to be mixed in with the input type on successful validation
   */

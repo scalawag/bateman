@@ -14,12 +14,10 @@
 
 package org.scalawag.bateman.json.validating
 
-import org.scalawag.bateman.json.{Decoder, JAny, JAnyDecoder}
-
-/** Adds semantic validation to the type [[Out]]'s companion object and marks it as validated by wrapping the input
+/** Adds semantic validation to the type `Out`'s companion object and marks it as validated by wrapping the input
   * type in a case class.
   *
-  * @param wrap a function to wrap the input type [[In]] in the tye [[Out]] upon successful validation
+  * @param wrap a function to wrap the input type `In` in the tye `Out` upon successful validation
   * @tparam In the input type of the validator
   * @tparam Out the output type of the validator
   */

@@ -97,7 +97,7 @@ package object json {
     def apply[B](decoder: Decoder[A, B], encoder: Encoder[B, A]): Codec[A, B] = new Codec(encoder, decoder)
   }
 
-  /** Returns [[None]] if its argument is empty and a [[Some]] containing the argument if it is not. */
+  /** Returns [[scala.None None]] if its argument is empty and a [[scala.Some Some]] containing the argument if it is not. */
 
   def noneIfEmpty[A <: Traversable[_]](a: A): Option[A] = if (a.isEmpty) None else Some(a)
 

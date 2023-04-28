@@ -67,6 +67,7 @@ class DecoderTest extends BatemanTestBase {
               case Failure(_) =>
                 decoder.decode(f) shouldBe InvalidValue(f, s"'${s}' is not a valid ${classTag[A]}").leftNec
             }
+          case _ => fail("should never happen")
         }
       }
     }
@@ -148,6 +149,7 @@ class DecoderTest extends BatemanTestBase {
             f.decode[Char].shouldSucceed shouldBe s.head
           else
             f.decode[Char].shouldFailSingle shouldBe InvalidValue(f, s"'$s' is not a string of exactly length one")
+        case _ => fail("should never happen")
       }
     }
   }

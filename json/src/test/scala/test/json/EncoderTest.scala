@@ -95,6 +95,7 @@ class EncoderTest extends BatemanTestBase {
         out.fieldList.foreach {
           case JField(k, v: JString) =>
             v.value shouldBe a(k.value)
+          case _ => fail("should never happen")
         }
       }
     }
@@ -108,6 +109,7 @@ class EncoderTest extends BatemanTestBase {
         out.fieldList.foreach {
           case JField(k, v: JNumber) =>
             v.value.toLong shouldBe a(k.value.toInt)
+          case _ => fail("should never happen")
         }
       }
     }
