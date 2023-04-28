@@ -33,7 +33,6 @@ class JFieldFocusOps[A <: JAny, P <: JStrongFocus[JObject]](me: JFieldFocus[A, P
   def asString: JResult[JFieldFocus[JString, P]] = narrow[JString]
   def asNumber: JResult[JFieldFocus[JNumber, P]] = narrow[JNumber]
   def asBoolean: JResult[JFieldFocus[JBoolean, P]] = narrow[JBoolean]
-//    def asAny: JFieldFocus[JAny, A] = me.copy(value = me.value: JAny)
 
   def previous: JResult[JFieldFocus[JAny, P]] = me.parent.field(me.index - 1)
   def next: JResult[JFieldFocus[JAny, P]] = me.parent.field(me.index + 1)

@@ -21,11 +21,6 @@ import org.scalawag.bateman.json._
 import scala.reflect.ClassTag
 
 class JItemFocusOps[A <: JAny, P <: JStrongFocus[JArray]](me: JItemFocus[A, P]) {
-  def previous: JResult[JItemFocus[JAny, P]] = me.parent.item(me.index - 1)
-  def next: JResult[JItemFocus[JAny, P]] = me.parent.item(me.index + 1)
-  def first: JItemFocus[JAny, P] = me.parent.items.head
-  def last: JItemFocus[JAny, P] = me.parent.items.last
-
   def narrow[B <: JAny: ClassTag: Summoner]: JResult[JItemFocus[B, P]] =
     me.value match {
       case b: B => JItemFocus(b, me.index, me.parent).rightNec
@@ -38,7 +33,11 @@ class JItemFocusOps[A <: JAny, P <: JStrongFocus[JArray]](me: JItemFocus[A, P]) 
   def asString: JResult[JItemFocus[JString, P]] = narrow[JString]
   def asNumber: JResult[JItemFocus[JNumber, P]] = narrow[JNumber]
   def asBoolean: JResult[JItemFocus[JBoolean, P]] = narrow[JBoolean]
-//    def asAny: JItemFocus[JAny, A] = me.copy(value = me.value: JAny)
+
+  def previous: JResult[JItemFocus[JAny, P]] = me.parent.item(me.index - 1)
+  def next: JResult[JItemFocus[JAny, P]] = me.parent.item(me.index + 1)
+  def first: JItemFocus[JAny, P] = me.parent.items.head
+  def last: JItemFocus[JAny, P] = me.parent.items.last
 
   /** Returns a decoded representation of value in focus. */
   def decode[Out](implicit dec: Decoder[A, Out]): JResult[Out] = dec.decode(me)
