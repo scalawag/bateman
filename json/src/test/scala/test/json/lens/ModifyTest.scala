@@ -17,7 +17,7 @@ package test.json.lens
 import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.lens.{focus, _}
 import test.json.BatemanTestBase
-import org.scalawag.bateman.json.focus.JFoci
+import org.scalawag.bateman.json.focus.{JFoci, JFocus}
 import org.scalawag.bateman.json.focus.weak._
 
 class ModifyTest extends BatemanTestBase {
@@ -51,12 +51,25 @@ class ModifyTest extends BatemanTestBase {
     }
   """)
 
+  import cats.syntax.either._
+  import cats.syntax.parallel._
+  import org.scalawag.bateman.json.syntax._
+  final case class MyProduct(a: Int, b: String)
+  sealed trait MySum
+  final case class MyBoolean(value: Boolean) extends MySum
+  final case class MyNumber(value: Int) extends MySum
+
+  implicit val encoderForMySum: JAnyEncoder[MySum] = {
+    case MyBoolean(b) => b.toJAny
+    case MyNumber(n)  => n.toJAny
+  }
+
   describe("editing") {
     it("should edit a value in the document") {
       json(focus ~> "g")
-        .map(_.modifyValue {
-          case arr: JArray => JNumber(arr.items.size)
-          case _           => fail
+        .map(_.modify {
+          case JFocus.Value(arr: JArray) => JNumber(arr.items.size)
+          case _                         => fail
         })
         .shouldSucceed
         .root
@@ -88,9 +101,9 @@ class ModifyTest extends BatemanTestBase {
 
     it("should edit a value in the document deeper") {
       json(focus ~> "deep" ~> 1)
-        .map(_.modifyValue {
-          case in: JArray => JNumber(in.items.size)
-          case _          => fail
+        .map(_.modify {
+          case JFocus.Value(in: JArray) => JNumber(in.items.size)
+          case _                        => fail
         })
         .shouldSucceed
         .root

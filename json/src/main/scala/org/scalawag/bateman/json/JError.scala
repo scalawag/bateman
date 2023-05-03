@@ -119,7 +119,8 @@ final case class DuplicateField(cur: JFocus[JObject], values: NonEmptyChain[JFoc
   override def location: Option[JLocation] = values.head.value.location
   override def pointer: JPointer = values.head.pointer // TODO: little weird. little different.
   // TODO: leave out the locations if they aren't available.
-  override val description = s"JSON key '$pointer' has duplicate values (${values.iterator.flatMap(_.value.location)})."
+  override val description =
+    s"JSON key '$pointer' has duplicate values (${values.iterator.flatMap(_.value.location).toList})."
 }
 
 /** Indicates that a JSON value was the wrong type. In some cases, several types are allowable. This error contains

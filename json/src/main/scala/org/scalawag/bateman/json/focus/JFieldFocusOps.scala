@@ -39,6 +39,12 @@ class JFieldFocusOps[A <: JAny, P <: JStrongFocus[JObject]](me: JFieldFocus[A, P
   def first: JFieldFocus[JAny, P] = me.parent.fields.head
   def last: JFieldFocus[JAny, P] = me.parent.fields.last
 
+  // TODO: make this maintain a strong focus instead of returning a weaker focus
+  def delete: JFocus[JObject] = {
+    import org.scalawag.bateman.json.focus.weak._
+    me.parent.modify(_.value.delete(me.index))
+  }
+
   /** Returns a decoded representation of value in focus. */
   def decode[Out](implicit dec: Decoder[A, Out]): JResult[Out] = dec.decode(me)
 

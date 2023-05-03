@@ -39,6 +39,12 @@ class JItemFocusOps[A <: JAny, P <: JStrongFocus[JArray]](me: JItemFocus[A, P]) 
   def first: JItemFocus[JAny, P] = me.parent.items.head
   def last: JItemFocus[JAny, P] = me.parent.items.last
 
+  // TODO: make this maintain a string focus instead of returning a weaker focus
+  def delete: JFocus[JArray] = {
+    import org.scalawag.bateman.json.focus.weak._
+    me.parent.modify(_.value.delete(me.index))
+  }
+
   /** Returns a decoded representation of value in focus. */
   def decode[Out](implicit dec: Decoder[A, Out]): JResult[Out] = dec.decode(me)
 

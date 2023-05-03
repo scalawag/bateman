@@ -44,6 +44,34 @@ class JFocusJAnyWeakOps[A <: JAny](me: JFocus[A]) {
   def asNumber: JResult[JFocus[JNumber]] = narrow[JNumber]
   def asBoolean: JResult[JFocus[JBoolean]] = narrow[JBoolean]
 
+  def previous: JResult[JFocus[JAny]] =
+    me match {
+      case f: JRootFocus[_]     => NoParent(f).leftNec
+      case f: JItemFocus[_, _]  => f.parent.item(f.index - 1)
+      case f: JFieldFocus[_, _] => f.parent.field(f.index - 1)
+    }
+
+  def next: JResult[JFocus[JAny]] =
+    me match {
+      case f: JRootFocus[_]     => NoParent(f).leftNec
+      case f: JItemFocus[_, _]  => f.parent.item(f.index + 1)
+      case f: JFieldFocus[_, _] => f.parent.field(f.index + 1)
+    }
+
+  def first: JResult[JFocus[JAny]] =
+    me match {
+      case f: JRootFocus[_]     => NoParent(f).leftNec
+      case f: JItemFocus[_, _]  => f.parent.items.head.rightNec
+      case f: JFieldFocus[_, _] => f.parent.fields.head.rightNec
+    }
+
+  def last: JResult[JFocus[JAny]] =
+    me match {
+      case f: JRootFocus[_]     => NoParent(f).leftNec
+      case f: JItemFocus[_, _]  => f.parent.items.last.rightNec
+      case f: JFieldFocus[_, _] => f.parent.fields.last.rightNec
+    }
+
   def parent: JResult[JFocus[JAny]] =
     me match {
       case f: JRootFocus[_]     => NoParent(f).leftNec
@@ -72,16 +100,6 @@ class JFocusJAnyWeakOps[A <: JAny](me: JFocus[A]) {
     * at the modified value.
     */
   def modify[B <: JAny](fn: JFocus[A] => B): JFocus[B] = replace(fn(me))
-
-  /** Applies a modification to the value in focus and returns a new focus into the modified document
-    * at the modified value. Returns a failure if the modification function returns a failure.
-    */
-  def modifyValueF[B <: JAny](fn: A => JResult[B]): JResult[JFocus[B]] = fn(me.value).map(replace)
-
-  /** Applies a modification to the value in focus and returns a new focus into the modified document
-    * at the modified value.
-    */
-  def modifyValue[B <: JAny](fn: A => B): JFocus[B] = replace(fn(me.value))
 
   /** Returns a focus into a new JSON document which is a copy of the source focus' document except that the
     * value in focus has been replaced by an encoded version of the input.
@@ -119,8 +137,8 @@ class JFocusJAnyWeakOps[A <: JAny](me: JFocus[A]) {
   def delete(): JResult[JFocus[JAny]] =
     me match {
       case f: JRootFocus[_]     => NoParent(f).leftNec
-      case f: JItemFocus[_, _]  => f.parent.modifyValue(_.delete(f.index)).rightNec
-      case f: JFieldFocus[_, _] => f.parent.modifyValue(_.delete(f.index)).rightNec
+      case f: JItemFocus[_, _]  => f.parent.modify(_.value.delete(f.index)).rightNec
+      case f: JFieldFocus[_, _] => f.parent.modify(_.value.delete(f.index)).rightNec
     }
 
   /** Returns a decoded representation of value in focus. */
@@ -155,7 +173,7 @@ class JFocusJAnyWeakOps[A <: JAny](me: JFocus[A]) {
               throw ProgrammerError("object in new document has fewer fields than in the old document!")
             case Right(Some(child)) =>
               rebuild(t, child)
-            case ee =>
+            case _ =>
               throw ProgrammerError(
                 s"new document does not have an object where one is expected!\n${f.pointer}\n${f.root.value.render}"
               )

@@ -158,49 +158,6 @@ class JFocusJAnyWeakOpsTest extends BatemanTestBase {
     }
   }
 
-  describe("modifyValue") {
-    it("should modify the value in focus") {
-      forAll(genJFocus(genJAny)) { f =>
-        val modified = f.modifyValue(janyMutator)
-
-        modified.pointer shouldBe f.pointer
-        modified.value shouldBe janyMutator(f.value)
-        modified.root.value.shouldHaveNoLocations
-      }
-    }
-
-    it("should return a narrow type (compilation)") {
-      def fn: JAny => JString = ???
-      def out: JFocus[JString] = JNumber(4).asRootFocus.modifyValue(fn)
-    }
-  }
-
-  describe("modifyValueF") {
-    it("should modify the field at the focus") {
-      forAll(genJFocus(genJAny)) { f =>
-        val successfulMutator = janyMutator.andThen(_.rightNec)
-        val modified = f.modifyValueF(successfulMutator).shouldSucceed
-
-        modified.pointer shouldBe f.pointer
-        modified.value shouldBe janyMutator(f.value)
-        modified.root.value.shouldHaveNoLocations
-      }
-    }
-
-    it("should fail to modify the field at the focus") {
-      forAll(genJFocus(genJAny)) { f =>
-        val modified = f.modifyValueF(f => JsonTypeMismatch(f.asRootFocus, JNull).leftNec)
-
-        modified shouldBe JsonTypeMismatch(f.value.asRootFocus, JNull).leftNec
-      }
-    }
-
-    it("should return a narrow type (compilation)") {
-      def fn: JAny => JResult[JString] = ???
-      def out: JResult[JFocus[JString]] = JNumber(4).asRootFocus.modifyValueF(fn)
-    }
-  }
-
   describe("delete") {
     it("should delete the value in focus") {
       forAll(genJFocus(genJAny).retryUntil(_.parentOption.isDefined)) { in =>

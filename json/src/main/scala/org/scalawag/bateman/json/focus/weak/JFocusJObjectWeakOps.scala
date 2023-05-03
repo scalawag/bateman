@@ -49,7 +49,7 @@ class JFocusJObjectWeakOps(me: JFocus[JObject]) {
       case Some(field) => field.rightNec
     }
 
-  def append(name: String, value: JAny): JFocus[JObject] = me.modifyValue(_.append(name, value))
+  def append(name: String, value: JAny): JFocus[JObject] = me.modify(_.value.append(name, value))
 
-  def prepend(name: String, value: JAny): JFocus[JObject] = me.modifyValue(_.prepend(name, value))
+  def prepend(name: String, value: JAny): JFocus[JObject] = me.modify(_.value.prepend(name, value))
 }

@@ -32,7 +32,7 @@ object JFoci {
   private[json] def apply[A <: JAny](foci: List[JFocus[A]]) = new JFoci(foci) {}
 
   implicit class JFociOps[A <: JAny](me: JFoci[A]) {
-    def modify[B <: JAny](fn: A => B): JFoci[B] = {
+    def modify[B <: JAny](fn: JFocus[A] => B): JFoci[B] = {
       // Go through each of our foci (in reverse order to preserve indices) and do the replacement.
       // The output of the prior feeds into the input of the next one, so that we get a single
       // document with all the modifications.
@@ -41,7 +41,7 @@ object JFoci {
           .foldRight(None: Option[JFocus[JAny]]) { (f, accOpt) =>
             // First time through, we just use the focus. From then on, we replicate the path in the last root.
             val replicated = accOpt.map(acc => f.replicate(acc.root.value)).getOrElse(f).asInstanceOf[JFocus[A]]
-            val mod = replicated.modifyValue(fn)
+            val mod = replicated.modify(fn)
             Some(mod)
           }
           .map(_.root.value)
@@ -73,8 +73,9 @@ object JFoci {
       // TODO: would it be better for any reason to keep track of the focus paths as they come back in the fold above?
       newRoot map {
         // If we made it here, we know that all the foci were children. A root focus would have triggered a failure.
-        case Some(r) => JFoci(me.foci.map(_.asInstanceOf[JChildFocus[_, JFocus[JAny]]].parent).distinct.map(f => f.replicate(r)))
-        case None    => me
+        case Some(r) =>
+          JFoci(me.foci.map(_.asInstanceOf[JChildFocus[_, JFocus[JAny]]].parent).distinct.map(f => f.replicate(r)))
+        case None => me
       }
     }
 

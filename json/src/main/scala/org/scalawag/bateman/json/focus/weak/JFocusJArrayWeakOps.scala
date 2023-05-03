@@ -29,7 +29,7 @@ class JFocusJArrayWeakOps(me: JFocus[JArray]) {
       case None    => MissingIndex(me, index).leftNec
     }
 
-  def append(item: JAny): JFocus[JArray] = me.modifyValue(_.append(item))
+  def append(item: JAny): JFocus[JArray] = me.modify(_.value.append(item))
 
-  def prepend(item: JAny): JFocus[JArray] = me.modifyValue(_.prepend(item))
+  def prepend(item: JAny): JFocus[JArray] = me.modify(_.value.prepend(item))
 }
