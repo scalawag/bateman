@@ -48,7 +48,7 @@ class CoproductEncoderTest extends BatemanTestBase {
     import org.scalawag.bateman.json.generic.auto._
 
     it("should encode abstractly") {
-      (Y(71): X).toJAny shouldBe json"""{"type":"Y","a":71}"""
+      (Y(71): X).toJAny shouldBe json"""{"type":"Y","a":71}""".stripLocation
     }
   }
 
@@ -57,7 +57,7 @@ class CoproductEncoderTest extends BatemanTestBase {
     implicit val config = Config(classNameMapping = PascalCase to SnakeCase)
 
     it("should encode abstractly") {
-      (Y(71): X).toJAny shouldBe json"""{"type":"y","a":71}"""
+      (Y(71): X).toJAny shouldBe json"""{"type":"y","a":71}""".stripLocation
     }
   }
 
@@ -68,7 +68,7 @@ class CoproductEncoderTest extends BatemanTestBase {
     implicit val xenc = deriveEncoderForTrait[X]("ilk")
 
     it("should encode abstractly") {
-      (Y(71): X).toJAny shouldBe json"""{"ilk":"Y","a":71}"""
+      (Y(71): X).toJAny shouldBe json"""{"ilk":"Y","a":71}""".stripLocation
     }
   }
 
@@ -86,11 +86,11 @@ class CoproductEncoderTest extends BatemanTestBase {
     )
 
     it("should encode a Y") {
-      (Y(71): X).toJAny shouldBe json"""{"type":1,"a":71}"""
+      (Y(71): X).toJAny shouldBe json"""{"type":1,"a":71}""".stripLocation
     }
 
     it("should encode a Z") {
-      (Z("quux"): X).toJAny shouldBe json"""{"type":true,"a":"quux"}"""
+      (Z("quux"): X).toJAny shouldBe json"""{"type":true,"a":"quux"}""".stripLocation
     }
 
     it("should reject duplicate discriminator types in mappings") {
@@ -196,7 +196,7 @@ class CoproductEncoderTest extends BatemanTestBase {
     implicit val aenc = deriveEncoderForCaseClass[CollideA]()
     implicit val enc = deriveEncoderForTrait[Collide]("foo")
 
-    (CollideA("CollideA"): Collide).toJAny shouldBe json"""{"foo": "CollideA"}"""
+    (CollideA("CollideA"): Collide).toJAny shouldBe json"""{"foo": "CollideA"}""".stripLocation
   }
 
   it("should throw on focus discriminators") {

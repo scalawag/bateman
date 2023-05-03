@@ -52,7 +52,7 @@ class SourceFieldEncoderTest extends BatemanTestBase {
     import SourceFieldEncoderTest.MySourceField._
 
     it("should ignore source") {
-      MyClass(JSource(simpleFocus), 8).toJAny shouldBe json"""{"b": 8}"""
+      MyClass(JSource(simpleFocus), 8).toJAny shouldBe json"""{"b": 8}""".stripLocation
     }
   }
 
@@ -60,11 +60,11 @@ class SourceFieldEncoderTest extends BatemanTestBase {
     import SourceFieldEncoderTest.MyOptionSourceField._
 
     it("should ignore None source") {
-      MyClass(None, 8).toJAny shouldBe json"""{"b": 8}"""
+      MyClass(None, 8).toJAny shouldBe json"""{"b": 8}""".stripLocation
     }
 
     it("should ignore Some source") {
-      MyClass(Some(JSource(simpleFocus)), 8).toJAny shouldBe json"""{"b": 8}"""
+      MyClass(Some(JSource(simpleFocus)), 8).toJAny shouldBe json"""{"b": 8}""".stripLocation
     }
   }
 
@@ -72,7 +72,7 @@ class SourceFieldEncoderTest extends BatemanTestBase {
     import SourceFieldEncoderTest.MySourceFieldWithDefault._
 
     it("should ignore source") {
-      MyClass(JSource(simpleFocus), 8).toJAny shouldBe json"""{"b": 8}"""
+      MyClass(JSource(simpleFocus), 8).toJAny shouldBe json"""{"b": 8}""".stripLocation
     }
   }
 
@@ -80,11 +80,11 @@ class SourceFieldEncoderTest extends BatemanTestBase {
     import SourceFieldEncoderTest.MyOptionSourceFieldWithDefault._
 
     it("should ignore None source") {
-      MyClass(None, 8).toJAny shouldBe json"""{"b": 8}"""
+      MyClass(None, 8).toJAny shouldBe json"""{"b": 8}""".stripLocation
     }
 
     it("should ignore Some source") {
-      MyClass(Some(JSource(simpleFocus)), 8).toJAny shouldBe json"""{"b": 8}"""
+      MyClass(Some(JSource(simpleFocus)), 8).toJAny shouldBe json"""{"b": 8}""".stripLocation
     }
   }
 
@@ -95,6 +95,6 @@ class SourceFieldEncoderTest extends BatemanTestBase {
     val f = json"""{"a": null, "b": 747}""".asRootFocus
     val fa = f.field("a").shouldSucceed
 
-    MyClass().toJAny shouldBe json"{}"
+    MyClass().toJAny shouldBe json"{}".stripLocation
   }
 }

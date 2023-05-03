@@ -14,7 +14,20 @@
 
 package org.scalawag.bateman.json.literal
 
-import org.scalawag.bateman.json.{JAny, JArray, JBoolean, JErrors, JField, JNull, JNumber, JObject, JString, JType}
+import org.scalawag.bateman.json.JNull.JNullImpl
+import org.scalawag.bateman.json.{
+  JAny,
+  JArray,
+  JBoolean,
+  JErrors,
+  JField,
+  JLocation,
+  JNull,
+  JNumber,
+  JObject,
+  JString,
+  JType
+}
 
 import scala.reflect.ClassTag
 import scala.reflect.macros.whitebox.Context
@@ -25,25 +38,38 @@ class LiteralMacros(val c: Context) {
   import c.universe._
 
   // Turns a JAny into the code that's needed to construct it.
-  private def toTree(jany: JAny, mapping: Map[String, TermName]): Tree =
+  private def toTree(jany: JAny, mapping: Map[String, TermName]): Tree = {
+    val loc = jany.location match {
+      case Some(JLocation(l, c, Some(s))) =>
+        q"_root_.scala.Some(_root_.org.scalawag.bateman.json.JLocation($l, $c, _root_.scala.Some(${Literal(Constant(s))})))"
+      case Some(JLocation(l, c, None)) =>
+        q"_root_.scala.Some(_root_.org.scalawag.bateman.json.JLocation($l, $c))"
+      case None => q"_root_.scala.None"
+    }
     jany match {
       case s: JString if mapping.contains(s.value) =>
         q"${mapping(s.value)}"
-      case _: JNull =>
+      case n: JNullImpl =>
+        q"_root_.org.scalawag.bateman.json.JNull.JNullImpl($loc)"
+      case _: JNull => // Should not happen, but technically possible.
         q"_root_.org.scalawag.bateman.json.JNull"
       case b: JBoolean =>
-        q"_root_.org.scalawag.bateman.json.JBoolean(${b.value})"
+        q"_root_.org.scalawag.bateman.json.JBoolean(${b.value}, $loc)"
       case n: JNumber =>
-        q"""_root_.org.scalawag.bateman.json.JNumber.unsafe(${Literal(Constant(n.value))})"""
+        q"""_root_.org.scalawag.bateman.json.JNumber(${Literal(Constant(n.value))}, $loc)"""
       case s: JString =>
-        q"""_root_.org.scalawag.bateman.json.JString(${Literal(Constant(s.value))})"""
+        q"""_root_.org.scalawag.bateman.json.JString(${Literal(Constant(s.value))}, $loc)"""
       case a: JArray =>
         val items = a.items.map(toTree(_, mapping))
-        q"_root_.org.scalawag.bateman.json.JArray(..$items)"
+        q"_root_.org.scalawag.bateman.json.JArray(_root_.scala.List(..$items), $loc)"
       case o: JObject =>
-        val fields = o.fieldList.map { case JField(k, v) => q"(${Literal(Constant(k.value))},${toTree(v, mapping)})" }
-        q"_root_.org.scalawag.bateman.json.JObject(..$fields)"
+        val fields = o.fieldList.map {
+          case JField(k, v) =>
+            q"_root_.org.scalawag.bateman.json.JField(${toTree(k, mapping)},${toTree(v, mapping)})"
+        }
+        q"_root_.org.scalawag.bateman.json.JObject(_root_.scala.List(..$fields), $loc)"
     }
+  }
 
   private def interleave[A, B](aa: Iterable[A], bb: Iterable[B]): Iterable[Either[A, B]] =
     aa.map(Left(_)).zip(bb.map(Right(_))).foldRight(List(Left(aa.last): Either[A, B])) {

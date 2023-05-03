@@ -41,7 +41,7 @@ class LiteralTest extends AnyFunSpec with Matchers {
         }
       """
 
-      json shouldBe JObject(
+      json.stripLocation shouldBe JObject(
         "a" -> JNumber(4),
         "b" -> JBoolean(true),
         "c" -> JNull,
@@ -94,22 +94,34 @@ class LiteralTest extends AnyFunSpec with Matchers {
       json shouldBe JObject("foo" -> JString(insert.toString))
     }
 
+    it("should include location info with no interpolations") {
+      val json: JObject = json"""
+        {
+          "a": 4,
+          "b": true,
+          "c": null
+        }
+      """
+
+      json.location should not be (empty)
+    }
+
     it("should not compile (expecting JSON object)") {
       assertTypeError("""
-          json"[]"
-        """)
+        json"[]"
+      """)
     }
 
     it("should not compile (invalid JSON text)") {
       assertTypeError("""
-          json"{"
-        """)
+        json"{"
+      """)
     }
 
     it("should not compile (empty JSON text)") {
       assertTypeError("""
-          json""
-        """)
+        json""
+      """)
     }
   }
 
@@ -124,7 +136,7 @@ class LiteralTest extends AnyFunSpec with Matchers {
         ]
       """
 
-      json shouldBe JArray(
+      json.stripLocation shouldBe JArray(
         JNumber(4),
         JBoolean(true),
         JNull,
@@ -169,22 +181,28 @@ class LiteralTest extends AnyFunSpec with Matchers {
       json shouldBe JArray(JString(insert.toString))
     }
 
+    it("should include location info with no interpolations") {
+      val json: JArray = jsona"""[ 4, true, null ]"""
+
+      json.location should not be (empty)
+    }
+
     it("should not compile (expecting JSON array)") {
       assertTypeError("""
-          jsona"{}"
-        """)
+        jsona"{}"
+      """)
     }
 
     it("should not compile (invalid JSON text)") {
       assertTypeError("""
-          jsona"["
-        """)
+        jsona"["
+      """)
     }
 
     it("should not compile (empty JSON text)") {
       assertTypeError("""
-          jsona""
-        """)
+        jsona""
+      """)
     }
   }
 }

@@ -101,7 +101,7 @@ class LensTest extends BatemanTestBase {
 
   describe("id") {
     it("should get id") {
-      json(data ~> id).value.shouldSucceed shouldBe "23".toJAny
+      json(data ~> id).value.shouldSucceed.stripLocation shouldBe "23".toJAny
     }
 
     it("should decode id") {
@@ -112,13 +112,13 @@ class LensTest extends BatemanTestBase {
 
   describe("lid") {
     it("should get lid") {
-      json(data ~> lid).value.shouldSucceed shouldBe "#1".toJAny
+      json(data ~> lid).value.shouldSucceed.stripLocation shouldBe "#1".toJAny
     }
   }
 
   describe("resourceType") {
     it("should get type") {
-      json(data ~> resourceType).value.shouldSucceed shouldBe "thing".toJAny
+      json(data ~> resourceType).value.shouldSucceed.stripLocation shouldBe "thing".toJAny
     }
   }
 
@@ -230,47 +230,51 @@ class LensTest extends BatemanTestBase {
 
   describe("errors") {
     it("should get id") {
-      errorJson(errors ~> * ~> id).values.shouldSucceed shouldBe List("E001".toJAny)
+      errorJson(errors ~> * ~> id).values.shouldSucceed.map(_.stripLocation) shouldBe List("E001".toJAny)
     }
 
     it("should get link") {
-      errorJson(errors ~> * ~> links ~> about).values.shouldSucceed shouldBe List(
+      errorJson(errors ~> * ~> links ~> about).values.shouldSucceed.map(_.stripLocation) shouldBe List(
         "http://example.com/errors/E001".toJAny
       )
     }
 
     it("should get status") {
-      errorJson(errors ~> * ~> status).values.shouldSucceed shouldBe List("403".toJAny)
+      errorJson(errors ~> * ~> status).values.shouldSucceed.map(_.stripLocation) shouldBe List("403".toJAny)
     }
 
     it("should get code") {
-      errorJson(errors ~> * ~> code).values.shouldSucceed shouldBe List("pseudo_error".toJAny)
+      errorJson(errors ~> * ~> code).values.shouldSucceed.map(_.stripLocation) shouldBe List("pseudo_error".toJAny)
     }
 
     it("should get title") {
-      errorJson(errors ~> * ~> title).values.shouldSucceed shouldBe List("Badness 10000".toJAny)
+      errorJson(errors ~> * ~> title).values.shouldSucceed.map(_.stripLocation) shouldBe List("Badness 10000".toJAny)
     }
 
     it("should get detail") {
-      errorJson(errors ~> * ~> detail).values.shouldSucceed shouldBe List(
+      errorJson(errors ~> * ~> detail).values.shouldSucceed.map(_.stripLocation) shouldBe List(
         "Sometimes, bad things happen to good code.".toJAny
       )
     }
 
     it("should get pointer") {
-      errorJson(errors ~> * ~> source ~> pointer).values.shouldSucceed shouldBe List("/data/attributes/a".toJAny)
+      errorJson(errors ~> * ~> source ~> pointer).values.shouldSucceed.map(_.stripLocation) shouldBe
+        List("/data/attributes/a".toJAny)
     }
 
     it("should get header") {
-      errorJson(errors ~> * ~> source ~> header).values.shouldSucceed shouldBe List("Content-Type".toJAny)
+      errorJson(errors ~> * ~> source ~> header).values.shouldSucceed.map(_.stripLocation) shouldBe
+        List("Content-Type".toJAny)
     }
 
     it("should get parameter") {
-      errorJson(errors ~> * ~> source ~> parameter).values.shouldSucceed shouldBe List("filter[name]".toJAny)
+      errorJson(errors ~> * ~> source ~> parameter).values.shouldSucceed.map(_.stripLocation) shouldBe
+        List("filter[name]".toJAny)
     }
 
     it("should get meta") {
-      errorJson(errors ~> * ~> meta("more_info")).values.shouldSucceed shouldBe List("bar".toJAny)
+      errorJson(errors ~> * ~> meta("more_info")).values.shouldSucceed.map(_.stripLocation) shouldBe
+        List("bar".toJAny)
     }
   }
 }
