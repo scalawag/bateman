@@ -2,6 +2,7 @@
 * [X](json/index.md)
 * [X](json-generic/index.md)
 * [X](jsonapi/index.md)
+* [X](literals.md)
 * [X](enumeratum.md)
 @@@
 
