@@ -2,8 +2,8 @@
 
 bateman can check Scala JSON literals for syntax errors at compile time. 
 
-First, you need to make sure that you're depending on the `json-literal` 
-artifact and importing the literal package.
+First, you need to make sure that your code depends on the 
+`bateman-json-literal` artifact and imports the literal package.
 
 ```scala mdoc:bateman:jany
 import org.scalawag.bateman.json._
