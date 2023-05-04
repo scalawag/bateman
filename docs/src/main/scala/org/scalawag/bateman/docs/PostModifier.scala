@@ -143,10 +143,13 @@ class PostModifier extends mdoc.PostModifier {
 
   private val handleJAny: Handler = {
     case jany: JAny =>
+      val nospaces = jany.render
+      val spaces = jany.spaces2
+      val rendered = if (nospaces.length < 20) nospaces else spaces
       List("jany") -> sarong"""
         @@@ note { title='JAny' }
         ```
-        ${jany.spaces2}
+        $rendered
         ```
         @@@
       """

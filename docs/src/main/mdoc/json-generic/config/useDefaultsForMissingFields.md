@@ -36,7 +36,7 @@ locally {
 If you're trying to make your field "optional," not in the sense that it 
 can be omitted in the incoming JSON, but in the sense that it can be 
 _specified_ as having no value, this is called
-"@ref:[nullable](../../nullable.md)" in bateman.
+"@ref:[nullable](../missing.md#nullable)" in bateman.
 
 Nullable values can have defaults (and can therefore be omitted from the 
 input JSON) just like any other value.
