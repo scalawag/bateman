@@ -205,8 +205,13 @@ class PostModifier extends mdoc.PostModifier {
         ctx.variables.last.pos,
         sarong"""
           type mismatch:
-            expected: mdoc:bateman:${tokens.mkString(":")}
-            obtained: mdoc:bateman:${types.mkString(":")}
+            expected type: mdoc:bateman:${tokens.mkString(":")}
+            obtained type: mdoc:bateman:${types.mkString(":")}
+            obtained: ${ctx.lastValue match {
+          case x: Left[NonEmptyChain[JError], _] => JErrors.formatErrorReport(x.value)
+          case x                                 => x.toString
+        }}
+        }
         """
       )
 
