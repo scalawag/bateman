@@ -60,7 +60,7 @@ class JLensDslTest extends BatemanTestBase {
 
     it("should return the same focus") {
       forAll(genJFocus(genJAny)) { f =>
-        lens(f) shouldBe f.rightNec
+        lens(f).map(_.foci) shouldBe f.rightNec
       }
     }
 
@@ -74,13 +74,13 @@ class JLensDslTest extends BatemanTestBase {
 
     it("should return the same focus for root foci") {
       forAll(genJFocus(genJAny, 0)) { f =>
-        lens(f) shouldBe f.rightNec
+        lens(f).map(_.foci) shouldBe f.rightNec
       }
     }
 
     it("should return the root focus for deep foci") {
       forAll(genJFocus(genJAny)) { f =>
-        lens(f) shouldBe f.root.rightNec
+        lens(f).map(_.foci) shouldBe f.root.rightNec
       }
     }
 
@@ -94,7 +94,7 @@ class JLensDslTest extends BatemanTestBase {
 
     it("should narrow the focus with an implicit decoder") {
       forAll(genJFocus(genJString)) { f =>
-        lens(f) shouldBe f.rightNec
+        lens(f).map(_.foci) shouldBe f.rightNec
       }
     }
 
@@ -102,7 +102,7 @@ class JLensDslTest extends BatemanTestBase {
       forAll(genJFocus(genJAny)) { f =>
         inside(f.value) {
           case s: JString =>
-            lens(f) shouldBe f.rightNec
+            lens(f).map(_.foci) shouldBe f.rightNec
           case _ =>
             lens(f) shouldBe JsonTypeMismatch(f, JString).leftNec
         }
@@ -120,7 +120,7 @@ class JLensDslTest extends BatemanTestBase {
       forAll(genJFocus(genNonEmptyJObject)) { f =>
         // Get a valid field name from the arbitrary object
         val name = f.value.fieldList.head.name.value
-        field(name)(f) shouldBe f.fields.head.rightNec
+        field(name)(f).map(_.foci) shouldBe f.fields.head.rightNec
       }
     }
 
@@ -150,7 +150,7 @@ class JLensDslTest extends BatemanTestBase {
     it("should extract None for a nonexistent field (use case)") {
       forAll(genJFocus(genEmptyJObject)) { f =>
         val lens = field("name").?
-        lens(f) shouldBe None.rightNec
+        lens(f).map(_.foci) shouldBe None.rightNec
       }
     }
 
@@ -159,7 +159,7 @@ class JLensDslTest extends BatemanTestBase {
         // Get a valid field name from the arbitrary object
         val name = f.value.fieldList.head.name.value
         val lens = field(name).?
-        lens(f) shouldBe Some(f.fields.head).rightNec
+        lens(f).map(_.foci) shouldBe Some(f.fields.head).rightNec
       }
     }
 
@@ -262,7 +262,7 @@ class JLensDslTest extends BatemanTestBase {
 
       forAll(genArrayAndIndex) {
         case (f, i) =>
-          item(i)(f) shouldBe f.items(i).rightNec
+          item(i)(f).map(_.foci) shouldBe f.items(i).rightNec
       }
     }
 
@@ -292,7 +292,7 @@ class JLensDslTest extends BatemanTestBase {
     it("should extract None for a nonexistent item (use case)") {
       forAll(genJFocus(genEmptyJArray)) { f =>
         val lens = item(-1).?
-        lens(f) shouldBe None.rightNec
+        lens(f).map(_.foci) shouldBe None.rightNec
       }
     }
 
@@ -300,7 +300,7 @@ class JLensDslTest extends BatemanTestBase {
       forAll(genJFocus(genNonEmptyJArray)) { f =>
         // Get a valid item name from the arbitrary array
         val lens = item(0).?
-        lens(f) shouldBe Some(f.items.head).rightNec
+        lens(f).map(_.foci) shouldBe Some(f.items.head).rightNec
       }
     }
 
@@ -353,7 +353,7 @@ class JLensDslTest extends BatemanTestBase {
 
       it("should work") {
         val lens: CreatableJLens[JAny, JAny] = field("a") ~> field("g")
-        lens(json) shouldBe json.field("a").flatMap(_.asObject).flatMap(_.field("g"))
+        lens(json).map(_.foci) shouldBe json.field("a").flatMap(_.asObject).flatMap(_.field("g"))
       }
 
       it("should fail fast if LHS fails") {
@@ -377,7 +377,7 @@ class JLensDslTest extends BatemanTestBase {
 
       it("should work") {
         val lens: IdJLens[JAny, JAny] = field("g") ~> item(1)
-        lens(json) shouldBe json.field("g").flatMap(_.asArray).flatMap(_.item(1))
+        lens(json).map(_.foci) shouldBe json.field("g").flatMap(_.asArray).flatMap(_.item(1))
       }
 
       it("should fail fast if LHS fails") {
@@ -401,7 +401,7 @@ class JLensDslTest extends BatemanTestBase {
 
       it("should work") {
         val lens: OptionJLens[JAny, JAny] = field("g") ~> item(1).?
-        lens(json) shouldBe json.field("g").flatMap(_.asArray).map(_.itemOption(1))
+        lens(json).map(_.foci) shouldBe json.field("g").flatMap(_.asArray).map(_.itemOption(1))
       }
 
       it("should fail fast if LHS fails") {
@@ -448,7 +448,7 @@ class JLensDslTest extends BatemanTestBase {
     describe("IdJLens ~> CreatableJLens") {
       it("should work") {
         val lens: IdJLens[JAny, JAny] = 0 ~> "c"
-        lens(jarray) shouldBe jarray.item(0).flatMap(_.asObject).flatMap(_.field("c"))
+        lens(jarray).map(_.foci) shouldBe jarray.item(0).flatMap(_.asObject).flatMap(_.field("c"))
       }
 
       it("should fail fast if LHS fails") {
@@ -544,7 +544,7 @@ class JLensDslTest extends BatemanTestBase {
 
       it("should work") {
         val lens: OptionJLens[JAny, JAny] = "a".? ~> "g"
-        lens(json) shouldBe json.fieldOption("a").flatMap(_.traverse(_.asObject.flatMap(_.field("g"))))
+        lens(json).map(_.foci) shouldBe json.fieldOption("a").flatMap(_.traverse(_.asObject.flatMap(_.field("g"))))
       }
 
       it("should fail fast if LHS fails") {
@@ -568,7 +568,7 @@ class JLensDslTest extends BatemanTestBase {
 
       it("should work") {
         val lens: OptionJLens[JAny, JAny] = "g".? ~> 0
-        lens(json) shouldBe json.fieldOption("g").flatMap(_.traverse(_.asArray.flatMap(_.item(0))))
+        lens(json).map(_.foci) shouldBe json.fieldOption("g").flatMap(_.traverse(_.asArray.flatMap(_.item(0))))
       }
 
       it("should fail fast if LHS fails") {
@@ -592,7 +592,7 @@ class JLensDslTest extends BatemanTestBase {
 
       it("should work") {
         val lens: OptionJLens[JAny, JAny] = "g".? ~> 1.?
-        lens(json) shouldBe json.fieldOption("g").flatMap(_.flatTraverse(_.asArray.map(_.itemOption(1))))
+        lens(json).map(_.foci) shouldBe json.fieldOption("g").flatMap(_.flatTraverse(_.asArray.map(_.itemOption(1))))
       }
 
       it("should fail fast if LHS fails") {
@@ -738,32 +738,32 @@ class JLensDslTest extends BatemanTestBase {
 
     it("should allow optional on CreatableJLens") {
       val lens: CreatableJLens[JAny, JAny] = "x"
-      lens.?(json) shouldBe None.rightNec
+      lens.?(json).map(_.foci) shouldBe None.rightNec
     }
 
     it("should allow optional on CompositeCreatableJLens") {
       val lens: CreatableJLens[JAny, JAny] = "x" ~> "x"
-      lens.?(json) shouldBe None.rightNec
+      lens.?(json).map(_.foci) shouldBe None.rightNec
     }
 
     it("should allow optional on IdJLens") {
       val lens: IdJLens[JAny, JAny] = 99
-      lens.?(jarray) shouldBe None.rightNec
+      lens.?(jarray).map(_.foci) shouldBe None.rightNec
     }
 
     it("should allow optional on CompositeIdJLens") {
       val lens: IdJLens[JAny, JAny] = 99 ~> 99
-      lens.?(jarray) shouldBe None.rightNec
+      lens.?(jarray).map(_.foci) shouldBe None.rightNec
     }
 
     it("should allow optional on OptionJLens") {
       val lens: OptionJLens[JAny, JAny] = "d".?
-      lens.?(json) shouldBe None.rightNec
+      lens.?(json).map(_.foci) shouldBe None.rightNec
     }
 
     it("should allow optional on CompositeOptionJLens") {
       val lens: OptionJLens[JAny, JAny] = "x" ~> "d".?
-      lens.?(json) shouldBe None.rightNec
+      lens.?(json).map(_.foci) shouldBe None.rightNec
     }
 
     it("should allow optional on ListJLens") {
@@ -778,12 +778,12 @@ class JLensDslTest extends BatemanTestBase {
 
     it("should ignore shallow missing fields in a composite lens") {
       val lens = ("x" ~> 0).?
-      lens(json) shouldBe None.rightNec
+      lens(json).map(_.foci) shouldBe None.rightNec
     }
 
     it("should ignore shallow missing indices in a composite lens") {
       val lens = ("g" ~> 99 ~> "d").?
-      lens(json) shouldBe None.rightNec
+      lens(json).map(_.foci) shouldBe None.rightNec
     }
 
     it("should toString simple optional") {

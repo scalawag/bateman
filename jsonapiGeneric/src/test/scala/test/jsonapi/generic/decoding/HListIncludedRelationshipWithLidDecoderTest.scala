@@ -400,7 +400,7 @@ class HListIncludedRelationshipWithLidDecoderTest extends HListDecoderTestBase {
   private val missingIncludedObjectRef =
     relationshipDatumIsNotIncluded
       .json(data ~> relationship("a") ~> data)
-      .decode[Inclusions.Key]
+      .flatMap(_.decode[Inclusions.Key])
       .shouldSucceed
 
   private val relationshipDataAreNotIncluded = Input(

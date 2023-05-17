@@ -57,7 +57,7 @@ object TraitDecoderFactory {
         DiscriminatorCollision.detect(genericDecoder.discriminatorValues)
 
       (in, discriminatorFields) =>
-        in(params.discriminatorLens).flatMap { disc =>
+        in(params.discriminatorLens).map(_.foci).flatMap { disc =>
           val input = CoproductDecoderFactory.Input(in, disc, discriminatorFields + disc, Nil)
           genericDecoder.decode(input).map(generic.from)
         }

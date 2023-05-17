@@ -51,8 +51,7 @@ object JFocus {
   }
 
   implicit class RichJFocus[F[+_], A <: JAny](me: JFocus[A]) {
-    def apply[B <: JAny](op: JLens[F, A, B]): JResult[F[JFocus[B]]] = op(me)
-    def apply[B <: JAny](op: ListJLens[A, B]): JResult[JFoci[B]] = op(me)
+    def apply[B <: JAny](op: JLens[F, A, B]): JResult[JCursor[F, B]] = op(me)
   }
 }
 

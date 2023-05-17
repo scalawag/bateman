@@ -17,7 +17,7 @@ package test.json.lens
 import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.lens.{focus, _}
 import test.json.BatemanTestBase
-import org.scalawag.bateman.json.focus.{JFoci, JFocus}
+import org.scalawag.bateman.json.focus.{JCursor, JFocus}
 import org.scalawag.bateman.json.focus.weak._
 
 class ModifyTest extends BatemanTestBase {
@@ -73,6 +73,7 @@ class ModifyTest extends BatemanTestBase {
         })
         .shouldSucceed
         .root
+        .map(_.value)
         .value shouldRenderTo
         parse("""
         {
@@ -136,7 +137,11 @@ class ModifyTest extends BatemanTestBase {
     }
 
     it("should append a field to an object") {
-      json(focus ~> "a" ~> narrow[JObject]).map(_.append("foo", JString("bar"))).shouldSucceed.root.value shouldEncodeTo
+      json(focus ~> "a" ~> narrow[JObject])
+        .map(_.foci.append("foo", JString("bar")))
+        .shouldSucceed
+        .root
+        .value shouldEncodeTo
         parse("""
           {
             "a": {
@@ -171,7 +176,7 @@ class ModifyTest extends BatemanTestBase {
 
     it("should prepend a field to an object") {
       json(focus ~> "a" ~> narrow[JObject])
-        .map(_.prepend("foo", JString("bar")))
+        .map(_.foci.prepend("foo", JString("bar")))
         .shouldSucceed
         .root
         .value shouldEncodeTo
@@ -208,7 +213,11 @@ class ModifyTest extends BatemanTestBase {
     }
 
     it("should append a field to an array") {
-      json(focus ~> "g" ~> narrow[JArray]).map(_.append(JString("bar"))).shouldSucceed.root.value shouldEncodeTo
+      json(focus ~> "g" ~> narrow[JArray])
+        .map(_.foci.append(JString("bar")))
+        .shouldSucceed
+        .root
+        .value shouldEncodeTo
         parse("""
           {
             "a": {
@@ -242,7 +251,11 @@ class ModifyTest extends BatemanTestBase {
     }
 
     it("should prepend a field to an array") {
-      json(focus ~> "g" ~> narrow[JArray]).map(_.prepend(JString("bar"))).shouldSucceed.root.value shouldEncodeTo
+      json(focus ~> "g" ~> narrow[JArray])
+        .map(_.foci.prepend(JString("bar")))
+        .shouldSucceed
+        .root
+        .value shouldEncodeTo
         parse("""
           {
             "a": {

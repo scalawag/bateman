@@ -70,7 +70,7 @@ class HListIncludedRelationshipEncoderTest extends HListEncoderTestBase {
 
     implicit class EncodedJObjectOps(enc: JObject) {
       def relationshipsShouldBeAbsent: Assertion =
-        enc.asRootFocus(data ~> relationships.?).shouldSucceed shouldBe None
+        enc.asRootFocus(data ~> relationships.?).shouldSucceed.foci shouldBe None
 
       def relativeShouldBeNull: Assertion =
         enc.asRootFocus(data ~> relationship("a") ~> data).shouldSucceed.value shouldBe JNull
@@ -80,7 +80,7 @@ class HListIncludedRelationshipEncoderTest extends HListEncoderTestBase {
         enc.asRootFocus(data ~> relationship("a") ~> data ~> * ~> id).shouldSucceed.values.map(_.value)
 
       def includedShouldBeAbsent: Assertion =
-        enc.asRootFocus(included.?).shouldSucceed shouldBe None
+        enc.asRootFocus(included.?).shouldSucceed.foci shouldBe None
 
       def includedIds: List[String] =
         enc.asRootFocus(included ~> * ~> id).shouldSucceed.values.map(_.value)

@@ -15,7 +15,7 @@
 package org.scalawag.bateman.jsonapi
 
 import org.scalawag.bateman.json._
-import org.scalawag.bateman.json.focus.JFocus
+import org.scalawag.bateman.json.focus.{JCursor, JFocus, Single}
 import org.scalawag.bateman.json.lens.{focus, _}
 import cats.syntax.either._
 import cats.data.NonEmptyChain
@@ -60,7 +60,7 @@ package object lens {
   val nullableIncludedRef: IdJLens[JAny, JAny] = {
 
     case in @ JFocus.Value(_: JNull) =>
-      in.rightNec
+      JCursor[Single, JAny](in).rightNec
 
     case in @ JFocus.Value(_: JObject) =>
       in.asObject.flatMap { inObject =>
@@ -72,7 +72,7 @@ package object lens {
           matchingResourceObjects.flatMap {
             // Found one match. Decode it with the resource object decoder that was passed in.
             case List(fo) =>
-              fo.rightNec
+              JCursor[Single, JAny](fo).rightNec
             // Everything else indicates an error.
             case Nil =>
               MissingIncludedResourceObject(inObject, targetKey).leftNec
@@ -87,5 +87,6 @@ package object lens {
   }
 
   // Defer to the nullable lens as long as the focused value is an object.
-  val includedRef: IdJLens[JAny, JObject] = _.asObject.flatMap(nullableIncludedRef).flatMap(_.asObject)
+  val includedRef: IdJLens[JAny, JObject] =
+    _.asObject.flatMap(nullableIncludedRef).flatMap(_.foci.asObject).map(JCursor[Single, JObject](_))
 }

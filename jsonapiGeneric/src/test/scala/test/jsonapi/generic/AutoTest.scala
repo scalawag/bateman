@@ -38,7 +38,7 @@ class AutoTest extends BatemanTestBase {
   it("should work by default") {
     val enc = MyClass("A", 8, MyRef(10)).toDocument.asRootFocus
     enc(data ~> relationships).shouldSucceed.value.fieldList.map(_.name.value) shouldBe List("myRef")
-    enc(data ~> attributes.?).shouldSucceed shouldBe None
+    enc(data ~> attributes.?).shouldSucceed.foci shouldBe None
     UUID.fromString(enc(included ~> 0 ~> lid).shouldSucceed.value.value) // should not throw
   }
 

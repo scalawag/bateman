@@ -176,7 +176,7 @@ object HListResourceDecoderFactory {
   ] =
     headDecoderFactory[Single, JObject, H, T, DT, Relationship, AT](
       relationship,
-      _(data ~> narrow[JObject]).decode(headDecoder.value)
+      _(data ~> narrow[JObject]).flatMap(_.decode(headDecoder.value))
     )
 
   implicit def forOptionRelationshipHCons[H, T <: HList, DT <: HList, AT <: HList](implicit
@@ -189,7 +189,7 @@ object HListResourceDecoderFactory {
   ] =
     optionHeadDecoderFactory[Single, JObject, H, T, DT, Relationship, AT](
       relationship,
-      _(data ~> narrow[JObject]).decode(headDecoder.value)
+      _(data ~> narrow[JObject]).flatMap(_.decode(headDecoder.value))
     )
 
   implicit def forNullableRelationshipHCons[H, T <: HList, DT <: HList, AT <: HList](implicit
@@ -205,7 +205,7 @@ object HListResourceDecoderFactory {
       // TODO: make these more composable somehow.
       { in =>
         val dec: JAnyDecoder[Nullable[H]] = Decoder.nullableDecoder(Decoder.widenJObjectDecoder(headDecoder.value))
-        in(data).decode(dec)
+        in(data).flatMap(_.decode(dec))
       }
     )
 
@@ -222,7 +222,7 @@ object HListResourceDecoderFactory {
       // TODO: make these more composable somehow.
       { in =>
         val dec: JAnyDecoder[Nullable[H]] = Decoder.nullableDecoder(Decoder.widenJObjectDecoder(headDecoder.value))
-        in(data).decode(dec)
+        in(data).flatMap(_.decode(dec))
       }
     )
 
@@ -236,7 +236,7 @@ object HListResourceDecoderFactory {
   ] =
     headDecoderFactory[List, JObject, H, T, DT, Relationship, AT](
       relationship,
-      _(data ~> * ~> narrow[JObject]).decode(headDecoder.value)
+      _(data ~> * ~> narrow[JObject]).flatMap(_.decode(headDecoder.value))
     )
 
   implicit def forOptionListRelationshipHCons[H, T <: HList, DT <: HList, AT <: HList](implicit
@@ -249,7 +249,7 @@ object HListResourceDecoderFactory {
   ] =
     optionHeadDecoderFactory[List, JObject, H, T, DT, Relationship, AT](
       relationship,
-      _(data ~> * ~> narrow[JObject]).decode(headDecoder.value)
+      _(data ~> * ~> narrow[JObject]).flatMap(_.decode(headDecoder.value))
     )
 
   implicit def forIncludedRelationshipHCons[H, T <: HList, DT <: HList, AT <: HList](implicit
@@ -262,7 +262,7 @@ object HListResourceDecoderFactory {
   ] =
     headDecoderFactory[Single, JObject, H, T, DT, IncludedRelationship, AT](
       relationship,
-      _(data ~> includedRef).decode(headDecoder.value)
+      _(data ~> includedRef).flatMap(_.decode(headDecoder.value))
     )
 
   implicit def forOptionIncludedRelationshipHCons[H, T <: HList, DT <: HList, AT <: HList](implicit
@@ -275,7 +275,7 @@ object HListResourceDecoderFactory {
   ] =
     optionHeadDecoderFactory[Single, JObject, H, T, DT, IncludedRelationship, AT](
       relationship,
-      _(data ~> includedRef).decode(headDecoder.value)
+      _(data ~> includedRef).flatMap(_.decode(headDecoder.value))
     )
 
   implicit def forNullableIncludedRelationshipHCons[H, T <: HList, DT <: HList, AT <: HList](implicit
@@ -288,7 +288,7 @@ object HListResourceDecoderFactory {
   ] =
     headDecoderFactory[Single, JObject, Nullable[H], T, DT, IncludedRelationship, AT](
       relationship,
-      _(data ~> nullableIncludedRef).decode(nullableDecoder(widenJObjectDecoder(headDecoder.value)))
+      _(data ~> nullableIncludedRef).flatMap(_.decode(nullableDecoder(widenJObjectDecoder(headDecoder.value))))
     )
 
   implicit def forOptionNullableIncludedRelationshipHCons[H, T <: HList, DT <: HList, AT <: HList](implicit
@@ -301,7 +301,7 @@ object HListResourceDecoderFactory {
   ] =
     optionHeadDecoderFactory[Single, JObject, Nullable[H], T, DT, IncludedRelationship, AT](
       relationship,
-      _(data ~> nullableIncludedRef).decode(nullableDecoder(widenJObjectDecoder(headDecoder.value)))
+      _(data ~> nullableIncludedRef).flatMap(_.decode(nullableDecoder(widenJObjectDecoder(headDecoder.value))))
     )
 
   implicit def forListIncludedRelationshipHCons[H, T <: HList, DT <: HList, AT <: HList](implicit
@@ -314,7 +314,7 @@ object HListResourceDecoderFactory {
   ] =
     headDecoderFactory[List, JObject, H, T, DT, IncludedRelationship, AT](
       relationship,
-      _(data ~> * ~> includedRef).decode(headDecoder.value)
+      _(data ~> * ~> includedRef).flatMap(_.decode(headDecoder.value))
     )
 
   implicit def forOptionListIncludedRelationshipHCons[H, T <: HList, DT <: HList, AT <: HList](implicit
@@ -325,7 +325,7 @@ object HListResourceDecoderFactory {
   ] :: DT, (IncludedRelationship :: HNil) :: AT] =
     optionHeadDecoderFactory[List, JObject, H, T, DT, IncludedRelationship, AT](
       relationship,
-      _(data ~> * ~> includedRef).decode(headDecoder.value)
+      _(data ~> * ~> includedRef).flatMap(_.decode(headDecoder.value))
     )
 
   // TODO: try to factor out the commonalities between these two functions.
@@ -343,7 +343,7 @@ object HListResourceDecoderFactory {
       val extractor = extractorFn(jsonFieldName)
 
       input => {
-        input.in(extractor.?).flatMap { headFocus =>
+        input.in(extractor.?).map(_.foci) flatMap { headFocus =>
           val tailResult = tailDecoder.decode(input.withFieldFocus(scalaFieldName, headFocus))
           val headResult: JResult[Card[H]] =
             (params.config.useDefaultsForMissingFields, typeInfo.defaults.head) match {
@@ -354,7 +354,7 @@ object HListResourceDecoderFactory {
                 }
               case _ =>
                 // Attempt to extract again because that's the easiest way to get consistent error handling.
-                input.in(extractor).flatMap(decodeFn)
+                input.in(extractor).map(_.foci).flatMap(decodeFn)
             }
 
           (headResult, tailResult).parMapN { (h, t) => t.copy(out = h :: t.out) }
@@ -378,7 +378,7 @@ object HListResourceDecoderFactory {
         input.in(extractor.?).flatMap { headFocus =>
           val tailResult = tailDecoder.decode(input.withFieldFocus(scalaFieldName, headFocus))
           val headResult: JResult[Option[Card[H]]] =
-            headFocus match {
+            headFocus.foci match {
               case None      => None.rightNec
               case Some(out) => decodeFn(out).map(Some.apply)
             }

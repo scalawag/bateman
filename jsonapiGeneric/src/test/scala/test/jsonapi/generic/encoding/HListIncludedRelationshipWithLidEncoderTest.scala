@@ -69,7 +69,7 @@ class HListIncludedRelationshipWithLidEncoderTest extends HListEncoderTestBase {
 
     implicit class EncodedJObjectOps(enc: JObject) {
       def relationshipsShouldBeAbsent: Assertion =
-        enc.asRootFocus(data ~> relationships.?).shouldSucceed shouldBe None
+        enc.asRootFocus(data ~> relationships.?).shouldSucceed.foci shouldBe None
 
       def relativeShouldBeNull: Assertion =
         enc.asRootFocus(data ~> relationship("a") ~> data).shouldSucceed.value shouldBe JNull
@@ -78,7 +78,7 @@ class HListIncludedRelationshipWithLidEncoderTest extends HListEncoderTestBase {
         enc.asRootFocus(data ~> relationship("a") ~> data ~> *).shouldSucceed.values shouldBe empty
 
       def includedShouldBeAbsent: Assertion =
-        enc.asRootFocus(included.?).shouldSucceed shouldBe None
+        enc.asRootFocus(included.?).shouldSucceed.foci shouldBe None
 
       def includedB: Int =
         enc
@@ -531,7 +531,7 @@ class HListIncludedRelationshipWithLidEncoderTest extends HListEncoderTestBase {
 
       val enc = MyLongFieldName(MyRef(2)).toDocument
 
-      enc.asRootFocus(data ~> resourceType).value.shouldSucceed.value shouldBe "my_long_field_name"
+      enc.asRootFocus(data ~> resourceType).map(_.value).shouldSucceed.value shouldBe "my_long_field_name"
     }
 
     it("should transform field names when instructed to") {
@@ -568,7 +568,8 @@ class HListIncludedRelationshipWithLidEncoderTest extends HListEncoderTestBase {
 
       enc
         .asRootFocus(data ~> relationship("b").?)
-        .shouldSucceed shouldBe None
+        .shouldSucceed
+        .foci shouldBe None
 
     }
 
@@ -577,14 +578,14 @@ class HListIncludedRelationshipWithLidEncoderTest extends HListEncoderTestBase {
         .toDocument(IncludeSpec.Opportunistically, FieldsSpec.All)
 
       enc
-        .asRootFocus(data ~> relationship("a") ~> data ~> includedRef ~> attribute ("b") ~> narrow[JNumber])
+        .asRootFocus(data ~> relationship("a") ~> data ~> includedRef ~> attribute("b") ~> narrow[JNumber])
         .shouldSucceed
         .value
         .toBigDecimal
         .toIntExact shouldBe 1
 
       enc
-        .asRootFocus(data ~> relationship("b") ~> data ~> includedRef ~> attribute ("b") ~> narrow[JNumber])
+        .asRootFocus(data ~> relationship("b") ~> data ~> includedRef ~> attribute("b") ~> narrow[JNumber])
         .shouldSucceed
         .value
         .toBigDecimal
@@ -594,8 +595,8 @@ class HListIncludedRelationshipWithLidEncoderTest extends HListEncoderTestBase {
     it("should exclude relationship fields when told to implicitly") {
       val enc = MyTwoFields(MyRef(1), MyRef(2)).toDocument(IncludeSpec.Opportunistically, FieldsSpec.None)
 
-      enc.asRootFocus(data ~> relationships.?).shouldSucceed shouldBe None
-      enc.asRootFocus(included.?).shouldSucceed shouldBe None
+      enc.asRootFocus(data ~> relationships.?).shouldSucceed.foci shouldBe None
+      enc.asRootFocus(included.?).shouldSucceed.foci shouldBe None
     }
 
     it("should include relationship explicitly even when it's the default") {
@@ -604,8 +605,8 @@ class HListIncludedRelationshipWithLidEncoderTest extends HListEncoderTestBase {
         .shouldSucceed
 
       enc.asRootFocus(data ~> relationship("a") ~> data).shouldSucceed.value shouldBe JNull
-      enc.asRootFocus(data ~> relationship("b").?).shouldSucceed shouldBe None
-      enc.asRootFocus(included.?).shouldSucceed shouldBe None
+      enc.asRootFocus(data ~> relationship("b").?).shouldSucceed.foci shouldBe None
+      enc.asRootFocus(included.?).shouldSucceed.foci shouldBe None
     }
 
     it("should fail for invalid include path") {

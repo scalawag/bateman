@@ -19,7 +19,7 @@ import cats.syntax.either._
 import cats.syntax.parallel._
 import cats.instances.option._
 import org.scalawag.bateman.json.JType.Summoner
-import org.scalawag.bateman.json.focus.{JFoci, JFocus, Single}
+import org.scalawag.bateman.json.focus.{JCursor, JFocus, Single}
 import org.scalawag.bateman.json.focus.weak._
 
 import scala.reflect.ClassTag
@@ -33,7 +33,7 @@ package object lens {
     * @tparam B the output focus type
     */
 
-  sealed trait JLens[F[+_], -A <: JAny, +B <: JAny] extends Function1[JFocus[A], JResult[F[JFocus[B]]]]
+  sealed trait JLens[F[+_], -A <: JAny, +B <: JAny] extends Function1[JFocus[A], JResult[JCursor[F, B]]]
 
   //===================================================================================================================
 
@@ -51,19 +51,19 @@ package object lens {
   trait CreatableJLens[-A <: JAny, B <: JAny] extends JLens[Single, A, B] { self =>
     def toIdJLens: IdJLens[A, B] =
       new IdJLens[A, B] {
-        override def apply(in: JFocus[A]): JResult[Single[JFocus[B]]] = self(in)
+        override def apply(in: JFocus[A]): JResult[JCursor[Single, B]] = self(in)
         override lazy val toString: String = self.toString
       }
 
     def toOptionJLens: OptionJLens[A, B] =
       new OptionJLens[A, B] {
-        override def apply(in: JFocus[A]): JResult[Option[JFocus[B]]] = self(in).map(Some(_))
+        override def apply(in: JFocus[A]): JResult[JCursor[Option, B]] = self(in).map(c => JCursor(Some(c.foci)))
         override lazy val toString: String = self.toString
       }
 
     def toListJLens: ListJLens[A, B] =
       new ListJLens[A, B] {
-        override def apply(in: JFocus[A]): JResult[JFoci[B]] = self(in).map(x => JFoci(List(x)))
+        override def apply(in: JFocus[A]): JResult[JCursor[List, B]] = self(in).map(c => JCursor(List(c.foci)))
         override lazy val toString: String = self.toString
       }
   }
@@ -94,13 +94,13 @@ package object lens {
   trait IdJLens[-A <: JAny, B <: JAny] extends JLens[Single, A, B] { self =>
     def toOptionJLens: OptionJLens[A, B] =
       new OptionJLens[A, B] {
-        override def apply(in: JFocus[A]): JResult[Option[JFocus[B]]] = self(in).map(Some(_))
+        override def apply(in: JFocus[A]): JResult[JCursor[Option, B]] = self(in).map(c => JCursor(Some(c.foci)))
         override lazy val toString: String = self.toString
       }
 
     def toListJLens: ListJLens[A, B] =
       new ListJLens[A, B] {
-        override def apply(in: JFocus[A]): JResult[JFoci[B]] = self(in).map(x => JFoci(List(x)))
+        override def apply(in: JFocus[A]): JResult[JCursor[List, B]] = self(in).map(c => JCursor(List(c.foci)))
         override lazy val toString: String = self.toString
       }
   }
@@ -131,7 +131,7 @@ package object lens {
   trait OptionJLens[-A <: JAny, B <: JAny] extends JLens[Option, A, B] { self =>
     def toListLens: ListJLens[A, B] =
       new ListJLens[A, B] {
-        override def apply(in: JFocus[A]): JResult[JFoci[B]] = self(in).map(x => JFoci(x.toList))
+        override def apply(in: JFocus[A]): JResult[JCursor[List, B]] = self(in).map(c => JCursor(c.foci.toList))
         override lazy val toString: String = self.toString
       }
   }
@@ -165,7 +165,7 @@ package object lens {
     * @tparam B the output focus type
     */
 
-  trait ListJLens[-A <: JAny, +B <: JAny] extends Function1[JFocus[A], JResult[JFoci[B]]]
+  trait ListJLens[-A <: JAny, +B <: JAny] extends JLens[List, A, B]
 
   object ListJLens {
     implicit def fromCreatableJLens[A <: JAny, B <: JAny](that: CreatableJLens[A, B]): ListJLens[A, B] =
@@ -188,41 +188,42 @@ package object lens {
 
   case class CompositeIdJLens[-A <: JAny, B <: JAny, C <: JAny](l: IdJLens[A, B], r: IdJLens[B, C])
       extends IdJLens[A, C] {
-    override def apply(in: JFocus[A]): JResult[JFocus[C]] = l(in).flatMap(r.apply)
+    override def apply(in: JFocus[A]): JResult[JCursor[Single, C]] = l(in).flatMap(c => r(c.foci))
     override lazy val toString: String = s"$l ~> $r"
   }
 
   case class CompositeCreatableJLens[-A <: JAny, B <: JAny, C <: JAny](l: CreatableJLens[A, B], r: CreatableJLens[B, C])
       extends CreatableJLens[A, C] {
-    override def apply(in: JFocus[A]): JResult[JFocus[C]] = l(in).flatMap(r.apply)
+    override def apply(in: JFocus[A]): JResult[JCursor[Single, C]] = l(in).flatMap(c => r(c.foci))
     override lazy val toString: String = s"$l ~> $r"
   }
 
   case class CompositeOptionJLens[-A <: JAny, B <: JAny, C <: JAny](l: OptionJLens[A, B], r: OptionJLens[B, C])
       extends OptionJLens[A, C] {
-    override def apply(in: JFocus[A]): JResult[Option[JFocus[C]]] = l(in).flatMap(_.parFlatTraverse(r.apply))
+    override def apply(in: JFocus[A]): JResult[JCursor[Option, C]] =
+      l(in).flatMap(c => c.foci.parFlatTraverse(r.apply(_).map(_.foci)).map(JCursor(_)))
     override lazy val toString: String = s"$l ~> $r"
   }
 
   case class CompositeListJLens[-A <: JAny, B <: JAny, C <: JAny](l: ListJLens[A, B], r: ListJLens[B, C])
       extends ListJLens[A, C] {
-    override def apply(in: JFocus[A]): JResult[JFoci[C]] =
-      l(in).flatMap(_.foci.parFlatTraverse(r.apply(_).map(_.foci))).map(JFoci(_))
+    override def apply(in: JFocus[A]): JResult[JCursor[List, C]] =
+      l(in).flatMap(_.foci.parFlatTraverse(r.apply(_).map(_.foci))).map(JCursor(_))
     override lazy val toString: String = s"$l ~> $r"
   }
 
   //===================================================================================================================
 
   case class AllowMissingValueOptionJLens[-A <: JAny, B <: JAny](inner: OptionJLens[A, B]) extends OptionJLens[A, B] {
-    override def apply(in: JFocus[A]): JResult[Option[JFocus[B]]] =
-      inner(in).ignoreMissingValuesWith(None)
+    override def apply(in: JFocus[A]): JResult[JCursor[Option, B]] =
+      inner(in).ignoreMissingValuesWith(JCursor(None))
     override val toString: String =
       if (inner.toString.exists(_.isWhitespace)) s"($inner).?" else s"$inner.?"
   }
 
   case class AllowMissingValueListJLens[-A <: JAny, B <: JAny](inner: ListJLens[A, B]) extends ListJLens[A, B] {
-    override def apply(in: JFocus[A]): JResult[JFoci[B]] =
-      inner(in).map(_.foci).ignoreMissingValuesWith(Nil).map(JFoci(_))
+    override def apply(in: JFocus[A]): JResult[JCursor[List, B]] =
+      inner(in).ignoreMissingValuesWith(JCursor(Nil))
     override val toString: String =
       if (inner.toString.exists(_.isWhitespace)) s"($inner).?" else s"$inner.?"
   }
@@ -236,7 +237,7 @@ package object lens {
   def focus: CreatableJLens[JAny, JAny] = FocusJLens[JAny]()
 
   case class FocusJLens[A <: JAny]() extends CreatableJLens[A, A] {
-    override def apply(in: JFocus[A]): JResult[JFocus[A]] = in.rightNec
+    override def apply(in: JFocus[A]): JResult[JCursor[Single, A]] = JCursor[Single, A](in).rightNec
     override lazy val toString: String = "focus"
   }
 
@@ -251,7 +252,7 @@ package object lens {
   def root: RootJLens.type = RootJLens
 
   case object RootJLens extends IdJLens[JAny, JAny] {
-    override def apply(in: JFocus[JAny]): JResult[JFocus[JAny]] = in.root.rightNec
+    override def apply(in: JFocus[JAny]): JResult[JCursor[Single, JAny]] = JCursor[Single, JAny](in.root).rightNec
     override lazy val toString: String = "root"
   }
 
@@ -277,7 +278,7 @@ package object lens {
   }
 
   case class NarrowJLens[A <: JAny: ClassTag: Summoner]() extends CreatableJLens[JAny, A] {
-    override def apply(in: JFocus[JAny]): JResult[JFocus[A]] = in.narrow[A]
+    override def apply(in: JFocus[JAny]): JResult[JCursor[Single, A]] = in.narrow[A].map(JCursor[Single, A](_))
     override val toString: String = s"narrow[${JType[A]}]"
   }
 
@@ -295,7 +296,8 @@ package object lens {
   def field(name: String): FieldJLens = FieldJLens(name)
 
   case class FieldJLens(name: String) extends CreatableJLens[JAny, JAny] {
-    override def apply(in: JFocus[JAny]): JResult[JFocus[JAny]] = in.asObject.flatMap(_.field(name))
+    override def apply(in: JFocus[JAny]): JResult[JCursor[Single, JAny]] =
+      in.asObject.flatMap(_.field(name)).map(JCursor[Single, JAny](_))
     def ** : ListJLens[JAny, JAny] = all
     def all: ListJLens[JAny, JAny] = FieldAllJLens(name)
     override lazy val toString: String = s""""$name""""
@@ -318,7 +320,7 @@ package object lens {
   def fields(name: String): ListJLens[JAny, JAny] = FieldAllJLens(name)
 
   case class FieldAllJLens(name: String) extends ListJLens[JAny, JAny] {
-    override def apply(in: JFocus[JAny]): JResult[JFoci[JAny]] = in.asObject.map(_.fields(name)).map(JFoci(_))
+    override def apply(in: JFocus[JAny]): JResult[JCursor[List, JAny]] = in.asObject.map(_.fields(name)).map(JCursor(_))
     override lazy val toString: String = s""""$name".**"""
   }
 
@@ -335,7 +337,8 @@ package object lens {
   def item(index: Int): IdJLens[JAny, JAny] = ItemJLens(index)
 
   case class ItemJLens(index: Int) extends IdJLens[JAny, JAny] {
-    override def apply(in: JFocus[JAny]): JResult[JFocus[JAny]] = in.asArray.flatMap(_.item(index))
+    override def apply(in: JFocus[JAny]): JResult[JCursor[Single, JAny]] =
+      in.asArray.flatMap(_.item(index)).map(JCursor[Single, JAny](_))
     override lazy val toString: String = index.toString
   }
 
@@ -364,7 +367,7 @@ package object lens {
   val * : ListJLens[JAny, JAny] = items
 
   case object AllItemsJLens extends ListJLens[JAny, JAny] {
-    override def apply(in: JFocus[JAny]): JResult[JFoci[JAny]] = in.asArray.map(_.items).map(JFoci(_))
+    override def apply(in: JFocus[JAny]): JResult[JCursor[List, JAny]] = in.asArray.map(_.items).map(JCursor(_))
     override val toString: String = "*"
   }
 
@@ -391,7 +394,7 @@ package object lens {
   val ** : ListJLens[JAny, JAny] = fields
 
   case object AllFieldsJLens extends ListJLens[JAny, JAny] {
-    override def apply(in: JFocus[JAny]): JResult[JFoci[JAny]] = in.asObject.map(_.fields).map(JFoci(_))
+    override def apply(in: JFocus[JAny]): JResult[JCursor[List, JAny]] = in.asObject.map(_.fields).map(JCursor(_))
     override val toString: String = "**"
   }
 }

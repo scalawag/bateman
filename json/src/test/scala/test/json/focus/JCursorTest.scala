@@ -15,11 +15,11 @@
 package test.json.focus
 
 import org.scalawag.bateman.json._
-import org.scalawag.bateman.json.focus.JFoci
+import org.scalawag.bateman.json.focus.JCursor
 import org.scalawag.bateman.json.lens._
 import test.json.BatemanTestBase
 
-class JFociTest extends BatemanTestBase {
+class JCursorTest extends BatemanTestBase {
   private val json = parseAs[JObject]("""
     {
       "a": {
@@ -53,10 +53,10 @@ class JFociTest extends BatemanTestBase {
   it("should extract the values") {
     val lens = "deep" ~> * ~> 0 ~> "a"
     val out = lens(json)
-    out.values.shouldSucceed shouldBe out.shouldSucceed.foci.map(_.value)
+    out.map(_.values).shouldSucceed shouldBe out.shouldSucceed.foci.map(_.value)
   }
 
-  def emptyFoci: JFoci[JAny] = json.apply("w".**).shouldSucceed
+  def emptyFoci: JCursor[List, JAny] = json.apply("w".**).shouldSucceed
 
   it("should handle delete when empty") {
     emptyFoci.delete()

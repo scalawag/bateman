@@ -21,7 +21,7 @@ import cats.syntax.traverse._
 import org.scalawag.bateman.json.lens._
 import org.scalawag.bateman.json.syntax._
 import org.scalawag.bateman.json.focus.weak._
-import org.scalawag.bateman.json.focus.JFocus
+import org.scalawag.bateman.json.focus.{JFocus, Single}
 
 // Generally return the focus aspect.
 
@@ -34,11 +34,16 @@ package object state {
       fn(sin).map(sout => sout -> sout.value)
     }
 
+  def apply[A <: JAny, B <: JAny](lens: JLens[Single, A, B]): IndexedState[A, B] =
+    IndexedStateT.apply[JResult, JFocus[A], JFocus[B], B] { sin =>
+      lens(sin).map(sout => sout.foci -> sout.foci.value)
+    }
+
   def focus[A <: JAny]: State[A, JFocus[A]] = StateT.get[JResult, JFocus[A]]
   def value[A <: JAny]: State[A, A] = focus.map(_.value)
   def root[A <: JAny]: IndexedState[A, JAny] = apply(_.root.asRight)
 
-  def down[A <: JAny, B <: JAny](lens: IdJLens[A, B]): IndexedState[A, B] = apply(lens)
+  def down[A <: JAny, B <: JAny](lens: IdJLens[A, B]): IndexedState[A, B] = apply(lens(_).map(_.foci))
   def down[A <: JAny, B <: JAny](lens: CreatableJLens[A, B]): IndexedState[A, B] = down(lens.toIdJLens)
 
   def up[A <: JAny]: IndexedState[A, JAny] = apply(_.parent)
@@ -95,7 +100,7 @@ package object state {
   class DecodeThroughState[B] {
     def apply[F[+_]: Traverse, A <: JAny](lens: JLens[F, JAny, A])(implicit decoder: Decoder[A, B]): State[JAny, F[B]] =
       StateT.inspectF[JResult, JFocus[JAny], F[B]] { in =>
-        lens(in).flatMap(_.traverse(_.decode[B]))
+        lens(in).flatMap(_.foci.traverse(_.decode[B]))
       }
   }
 
