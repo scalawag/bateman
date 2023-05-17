@@ -368,7 +368,7 @@ object HListResourceEncoderFactory {
 
                         val f = encodedHead.root.asRootFocus
                         // Decode the type and (optional) id from each encoded head. Generate an identifier for each.
-                        (f(resourceType).decode[String], f(id.?).decode[String]).parMapN {
+                        (f(resourceType).flatMap(_.decode[String]), f(id.?).flatMap(_.decode[String])).parMapN {
                           case (rt, Some(id)) =>
                             // If there's an ID, just include this object as-is. Use its ID to reference it.
                             val ri = JObject("type" -> rt.toJAny, "id" -> id.toJAny)

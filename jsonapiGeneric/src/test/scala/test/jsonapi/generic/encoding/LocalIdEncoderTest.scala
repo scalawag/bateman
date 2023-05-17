@@ -35,7 +35,7 @@ class LocalIdEncoderTest extends BatemanTestBase {
     val out = MyReferrer(MyReferent(77)).toDocument
     println(out.spaces2)
     import org.scalawag.bateman.jsonapi.lens._
-    out.asRootFocus(data ~> relationship("rel") ~> data ~> lid).decode[UUID].shouldSucceed
+    out.asRootFocus(data ~> relationship("rel") ~> data ~> lid).flatMap(_.decode[UUID]).shouldSucceed
   }
 
   it("should generate a local ID using a custom generator") {
@@ -47,6 +47,6 @@ class LocalIdEncoderTest extends BatemanTestBase {
     val out = MyReferrer(MyReferent(77)).toDocument
     println(out.spaces2)
     import org.scalawag.bateman.jsonapi.lens._
-    out.asRootFocus(data ~> relationship("rel") ~> data ~> lid).decode[String].shouldSucceed.toInt shouldBe 1
+    out.asRootFocus(data ~> relationship("rel") ~> data ~> lid).flatMap(_.decode[String]).shouldSucceed.toInt shouldBe 1
   }
 }

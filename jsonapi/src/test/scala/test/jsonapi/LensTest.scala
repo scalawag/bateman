@@ -101,37 +101,37 @@ class LensTest extends BatemanTestBase {
 
   describe("id") {
     it("should get id") {
-      json(data ~> id).value.shouldSucceed.stripLocation shouldBe "23".toJAny
+      json(data ~> id).map(_.value).shouldSucceed.stripLocation shouldBe "23".toJAny
     }
 
     it("should decode id") {
       implicit val dec = Decoder.jstringToJNumber.andThen(Decoder.jnumberToIntDecoder)
-      json(data ~> id).decode[Int].shouldSucceed shouldBe 23
+      json(data ~> id).flatMap(_.decode[Int]).shouldSucceed shouldBe 23
     }
   }
 
   describe("lid") {
     it("should get lid") {
-      json(data ~> lid).value.shouldSucceed.stripLocation shouldBe "#1".toJAny
+      json(data ~> lid).map(_.value).shouldSucceed.stripLocation shouldBe "#1".toJAny
     }
   }
 
   describe("resourceType") {
     it("should get type") {
-      json(data ~> resourceType).value.shouldSucceed.stripLocation shouldBe "thing".toJAny
+      json(data ~> resourceType).map(_.value).shouldSucceed.stripLocation shouldBe "thing".toJAny
     }
   }
 
   describe("attributes") {
     it("should focus on the attributes") {
-      val f = json(data ~> attributes).shouldSucceed
+      val f = json(data ~> attributes).shouldSucceed.foci
       f shouldBe json.field("data").flatMap(_.asObject).flatMap(_.field("attributes")).shouldSucceed
     }
   }
 
   describe("attribute") {
     it("should focus on a single attribute") {
-      val f = json(data ~> attribute("a")).shouldSucceed
+      val f = json(data ~> attribute("a")).shouldSucceed.foci
       f shouldBe json
         .field("data")
         .flatMap(_.asObject)
@@ -157,14 +157,14 @@ class LensTest extends BatemanTestBase {
 
   describe("relationships") {
     it("should focus on the relationships") {
-      val f = json(data ~> relationships).shouldSucceed
+      val f = json(data ~> relationships).shouldSucceed.foci
       f shouldBe json.field("data").flatMap(_.asObject).flatMap(_.field("relationships")).shouldSucceed
     }
   }
 
   describe("relationship") {
     it("should focus on a single relationship") {
-      val f = json(data ~> relationship("b")).shouldSucceed
+      val f = json(data ~> relationship("b")).shouldSucceed.foci
       f shouldBe json
         .field("data")
         .flatMap(_.asObject)
@@ -190,12 +190,12 @@ class LensTest extends BatemanTestBase {
 
   describe("meta") {
     it("should focus on the meta") {
-      val f = json(data ~> meta).shouldSucceed
+      val f = json(data ~> meta).shouldSucceed.foci
       f shouldBe json.field("data").flatMap(_.asObject).flatMap(_.field("meta")).shouldSucceed
     }
 
     it("should focus on a single meta") {
-      val f = json(data ~> relationship("b") ~> meta("created_on")).shouldSucceed
+      val f = json(data ~> relationship("b") ~> meta("created_on")).shouldSucceed.foci
       f shouldBe json
         .field("data")
         .flatMap(_.asObject)
@@ -224,56 +224,56 @@ class LensTest extends BatemanTestBase {
 
     it("should add meta to existing document") {
       val out = json.writeTo(data ~> meta("quux"), "froboz".toJAny).shouldSucceed.root
-      out(data ~> meta("quux")).value.shouldSucceed shouldBe "froboz".toJAny
+      out(data ~> meta("quux")).map(_.value).shouldSucceed shouldBe "froboz".toJAny
     }
   }
 
   describe("errors") {
     it("should get id") {
-      errorJson(errors ~> * ~> id).values.shouldSucceed.map(_.stripLocation) shouldBe List("E001".toJAny)
+      errorJson(errors ~> * ~> id).shouldSucceed.values.map(_.stripLocation) shouldBe List("E001".toJAny)
     }
 
     it("should get link") {
-      errorJson(errors ~> * ~> links ~> about).values.shouldSucceed.map(_.stripLocation) shouldBe List(
+      errorJson(errors ~> * ~> links ~> about).shouldSucceed.values.map(_.stripLocation) shouldBe List(
         "http://example.com/errors/E001".toJAny
       )
     }
 
     it("should get status") {
-      errorJson(errors ~> * ~> status).values.shouldSucceed.map(_.stripLocation) shouldBe List("403".toJAny)
+      errorJson(errors ~> * ~> status).shouldSucceed.values.map(_.stripLocation) shouldBe List("403".toJAny)
     }
 
     it("should get code") {
-      errorJson(errors ~> * ~> code).values.shouldSucceed.map(_.stripLocation) shouldBe List("pseudo_error".toJAny)
+      errorJson(errors ~> * ~> code).shouldSucceed.values.map(_.stripLocation) shouldBe List("pseudo_error".toJAny)
     }
 
     it("should get title") {
-      errorJson(errors ~> * ~> title).values.shouldSucceed.map(_.stripLocation) shouldBe List("Badness 10000".toJAny)
+      errorJson(errors ~> * ~> title).shouldSucceed.values.map(_.stripLocation) shouldBe List("Badness 10000".toJAny)
     }
 
     it("should get detail") {
-      errorJson(errors ~> * ~> detail).values.shouldSucceed.map(_.stripLocation) shouldBe List(
+      errorJson(errors ~> * ~> detail).shouldSucceed.values.map(_.stripLocation) shouldBe List(
         "Sometimes, bad things happen to good code.".toJAny
       )
     }
 
     it("should get pointer") {
-      errorJson(errors ~> * ~> source ~> pointer).values.shouldSucceed.map(_.stripLocation) shouldBe
+      errorJson(errors ~> * ~> source ~> pointer).shouldSucceed.values.map(_.stripLocation) shouldBe
         List("/data/attributes/a".toJAny)
     }
 
     it("should get header") {
-      errorJson(errors ~> * ~> source ~> header).values.shouldSucceed.map(_.stripLocation) shouldBe
+      errorJson(errors ~> * ~> source ~> header).shouldSucceed.values.map(_.stripLocation) shouldBe
         List("Content-Type".toJAny)
     }
 
     it("should get parameter") {
-      errorJson(errors ~> * ~> source ~> parameter).values.shouldSucceed.map(_.stripLocation) shouldBe
+      errorJson(errors ~> * ~> source ~> parameter).shouldSucceed.values.map(_.stripLocation) shouldBe
         List("filter[name]".toJAny)
     }
 
     it("should get meta") {
-      errorJson(errors ~> * ~> meta("more_info")).values.shouldSucceed.map(_.stripLocation) shouldBe
+      errorJson(errors ~> * ~> meta("more_info")).shouldSucceed.values.map(_.stripLocation) shouldBe
         List("bar".toJAny)
     }
   }

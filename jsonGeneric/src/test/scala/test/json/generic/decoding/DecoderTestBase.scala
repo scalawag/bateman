@@ -30,16 +30,16 @@ class DecoderTestBase extends BatemanTestBase {
       val name: sourcecode.Name
   ) {
     val json: JFocus[JAny] = text.asRootFocus
-    val deepFocus: JFocus[A] = json(deepNav).shouldSucceed
+    val deepFocus: JFocus[A] = json(deepNav).map(_.foci).shouldSucceed
 
     def succeedsWith[B](expected: B)(implicit position: Position, dec: JAnyDecoder[B]): Unit =
       it(s"should succeed on ${name.value}") {
-        json(resourcePath).decode[B].shouldSucceed shouldBe expected
+        json(resourcePath).flatMap(_.decode[B]).shouldSucceed shouldBe expected
       }
 
     def failsWith[B](fn: JFocus[A] => JError)(implicit position: Position, dec: JAnyDecoder[B]): Unit =
       it(s"should fail on ${name.value}") {
-        json(resourcePath).decode[B].shouldFailSingle.fullDescription shouldBe fn(
+        json(resourcePath).flatMap(_.decode[B]).shouldFailSingle.fullDescription shouldBe fn(
           deepFocus
         ).fullDescription
       }
@@ -48,7 +48,7 @@ class DecoderTestBase extends BatemanTestBase {
         fn: JFocus[A] => NonEmptyChain[JError]
     )(implicit position: Position, dec: JAnyDecoder[B]): Unit =
       it(s"should fail on ${name.value}") {
-        JErrors.formatErrorReport(json(resourcePath).decode[B].shouldFail) shouldBe JErrors
+        JErrors.formatErrorReport(json(resourcePath).flatMap(_.decode[B]).shouldFail) shouldBe JErrors
           .formatErrorReport(fn(deepFocus))
       }
   }

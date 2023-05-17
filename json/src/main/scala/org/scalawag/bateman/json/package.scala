@@ -18,7 +18,7 @@ import scala.language.higherKinds
 import cats.syntax.either._
 import cats.syntax.parallel._
 import cats.data.{EitherNec, NonEmptyChain}
-import org.scalawag.bateman.json.focus.{JFoci, JFocus, JRootFocus}
+import org.scalawag.bateman.json.focus.{JCursor, JFocus, JRootFocus}
 
 import scala.collection.compat.immutable.LazyList
 import org.scalawag.bateman.json.parser.ParseResult
@@ -30,10 +30,10 @@ package object json {
     def getOrThrow: A = me.fold(ee => throw JErrors(ee), identity)
   }
 
-  implicit class JResultFOps[F[+_], A](me: JResult[F[A]]) {
+  implicit class JResultFOps[A](me: JResult[A]) {
 
     /** Makes it easier to ignore MissingValues in results. */
-    def ignoreMissingValuesWith(empty: F[A]): JResult[F[A]] =
+    def ignoreMissingValuesWith(empty: A): JResult[A] =
       me match {
         case Right(b)                                            => b.rightNec
         case Left(ee) if ee.forall(_.isInstanceOf[MissingValue]) => empty.rightNec
@@ -121,23 +121,4 @@ package object json {
 
   def parseUnsafe(text: String, source: Option[String] = None): JFocus[JAny] =
     parse(text, source).fold(throw _, identity)
-
-  // For convenience. Should these actually exist, though? TODO
-  implicit class JResultIdOps[A <: JAny](me: JResult[JFocus[A]]) {
-    import org.scalawag.bateman.json.focus.weak._
-    def decode[B](implicit decoder: Decoder[A, B]): JResult[B] = me.flatMap(_.decode[B])
-    val value: JResult[A] = me.map(_.value)
-  }
-
-  implicit class JResultOptionOps[A <: JAny](me: JResult[Option[JFocus[A]]]) {
-    import org.scalawag.bateman.json.focus.weak._
-    def decode[B](implicit decoder: Decoder[A, B]): JResult[Option[B]] = me.flatMap(_.parTraverse(_.decode[B]))
-    val value: JResult[Option[A]] = me.map(_.map(_.value))
-  }
-
-  implicit class RichJResultList[A <: JAny](me: JResult[JFoci[A]]) {
-    import org.scalawag.bateman.json.focus.weak._
-    def decode[B](implicit decoder: Decoder[A, B]): JResult[List[B]] = me.flatMap(_.foci.parTraverse(_.decode[B]))
-    val values: JResult[List[JAny]] = me.map(_.foci.map(_.value))
-  }
 }

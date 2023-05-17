@@ -38,7 +38,7 @@ final case class TraitDeriverParams[F[_]](
   // (as opposed to the last).
   def addDiscriminator[A: ClassTag](base: JObject, value: JAny): JObject = {
     val a = classTag[A]
-    base.asRootFocus(discriminatorLens.?).map {
+    base.asRootFocus(discriminatorLens.?).map(_.foci).map {
       case Some(df) if df.value == base =>
         throw ProgrammerError(s"""
           |discriminator issue...

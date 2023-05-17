@@ -69,19 +69,20 @@ object Inclusions {
     implicit val requiredDecoder: Decoder[JObject, Key] =
       in => {
         import org.scalawag.bateman.jsonapi.lens._
-        (in(resourceType).decode[String], in(id.?).decode[String], in(lid.?)).parFlatMapN { (rt, cidOpt, clidOpt) =>
-          (cidOpt, clidOpt) match {
-            case (Some(_), Some(clid)) =>
-              // lid is disallowed when id is present.
-              UnexpectedValue(clid).leftNec
-            case (Some(cid), None) =>
-              Key(rt, cid, false).rightNec
-            case (None, Some(clid)) =>
-              Key(rt, clid.value.value, true).rightNec
-            case (None, None) =>
-              MissingField(in, "id", "lid").leftNec
+        (in(resourceType).flatMap(_.decode[String]), in(id.?).flatMap(_.decode[String]), in(lid.?).map(_.foci))
+          .parFlatMapN { (rt, cidOpt, clidOpt) =>
+            (cidOpt, clidOpt) match {
+              case (Some(_), Some(clid)) =>
+                // lid is disallowed when id is present.
+                UnexpectedValue(clid).leftNec
+              case (Some(cid), None) =>
+                Key(rt, cid, false).rightNec
+              case (None, Some(clid)) =>
+                Key(rt, clid.value.value, true).rightNec
+              case (None, None) =>
+                MissingField(in, "id", "lid").leftNec
+            }
           }
-        }
       }
 
     implicit val optionalDecoder: Decoder[JObject, Option[Key]] =
@@ -94,6 +95,7 @@ object Inclusions {
     // Grab all of the resource objects from the primary data, regardless of whether they have keys.
     val allData =
       root(data.?)
+        .map(_.foci)
         .flatMap {
           case Some(f @ JFocus.Value(_: JNull))   => Nil.rightNec
           case Some(f @ JFocus.Value(_: JArray))  => f(* ~> narrow[JObject]).map(_.foci)

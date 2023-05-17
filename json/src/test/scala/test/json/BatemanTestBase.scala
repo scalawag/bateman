@@ -19,7 +19,7 @@ import org.scalacheck.Gen
 import org.scalactic.source.Position
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.{Assertion, Inside}
+import org.scalatest.{Assertion, Inside, OptionValues}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import org.scalawag.bateman.json
 import org.scalawag.bateman.json._
@@ -39,7 +39,8 @@ abstract class BatemanTestBase
     with Inside
     with ScalaCheckPropertyChecks
     with FunSpecDiscipline
-    with JAnyGenerators {
+    with JAnyGenerators
+    with OptionValues {
   implicit override val generatorDrivenConfig: PropertyCheckConfiguration =
     PropertyCheckConfiguration(sizeRange = 100, workers = 4)
 

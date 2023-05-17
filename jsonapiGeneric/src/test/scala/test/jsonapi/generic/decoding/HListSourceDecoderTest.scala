@@ -141,14 +141,14 @@ class HListSourceDecoderTest extends HListDecoderTestBase {
         }
       """.asRootFocus
 
-      val src = f(data).decode[MyClass].shouldSucceed.src.get
+      val src = f(data).flatMap(_.decode[MyClass]).shouldSucceed.src.get
 
-      src.fields("myType") shouldBe f(data ~> resourceType).shouldSucceed
-      src.fields("id") shouldBe f(data ~> id).shouldSucceed
-      src.fields("a") shouldBe f(data ~> attribute("a")).shouldSucceed
-      src.fields("b") shouldBe f(data ~> meta("b")).shouldSucceed
-      src.fields("c") shouldBe f(data ~> relationship("c")).shouldSucceed
-      src.fields("d") shouldBe f(data ~> relationship("d")).shouldSucceed
+      src.fields("myType") shouldBe f(data ~> resourceType).shouldSucceed.foci
+      src.fields("id") shouldBe f(data ~> id).shouldSucceed.foci
+      src.fields("a") shouldBe f(data ~> attribute("a")).shouldSucceed.foci
+      src.fields("b") shouldBe f(data ~> meta("b")).shouldSucceed.foci
+      src.fields("c") shouldBe f(data ~> relationship("c")).shouldSucceed.foci
+      src.fields("d") shouldBe f(data ~> relationship("d")).shouldSucceed.foci
       src.fields.size shouldBe 6
     }
   }
@@ -192,14 +192,14 @@ class HListSourceDecoderTest extends HListDecoderTestBase {
         }
       """.asRootFocus
 
-      val src = f(data).decode[MyClass].shouldSucceed.src.get
+      val src = f(data).flatMap(_.decode[MyClass]).shouldSucceed.src.get
 
-      src.fields("myType") shouldBe f(data ~> resourceType).shouldSucceed
-      src.fields("id") shouldBe f(data ~> id).shouldSucceed
-      src.fields("a") shouldBe f(data ~> attribute("a")).shouldSucceed
-      src.fields("b") shouldBe f(data ~> meta("b")).shouldSucceed
-      src.fields("c") shouldBe f(data ~> relationship("c")).shouldSucceed
-      src.fields("d") shouldBe f(data ~> relationship("d")).shouldSucceed
+      src.fields("myType") shouldBe f(data ~> resourceType).shouldSucceed.foci
+      src.fields("id") shouldBe f(data ~> id).shouldSucceed.foci
+      src.fields("a") shouldBe f(data ~> attribute("a")).shouldSucceed.foci
+      src.fields("b") shouldBe f(data ~> meta("b")).shouldSucceed.foci
+      src.fields("c") shouldBe f(data ~> relationship("c")).shouldSucceed.foci
+      src.fields("d") shouldBe f(data ~> relationship("d")).shouldSucceed.foci
       src.fields.size shouldBe 6
     }
 
@@ -212,9 +212,9 @@ class HListSourceDecoderTest extends HListDecoderTestBase {
         }
       """.asRootFocus
 
-      val src = f(data).decode[MyClass].shouldSucceed.src.get
+      val src = f(data).flatMap(_.decode[MyClass]).shouldSucceed.src.get
 
-      src.fields("myType") shouldBe f(data ~> resourceType).shouldSucceed
+      src.fields("myType") shouldBe f(data ~> resourceType).shouldSucceed.foci
       src.fields.size shouldBe 1
     }
   }
