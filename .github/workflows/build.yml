@@ -15,6 +15,12 @@
 on:
   push:
 
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,8 +38,17 @@ jobs:
         with:
           java-version: '11'
           distribution: 'adopt'
-      - name: sbt compile test publishSigned
-        run: sbt compile test publishSigned
-      - name: sbt sonatypeRelease
-        if: startsWith(github.ref, 'refs/tags/')
-        run: sbt sonatypeRelease
+#      - name: sbt compile test publishSigned
+#        run: sbt compile test publishSigned
+#      - name: sbt sonatypeRelease
+#        if: startsWith(github.ref, 'refs/tags/')
+#        run: sbt sonatypeRelease
+      - name: sbt makeSite
+        run: sbt makeSite
+      - name: Upload Docs Artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: 'docs/target/site'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2

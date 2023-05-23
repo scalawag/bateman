@@ -15,10 +15,27 @@
 package org.scalawag.bateman.json.parser
 
 import org.scalawag.bateman.json.{JErrorFormatters, JLocation}
-import org.scalawag.bateman.json.parser.tokenizer.{CharStream, CloseBrace, CloseBracket, Colon, Comma, EndOfText, False, Null, NumberToken, OpenBrace, OpenBracket, StringToken, Token, True}
+import org.scalawag.bateman.json.parser.tokenizer.{
+  CharStream,
+  CloseBrace,
+  CloseBracket,
+  Colon,
+  Comma,
+  EndOfText,
+  False,
+  Null,
+  NumberToken,
+  OpenBrace,
+  OpenBracket,
+  StringToken,
+  Token,
+  True
+}
 import StringUtils._
 
-sealed trait SyntaxError extends Exception {
+import scala.util.control.NoStackTrace
+
+sealed trait SyntaxError extends NoStackTrace {
   def location: JLocation
   def reason: String
 

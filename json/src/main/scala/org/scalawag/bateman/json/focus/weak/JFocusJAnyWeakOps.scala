@@ -19,6 +19,7 @@ import org.scalawag.bateman.json.JType.Summoner
 import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.lens._
 import org.scalawag.bateman.json.focus._
+import org.scalawag.bateman.json.syntax._
 import org.scalawag.bateman.json.focus.weak._
 
 import scala.annotation.tailrec
@@ -227,11 +228,11 @@ class JFocusJAnyWeakOps[A <: JAny](me: JFocus[A]) {
     * the corresponding location of the new document.
     */
 
-  def overwriteTo[B <: JAny, C <: JAny](
+  def overwriteTo[B <: JAny, C <: JAny, D](
       lens: CreatableJLens[B, C],
-      value: JAny,
+      value: D,
       prepend: Boolean = false
-  ): JFocus[JAny] = {
+  )(implicit encoder: Encoder[D, C]): JFocus[JAny] = {
     @tailrec
     def go(todo: List[String], acc: JFocus[JAny]): JFocus[JAny] =
       todo match {
@@ -268,7 +269,7 @@ class JFocusJAnyWeakOps[A <: JAny](me: JFocus[A]) {
           }
       }
 
-    val newRoot = go(getCreatableLensFieldNames(lens), me).replace(value).root.value
+    val newRoot = go(getCreatableLensFieldNames(lens), me).replace(value.toJAny).root.value
     me.replicate(newRoot)
   }
 
