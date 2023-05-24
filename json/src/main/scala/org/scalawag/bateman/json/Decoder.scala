@@ -96,7 +96,7 @@ object Decoder extends DecoderLowP {
   implicit val jnumberToBigIntDecoder: JNumberDecoder[BigInt] = unsafeNumber(BigInt(_))
   implicit val jnumberToBigDecDecoder: JNumberDecoder[BigDecimal] = unsafeNumber(BigDecimal.exact)
 
-  private def unsafeString[Out: ClassTag](fn: String => Out, format: String): JStringDecoder[Out] = { in =>
+  def unsafeString[Out: ClassTag](fn: String => Out, format: String): JStringDecoder[Out] = { in =>
     val s = in.value.value
     try {
       fn(s).rightNec
