@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import cats.Id
+import org.scalawag.bateman.json.decoding.{ContextualDecoder, JString}
 import org.scalawag.bateman.json.decoding.DecodeError.formatErrorReport
-import org.scalawag.bateman.json.decoding.{ContextualDecoder, JNumber, JString}
+import scala.collection.compat.immutable.LazyList
 
 object Errors {
   def main(args: Array[String]): Unit = {
@@ -40,7 +40,7 @@ object Errors {
       ],
       "B": "8"
     }
-  """.toStream).getOrElse(???)
+  """.to(LazyList)).getOrElse(???)
 
     val q = root[JAny, Any] ~> "a" ~> "b" ~> as[Int]
     println(q(j, ()).fold(formatErrorReport, identity))

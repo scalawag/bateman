@@ -17,7 +17,8 @@ package org.scalawag.bateman.json.literal
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalawag.bateman.json.encoding.{JAnyEncoder, JArray, JBoolean, JNull, JNumber, JObject, JString}
-import java.net.URL
+
+import scala.collection.BitSet
 
 class LiteralTest extends AnyFunSpec with Matchers {
   it("should parse JSON text with no variables") {
@@ -76,24 +77,24 @@ class LiteralTest extends AnyFunSpec with Matchers {
   }
 
   it("should disallow any insertion without an encoder") {
-    val url = new URL("http://www.example.com/")
+    val insert = BitSet.empty
 
-    assertTypeError("json\"\"\"{\"foo\":$url}\"\"\"")
+    assertTypeError("json\"\"\"{\"foo\":$insert}\"\"\"")
   }
 
   it("should allow any insertion that has an encoder") {
-    val url = new URL("http://www.example.com/")
+    val insert = BitSet.empty
 
-    implicit val urlEncoder: JAnyEncoder[URL] = JAnyEncoder[String].contramap(_.toString)
+    implicit val urlEncoder: JAnyEncoder[BitSet] = JAnyEncoder[String].contramap(_.toString)
 
     val json =
       jany"""
         {
-          "foo": $url
+          "foo": $insert
         }
       """
 
-    json shouldBe JObject("foo" -> JString(url.toString))
+    json shouldBe JObject("foo" -> JString(insert.toString))
   }
 
   it("should be a narrower type when jobject is used") {

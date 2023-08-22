@@ -20,6 +20,8 @@ import org.scalawag.bateman.json.DataDrivenTestUtils
 import org.scalawag.bateman.json.decoding.JLocation
 import org.scalawag.bateman.json.decoding.parser.{StringUtils, SyntaxError}
 
+import scala.collection.compat.immutable.LazyList
+
 class SyntaxErrorTest extends AnyFunSpec with Matchers with DataDrivenTestUtils with StringUtils {
   describe("from tokenizer") {
     val cases = Iterable[DataDrivenTestCase[(String, String)]](
@@ -34,7 +36,7 @@ class SyntaxErrorTest extends AnyFunSpec with Matchers with DataDrivenTestUtils 
     cases foreach {
       case DataDrivenTestCase((upcoming, msg), pos) =>
         it(s"should report correctly for ${makePrintableString(upcoming)}") {
-          val cs = CharStream(upcoming.toStream)
+          val cs = CharStream(upcoming.to(LazyList))
           SyntaxError(cs, "foo") shouldBe SyntaxError(JLocation(1, 1), msg)
         }(pos)
     }

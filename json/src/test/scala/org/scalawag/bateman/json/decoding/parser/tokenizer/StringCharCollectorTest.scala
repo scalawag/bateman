@@ -21,6 +21,8 @@ import org.scalawag.bateman.json.DataDrivenTestUtils
 import org.scalawag.bateman.json.decoding.JLocation
 import org.scalawag.bateman.json.decoding.parser.SyntaxError
 
+import scala.collection.compat.immutable.LazyList
+
 class StringCharCollectorTest extends AnyFunSpec with Matchers with DataDrivenTestUtils {
   val cases = Iterable[DataDrivenTestCase[(String, Either[(Int, String), (Int, String)])]](
     """"basic"""" -> Right(7 -> "basic"),
@@ -38,6 +40,7 @@ class StringCharCollectorTest extends AnyFunSpec with Matchers with DataDrivenTe
     """"a\t"""" -> Right(5 -> "a\t"),
     """"\"\""""" -> Right(6 -> "\"\""),
     s""""${"a" * 8192}"""" -> Right(8194 -> "a" * 8192),
+    s""""${"a" * 1048576}"""" -> Right(1048578 -> "a" * 1048576),
     // This craziness is required to prevent scala from interpreting the unicode escape (even in a multiline string!)
     s""""\\${'u'}0b94"""" -> Right(8 -> "\u0b94"),
     s""""\\${'u'}D83C\\${'u'}DF89"""" -> Right(14 -> "\uD83C\uDF89"),
@@ -52,18 +55,20 @@ class StringCharCollectorTest extends AnyFunSpec with Matchers with DataDrivenTe
     "a" -> Left(1, "expecting a beginning quote"),
   )
 
+  private def truncate(in: String, len: Int): String = if (in.length > len) in.take(len) + "..." else in
+
   cases.foreach {
     case DataDrivenTestCase((in, Right((len, actual))), pos) =>
-      it(s"should collect $len character${if (len == 1) "" else "s"} of $in") {
-        val cs = CharStream(in.toStream)
+      it(s"should collect $len character${if (len == 1) "" else "s"} of ${truncate(in, 120)}") {
+        val cs = CharStream(in.to(LazyList))
         val expectedCs = cs.drop(len)
         val expectedToken = StringToken(JLocation(1, 1), actual)
         StringCharCollector.stringToken(cs) shouldBe (expectedCs, expectedToken).asRight
       }(pos)
 
     case DataDrivenTestCase((in, Left((failPos, failMsg))), pos) =>
-      it(s"should fail at character $failPos of $in") {
-        val cs = CharStream(in.toStream)
+      it(s"should fail at character $failPos of ${truncate(in, 120)}") {
+        val cs = CharStream(in.to(LazyList))
         val res = StringCharCollector.stringToken(cs)
         res shouldBe SyntaxError(cs.drop(failPos - 1), failMsg).asLeft
       }(pos)

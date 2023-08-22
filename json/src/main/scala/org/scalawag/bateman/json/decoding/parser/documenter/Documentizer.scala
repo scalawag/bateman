@@ -28,7 +28,6 @@ import org.scalawag.bateman.json.decoding.parser.eventizer.{
   ObjectStart,
   Value
 }
-import org.scalawag.bateman.json.decoding.parser.tokenizer.NumberToken
 import org.scalawag.bateman.json.decoding.{
   JAny,
   JArray,
@@ -40,8 +39,8 @@ import org.scalawag.bateman.json.decoding.{
   JObject,
   JPointer,
   JString,
-  parser
 }
+import scala.collection.compat.immutable.LazyList
 
 /** By the time we get here, any errors should have already been detected. Since the event stream is another
   * possible integration point for consumers, the contents have to be specific. So, the only error detected
@@ -49,17 +48,19 @@ import org.scalawag.bateman.json.decoding.{
   */
 
 object Documentizer {
-  private case class EventStream(events: Stream[Either[SyntaxError, Event]], pointer: JPointer)
-  type OutStream = Stream[Either[SyntaxError, JAny]]
+  private case class EventStream(events: LazyList[Either[SyntaxError, Event]], pointer: JPointer)
+  type OutStream = LazyList[Either[SyntaxError, JAny]]
 
   type MaybeError[A] = EitherT[Eval, SyntaxError, A]
   private type State[A] = StateT[MaybeError, EventStream, A]
 
   private val get: State[EventStream] = StateT.get[MaybeError, EventStream]
   private def pure[A](a: A): State[A] = StateT.pure[MaybeError, EventStream, A](a)
-  private val peek: State[Event] = StateT[MaybeError, EventStream, Event] {
-    case EventStream(Left(err) #:: _, _)       => EitherT.leftT(err)
-    case in @ EventStream(Right(evt) #:: _, _) => EitherT.rightT(in -> evt)
+  private val peek: State[Event] = StateT[MaybeError, EventStream, Event] { es =>
+    es.events.head match {
+      case Left(err)  => EitherT.leftT(err)
+      case Right(evt) => EitherT.rightT(es -> evt)
+    }
   }
 
   private val consume: State[Unit] = StateT.modify[MaybeError, EventStream] { in =>
@@ -154,13 +155,13 @@ object Documentizer {
     }
   }
 
-  private def anys(in: EventStream): Stream[MaybeError[JAny]] =
+  private def anys(in: EventStream): LazyList[MaybeError[JAny]] =
     if (in.events.isEmpty)
-      Stream.Empty
+      LazyList.empty
     else
       any.run(in).value.value match {
         case Right((next, v)) => EitherT[Eval, SyntaxError, JAny](Eval.always(Right(v))) #:: anys(next)
-        case Left(e)          => Stream(EitherT.leftT(e))
+        case Left(e)          => LazyList(EitherT.leftT(e))
       }
 
   def documentize(in: Eventizer.EventStream): OutStream = anys(EventStream(in, JPointer.Root)).map(_.value.value)

@@ -17,6 +17,7 @@ package org.scalawag.bateman.json.literal
 import org.scalawag.bateman.json.encoding.{JAny, JArray, JBoolean, JNull, JNumber, JObject, JString}
 import scala.reflect.{ClassTag, classTag}
 import scala.reflect.macros.whitebox.Context
+import scala.collection.compat.immutable.LazyList
 import scala.util.Random
 
 class LiteralMacros(val c: Context) {
@@ -67,7 +68,8 @@ class LiteralMacros(val c: Context) {
           case Literal(Constant(part: String)) => part
         }
 
-        def randomStrings = Stream.continually(randomString).distinct.dropWhile(s => stringParts.exists(_.contains(s)))
+        def randomStrings =
+          LazyList.continually(randomString).distinct.dropWhile(s => stringParts.exists(_.contains(s)))
 
         // Generate info for each arg (interpolated expression) in the string.
         //  - term name of the expression encoded as a JAny
@@ -89,7 +91,7 @@ class LiteralMacros(val c: Context) {
 
         // Parse the JSON text (with stand-ins)
         val jany = org.scalawag.bateman.json
-          .parse(text.toStream)
+          .parse(text)
           .map(_.toEncoding)
           .fold(
             e => c.abort(c.enclosingPosition, e.description),

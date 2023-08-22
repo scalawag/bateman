@@ -23,8 +23,6 @@ import org.scalawag.bateman.json.decoding.JField
 import org.scalawag.bateman.json.generic.encoding.{CaseClassEncoder, TraitEncoder}
 import shapeless.tag.@@
 
-import java.net.InetAddress
-
 class DerivedEncoderTest extends AnyFunSpec with Matchers {
 
   it("should encode concretely") {
@@ -220,8 +218,8 @@ class DerivedEncoderTest extends AnyFunSpec with Matchers {
   }
 
   it("should ignore source-tagged fields even if they're inappropriate types") {
-    final case class X(a: Int = 8, src: InetAddress @@ SourceTag)
-    val x = X(17, InetAddress.getLocalHost)
+    final case class X(a: Int = 8, src: Int @@ SourceTag)
+    val x = X(17, 800)
 
     import auto._
 

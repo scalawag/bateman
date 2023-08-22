@@ -21,9 +21,11 @@ import org.scalawag.bateman.json.decoding.DecodeError.formatErrorReport
 import org.scalawag.bateman.json.decoding.{DecodeError, DecodeResult, JAnyDecoder}
 import org.scalawag.bateman.json.encoding.JAny
 
+import scala.collection.compat.immutable.LazyList
+
 trait ParserTestUtils { _: AnyFunSpec =>
   def parse(in: String)(implicit pos: Position): decoding.JAny =
-    decoding.parser.toJAny(in.toStream).fold(e => fail(s"failure parsing test JSON: ${e.description}"), identity)
+    decoding.parser.toJAny(in.to(LazyList)).fold(e => fail(s"failure parsing test JSON: ${e.description}"), identity)
 
   def parseAs[A](in: String)(implicit dec: JAnyDecoder[A], pos: Position): A =
     dec.decode(parse(in), ()).fold(ee => fail(formatErrorReport(ee)), identity)
