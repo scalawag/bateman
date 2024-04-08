@@ -6,7 +6,7 @@
 //
 // http://www.apache.org/licenses/LICENSE-2.0
 //
-// Unless required by applicable law or agreed to in writing, software
+// Unless required by applicable law or agreed to in writing, sofVInare
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
@@ -14,22 +14,27 @@
 
 package org.scalawag.bateman.json.validating
 
-import org.scalawag.bateman.json.decoding.{JAny, JAnyContextualDecoder}
+import org.scalawag.bateman.json.decoding.{JAny, ContextualDecoder}
 
-/** Adds semantic validation to the type [[Out]]'s companion object and marks it as validated by wrapping the input
+/** Adds semantic validation to the type [[VOut]]'s companion object and marks it as validated by wrapping the input
   * type in a case class.
   *
-  * @param wrap a function to wrap the input type [[In]] in the tye [[Out]] upon successful validation
-  * @param decoder the decoder used to get from a [[JAny]] to the input type [[In]]
-  * @tparam In the input type of the validator
-  * @tparam Out the output type of the validator
+  * @param wrap    a function to wrap the input type [[VIn]] in the tye [[VOut]] upon successful validation
+  * @param decoder the decoder used to get from a [[JAny]] to the input type [[VIn]]
+  * @tparam In the input type of the decoder
+  * @tparam VIn the input type of the validator
+  * @tparam VOut the output type of the validator
   * @tparam Context the context required by the underlying decoder
   */
 
-abstract class WrappedValidatedCompanion[In, Out, Context](wrap: In => Out)(implicit
-    decoder: JAnyContextualDecoder[In, Context]
-) extends ValidatedCompanion[In, Out, Context] {
-  def validate(in: In): List[String]
+abstract class WrappedValidatedCompanionGen[In <: JAny, VIn, VOut, Context](wrap: VIn => VOut)(implicit
+    decoder: ContextualDecoder[In, VIn, Context]
+) extends ValidatedCompanionGen[In, VIn, VOut, Context] {
+  def validate(in: VIn): List[String]
 
-  override val validator: Validator[In, Out] = Validator(wrap)(validate)
+  override val validator: Validator[VIn, VOut] = Validator(wrap)(validate)
 }
+
+abstract class WrappedValidatedCompanion[VIn, VOut, Context](wrap: VIn => VOut)(implicit
+    decoder: ContextualDecoder[JAny, VIn, Context]
+) extends WrappedValidatedCompanionGen[JAny, VIn, VOut, Context](wrap)

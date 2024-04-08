@@ -15,39 +15,45 @@
 package org.scalawag.bateman.json.validating
 
 import cats.data.ValidatedNec
-import org.scalawag.bateman.json.decoding.{ContextualDecoder, Decoder, JAny, JAnyDecoder}
+import org.scalawag.bateman.json.decoding.{ContextualDecoder, Decoder, JAny}
 
 /** Designed to be extended by the companion objects for types that needs to be semantically validated. It provides
-  * an implicit [[Validator]], an implicit [[Decoder]] and factory methods. There must already be a [[JAnyDecoder]]
-  * available for the [[In]] type.
+  * an implicit [[Validator]], an implicit [[Decoder]] and factory methods. There must already be a [[Decoder]]
+  * available for the [[In]] type to the [[VIn]] type.
   *
   * @param dec a decoder for turning a JAny to the input type for the validator
-  * @tparam In the input type of the validator
-  * @tparam Out the output type of the validator
+  * @tparam In the input type of the decoder
+  * @tparam VIn the input type of the validator
+  * @tparam VOut the output type of the validator
   */
 
-abstract class ValidatedCompanion[-In, Out, Context](implicit dec: ContextualDecoder[JAny, In, Context]) {
+abstract class ValidatedCompanionGen[In <: JAny, -VIn, VOut, Context](implicit
+    dec: ContextualDecoder[In, VIn, Context]
+) {
 
   /** A validator that must be provided by the companion object. */
-  implicit val validator: Validator[In, Out]
+  implicit val validator: Validator[VIn, VOut]
 
-  /** Creates an [[Out]] from an [[In]] after validating it.
+  /** Creates an [[VOut]] from an [[VIn]] after validating it.
     *
     * @param in the value to be validated
-    * @return a valid [[Out]] ''or'' a list of validation failures
+    * @return a valid [[VOut]] ''or'' a list of validation failures
     */
-  def apply(in: In): ValidatedNec[ValidationFailure, Out] = validator.validate(in)
+  def apply(in: VIn): ValidatedNec[ValidationFailure, VOut] = validator.validate(in)
 
-  /** Creates an [[Out]] from an [[In]] after validating it.
+  /** Creates an [[VOut]] from an [[VIn]] after validating it.
     *
     * @param in the value to be validated
-    * @return the validated [[Out]]
+    * @return the validated [[VOut]]
     * @throws ValidationFailedException when validation fails
     */
-  def unsafe(in: In): Out = apply(in).fold(ValidationFailure.throwValidationErrors, identity)
+  def unsafe(in: VIn): VOut = apply(in).fold(ValidationFailure.throwValidationErrors, identity)
 
-  /** A decoder that decodes a [[JAny]] to an instance of [[Out]] by using the implicit decoder and then running
+  /** A decoder that decodes a [[JAny]] to an instance of [[VOut]] by using the implicit decoder and then running
     * the result through the validation defined by [[validator]].
     */
-  implicit def decoder: ContextualDecoder[JAny, Out, Context] = dec.withValidation[Out]
+  implicit def decoder: ContextualDecoder[In, VOut, Context] = dec.withValidation[VOut]
 }
+
+abstract class ValidatedCompanion[-VIn, VOut, Context](implicit dec: ContextualDecoder[JAny, VIn, Context])
+    extends ValidatedCompanionGen[JAny, VIn, VOut, Context]

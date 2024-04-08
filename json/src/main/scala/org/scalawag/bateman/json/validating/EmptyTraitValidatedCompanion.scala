@@ -14,20 +14,25 @@
 
 package org.scalawag.bateman.json.validating
 
-import org.scalawag.bateman.json.decoding.{JAny, JAnyContextualDecoder}
+import org.scalawag.bateman.json.decoding.{JAny, ContextualDecoder}
 
 /** Adds semantic validation to the empty trait [[Trait]]'s companion object that marks values as validated by
   * mixing in the empty with their type.
   *
-  * @param d the decoder used to get from a [[JAny]] to the input type [[In]]
-  * @tparam In the input type of the validator
+  * @param dec the decoder used to get from a [[JAny]] to the input type [[VIn]]
+  * @tparam In the input type of the decoder
+  * @tparam VIn the input type of the validator
   * @tparam Trait the empty trait to be mixed in with the input type on successful validation
   * @tparam Context the context required by the underlying decoder
   */
-abstract class EmptyTraitValidatedCompanion[In, Trait, Context](implicit d: JAnyContextualDecoder[In, Context])
-    extends ValidatedCompanion[In, In with Trait, Context] {
-  def validate(in: In): List[String]
+abstract class EmptyTraitValidatedCompanionGen[In <: JAny, VIn, Trait, Context](implicit
+    dec: ContextualDecoder[In, VIn, Context]
+) extends ValidatedCompanionGen[In, VIn, VIn with Trait, Context] {
+  def validate(in: VIn): List[String]
 
-  override val validator: Validator[In, In with Trait] =
-    Validator[In, In with Trait]((_: In).asInstanceOf[In with Trait])(validate)
+  override val validator: Validator[VIn, VIn with Trait] =
+    Validator[VIn, VIn with Trait]((_: VIn).asInstanceOf[VIn with Trait])(validate)
 }
+
+abstract class EmptyTraitValidatedCompanion[VIn, Trait, Context](implicit d: ContextualDecoder[JAny, VIn, Context])
+    extends EmptyTraitValidatedCompanionGen[JAny, VIn, Trait, Context]
