@@ -64,9 +64,9 @@ object Encoder {
     JArray(aa.map(enc.encode): _*)
   }
 
-  implicit def mapEncoder[A](implicit enc: Encoder[A, JAny]): Encoder[Map[String, A], JObject] = { aa =>
-    JObject(aa.toSeq.map {
-      case (n, a) => n -> enc.encode(a)
-    }: _*)
-  }
+  implicit def mapEncoder[A, B](implicit aEnc: JStringEncoder[A], bEnc: JAnyEncoder[B]): JObjectEncoder[Map[A, B]] =
+    m =>
+      JObject(m.toSeq.map {
+        case (a, b) => aEnc.encode(a).value -> bEnc.encode(b)
+      }: _*)
 }
