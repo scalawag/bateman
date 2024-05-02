@@ -14,6 +14,8 @@
 
 package org.scalawag.bateman.jsonapi.generic.decoding
 
+import cats.data.NonEmptyChain
+import cats.data.Validated.Invalid
 import cats.syntax.apply._
 import cats.syntax.traverse._
 import cats.syntax.validated._
@@ -452,7 +454,21 @@ object HListResourceDecoderFactoryFactory {
           resourceIdentifiersResult.andThen { crid =>
             crid.traverse { rid =>
               implicit val hdec = headDecoder.value
-              input.context.requiredIncluded(rid).andThen(_.cquery(input.context)(_ ~> as[OutHead]))
+              input.context.optionalIncluded(rid).andThen {
+                case Some(iro) =>
+                  // Found the included object, decode from it.
+                  iro.cquery(input.context)(_ ~> as[OutHead])
+                case None =>
+                  // There's no such included object. Use an empty resource object, generated from the identifier
+                  // and rewrite any issues stemming from missing values below here to a missing included object.
+                  // This allows decoding of anything that doesn't actually require any fields on the object.
+                  ResourceObject(rid.src, rid.`type`, rid.id)
+                    .cquery(input.context)(_ ~> as[OutHead]) match {
+                    case Invalid(ee) if allUnspecifiedFieldsBelowHere(ee, rid.src.root.pointer) =>
+                      MissingIncludedResourceObject(rid).invalidNec
+                    case x => x
+                  }
+              }
             }
           }
 
@@ -539,7 +555,21 @@ object HListResourceDecoderFactoryFactory {
           resourceIdentifiersResult.andThen { crid =>
             crid.traverse { rid =>
               implicit val hdec = headDecoder.value
-              input.context.requiredIncluded(rid).andThen(_.cquery(input.context)(_ ~> as[OutHead]))
+              input.context.optionalIncluded(rid).andThen {
+                case Some(iro) =>
+                  // Found the included object, decode from it.
+                  iro.cquery(input.context)(_ ~> as[OutHead])
+                case None =>
+                  // There's no such included object. Use an empty resource object, generated from the identifier
+                  // and rewrite any issues stemming from missing values below here to a missing included object.
+                  // This allows decoding of anything that doesn't actually require any fields on the object.
+                  ResourceObject(rid.src, rid.`type`, rid.id)
+                    .cquery(input.context)(_ ~> as[OutHead]) match {
+                    case Invalid(ee) if allUnspecifiedFieldsBelowHere(ee, rid.src.root.pointer) =>
+                      MissingIncludedResourceObject(rid).invalidNec
+                    case x => x
+                  }
+              }
             }
           }
 
@@ -704,4 +734,10 @@ object HListResourceDecoderFactoryFactory {
 //        }
 //      }
 //    }
+
+  private def allUnspecifiedFieldsBelowHere(errors: NonEmptyChain[DecodeError], here: JPointer): Boolean =
+    errors.forall {
+      case e: UnspecifiedField => e.pointer.toString.startsWith(here.toString)
+      case _                   => false
+    }
 }
