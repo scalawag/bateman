@@ -20,17 +20,17 @@ ThisBuild / versionScheme := Some("early-semver")
 ThisBuild / organization := "org.scalawag.bateman"
 
 val Versions = new Object {
-  val cats = "2.2.0"
-  val circe = "0.14.5"
-  val enumeratum = "1.6.1"
-  val fastparse = "2.3.3"
-  val scalatest = "3.2.16"
-  val shapeless = "2.3.10"
-  val scalacheck = "1.14.3"
-  val scala212 = "2.12.18"
-  val scala213 = "2.13.11"
+  val cats = "2.12.0"
+  val circe = "0.14.7"
+  val enumeratum = "1.7.3"
+  val fastparse = "3.1.0"
+  val scalatest = "3.2.18"
+  val shapeless = "2.3.12"
+  val scalacheck = "1.18.0"
+  val scala212 = "2.12.19"
+  val scala213 = "2.13.14"
   val scalaJavaTime = "2.5.0"
-  val scalaCollectionCompat = "2.11.0"
+  val scalaCollectionCompat = "2.12.0"
 }
 
 val commonSettings = Seq(
