@@ -3,7 +3,9 @@ package org.scalawag.bateman.json.decoding.parser
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalawag.bateman.json.decoding.parser
+
 import scala.collection.compat.immutable.LazyList
+import scala.io.Source
 
 class OverflowTest extends AnyFunSpec with Matchers {
   private val factor = 10000
@@ -20,5 +22,17 @@ class OverflowTest extends AnyFunSpec with Matchers {
   it("should parse deep documents") {
     val in = LazyList.fill(factor)("""{"a":""".to(LazyList)).flatten #::: LazyList.fill(factor)('}')
     parser.toEvents(in).size // force evaluation of the stream without blowing out memory
+  }
+
+  it("should parse a generated wide document with escapes") {
+    val in = LazyList(
+      """["""".to(LazyList),
+      LazyList
+        .fill(factor)("\\\"".to(LazyList))
+        .flatten,
+      "\"]".to(LazyList)
+    ).flatten
+    println(in.mkString)
+    parser.toEvents(in).size
   }
 }
