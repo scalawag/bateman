@@ -32,6 +32,8 @@ jobs:
         with:
           java-version: '11'
           distribution: 'adopt'
+      - name: install sbt
+        uses: sbt/setup-sbt@v1
       - name: sbt compile test publishSigned
         run: sbt compile test publishSigned
       - name: sbt sonatypeRelease
