@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,10 +16,13 @@ package org.scalawag.bateman.json.focus
 
 import cats.syntax.either._
 import org.scalawag.bateman.json._
+import org.scalawag.bateman.json.syntax._
 
-/** Extends [[JStrongFocus]] with methods that can be used when the JSON value in focus is a [[JArray]]. */
+/** Extends [[JFocus]] with methods that can be used when the JSON value in focus is strong (it's parentage is
+  * known) and the value is a [[JArray]]. The operations all return strong foci.
+  */
 
-class JFocusJArrayOps[A <: JStrongFocus[JArray]](me: A) {
+class JFocusJArrayOps[A <: JFocus[JArray]](me: A) {
 
   /** Refocuses on the items of the focused JSON array, one focus per item. */
   def items: List[JItemFocus[JAny, A]] =
@@ -41,4 +44,51 @@ class JFocusJArrayOps[A <: JStrongFocus[JArray]](me: A) {
       case Some(x) => x.rightNec
       case None    => MissingIndex(me, index).leftNec
     }
+
+  def modify(magnet: JFocusJArrayOps.ModifyMagnet[A]): magnet.Out = magnet(me)
+
+  def append[B: JAnyEncoder](item: B)(implicit replacer: ValueReplacer.Aux[JArray, A, A]): A =
+    replacer(me.value.append(item.toJAny), me)
+
+  def prepend[B: JAnyEncoder](item: B)(implicit replacer: ValueReplacer.Aux[JArray, A, A]): A =
+    replacer(me.value.prepend(item.toJAny), me)
+
+  def updated[B: JAnyEncoder](index: Int, value: B)(implicit replacer: ValueReplacer.Aux[JArray, A, A]): A =
+    replacer(me.value.updated(index, value.toJAny), me)
+
+  def insert[B: JAnyEncoder](index: Int, item: B)(implicit replacer: ValueReplacer.Aux[JArray, A, A]): A =
+    replacer(me.value.insert(index, item.toJAny), me)
+
+  def ++(that: JArray)(implicit replacer: ValueReplacer.Aux[JArray, A, A]): A =
+    replacer(me.value ++ that, me)
+
+  def delete(index: Int)(implicit replacer: ValueReplacer.Aux[JArray, A, A]): A =
+    replacer(me.value.delete(index), me)
+}
+
+object JFocusJArrayOps {
+  trait ModifyMagnet[A <: JFocus[JArray]] {
+    type Out
+    def apply(focus: A): Out
+  }
+
+  object ModifyMagnet extends JFocusJArrayModifyMagnetLowPriority {
+    implicit def fallible[A <: JFocus[JArray]](fn: JArray => JResult[JArray])(implicit
+        replacer: ValueReplacer.Aux[JArray, A, A]
+    ): ModifyMagnet[A] { type Out = JResult[A] } =
+      new ModifyMagnet[A] {
+        type Out = JResult[A]
+        def apply(focus: A): JResult[A] = fn(focus.value).map(replacer(_, focus))
+      }
+  }
+
+  trait JFocusJArrayModifyMagnetLowPriority {
+    implicit def pure[A <: JFocus[JArray]](fn: JArray => JArray)(implicit
+        replacer: ValueReplacer.Aux[JArray, A, A]
+    ): ModifyMagnet[A] { type Out = A } =
+      new ModifyMagnet[A] {
+        type Out = A
+        def apply(focus: A): A = replacer(fn(focus.value), focus)
+      }
+  }
 }

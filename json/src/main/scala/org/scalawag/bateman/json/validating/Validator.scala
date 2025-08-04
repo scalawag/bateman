@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,8 +14,6 @@
 
 package org.scalawag.bateman.json.validating
 
-import cats.data.NonEmptyChain
-import cats.syntax.validated._
 import org.scalawag.bateman.json.rightIfEmpty
 
 /** Validates an instance of type `In`, returning either a list of [[ValidationFailure]]s or, if there are no

@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,39 +14,29 @@
 
 package test.jsonapi.generic.encoding
 
-import org.scalatest.funspec.AnyFunSpec
-import org.scalatest.matchers.should.Matchers
-import org.scalawag.bateman.json.lens._
-import org.scalawag.bateman.json.generic.Cardinality
 import org.scalawag.bateman.json.syntax._
-import org.scalawag.bateman.json.{JAny, JObject, JString, NotNull, Null, Nullable}
-import org.scalawag.bateman.jsonapi.encoding.IncludeSpec
 import org.scalawag.bateman.jsonapi.generic.Annotations._
-import org.scalawag.bateman.jsonapi.generic.semiauto.unchecked._
+import org.scalawag.bateman.jsonapi.generic.semiauto._
 import org.scalawag.bateman.jsonapi.syntax._
-import org.scalawag.bateman.jsonapi.encoding.{FieldsSpec, ResourceEncoder}
-import org.scalawag.bateman.jsonapi.lens
+import org.scalawag.bateman.jsonapi.encoding.ResourceEncoder
+import org.scalawag.bateman.json.lens._
+import org.scalawag.bateman.jsonapi.lens._
+import org.scalawag.bateman.json.lens.CreatableJLensOps
+import test.json.BatemanTestBase
+import org.scalawag.bateman.json.generic.Discriminators._
 
 import java.time.Instant
-import scala.reflect.runtime.universe.typeOf
 import SubDiscriminatorsTest._
-import org.scalawag.bateman.json.generic.Discriminators._
+import org.scalawag.bateman.json.JString
 
 object SubDiscriminatorsTest {
 
-//  sealed trait Status
-//  case object Started extends Status
-//  case object Aborted extends Status
-//  case object Canceled extends Status
-
   sealed trait State {
     val id: String
-//    val status: Status
   }
 
   case class Started(
       @Id id: String,
-      //      @Meta status: Status,
       @Attribute startedAt: Instant
   ) extends State
 
@@ -56,14 +46,12 @@ object SubDiscriminatorsTest {
 
   case class Completed(
       @Id id: String,
-      //      @Meta status: Status,
       @Attribute terminatedAt: Instant,
       @Attribute result: Float
   ) extends Terminated
 
   case class Failed(
       @Id id: String,
-      //      @Meta status: Status,
       @Attribute terminatedAt: Instant,
       @Attribute failurecode: Int,
       @Attribute failureReason: String,
@@ -78,9 +66,8 @@ object SubDiscriminatorsTest {
 
   implicit val terminatedEncoder: ResourceEncoder[Terminated] =
     deriveResourceEncoderForTrait[Terminated](
-      lens.meta("status"),
+      meta("status"),
       CustomDiscriminator(
-//        forType[Started]("started"),
         forType[Completed]("completed"),
         forType[Failed]("failed"),
       )
@@ -88,23 +75,34 @@ object SubDiscriminatorsTest {
 
   implicit val stateEncoder: ResourceEncoder[State] =
     deriveResourceEncoderForTrait[State](
-      lens.meta("status"),
+      meta("status"),
       CustomDiscriminator(
         forType[Started]("started".toJAny),
-        forType[Completed]("completed".toJAny),
-        forType[Failed]("failed".toJAny),
+        forType[Terminated]("terminated".toJAny),
       )
     )
-
 }
 
-class SubDiscriminatorsTest extends AnyFunSpec with Matchers /*with ParserTestUtils with DataDrivenTestUtils*/ {
-  it("should encode properly") {
-    val s1: State = Started("A", Instant.now())
-    val s2: State = Completed("A", Instant.now(), 4.5f)
-    val s3: State = Failed("A", Instant.now(), 34, "Things went south.")
-    println(s1.toDocument.spaces2)
-    println(s2.toDocument.spaces2)
-    println(s3.toDocument.spaces2)
+class SubDiscriminatorsTest extends BatemanTestBase {
+  private val dataType = data ~> "type" ~> narrowTo[JString]
+  private val dataMetaStatus = data ~> meta("status") ~> narrowTo[JString]
+
+  it("should encode Started") {
+    val doc = (Started("A", Instant.parse("2025-01-01T00:00:00Z")): State).toDocument
+    doc.asRootFocus(dataType).shouldSucceed.value.value shouldBe "cash_flow"
+    doc.asRootFocus(dataMetaStatus).shouldSucceed.value.value shouldBe "started"
+  }
+
+  it("should encode Completed") {
+    // The inner discriminator ("completed") overwrites the outer ("terminated") since both use the same lens path.
+    val doc = (Completed("B", Instant.parse("2025-01-01T00:00:00Z"), 4.5f): State).toDocument
+    doc.asRootFocus(dataType).shouldSucceed.value.value shouldBe "cash_flow"
+    doc.asRootFocus(dataMetaStatus).shouldSucceed.value.value shouldBe "completed"
+  }
+
+  it("should encode Failed") {
+    val doc = (Failed("C", Instant.parse("2025-01-01T00:00:00Z"), 34, "Things went south."): State).toDocument
+    doc.asRootFocus(dataType).shouldSucceed.value.value shouldBe "cash_flow"
+    doc.asRootFocus(dataMetaStatus).shouldSucceed.value.value shouldBe "failed"
   }
 }

@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ package test.json.generic.decoding
 
 import org.scalawag.bateman.json.generic.Config
 import org.scalawag.bateman.json.literal._
-import org.scalawag.bateman.json.{JObject, UnexpectedValue}
+import org.scalawag.bateman.json.{JObject, JObjectDecoder, UnexpectedValue}
 import test.json.BatemanTestBase
 
 object EmptyCaseClassTest {
@@ -27,8 +27,7 @@ class EmptyCaseClassTest extends BatemanTestBase {
   import EmptyCaseClassTest._
 
   describe("semiauto") {
-    import org.scalawag.bateman.json.generic.semiauto.unchecked._
-    val decoderFactory = deriveDecoderForCaseClass[MyClass]
+    import org.scalawag.bateman.json.generic.semiauto._
 
     val f = json"""
       {
@@ -39,24 +38,26 @@ class EmptyCaseClassTest extends BatemanTestBase {
     val fa = f.field("a").shouldSucceed
 
     it("should decode empty object") {
-      implicit val decoder = decoderFactory()
+      implicit val decoder: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
       JObject.Empty.asRootFocus.decode[MyClass].shouldSucceed shouldBe MyClass()
     }
 
     it("should ignore extra field") {
-      implicit val decoder = decoderFactory()
+      implicit val decoder: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
 
       f.decode[MyClass].shouldSucceed shouldBe MyClass()
     }
 
     it("should fail with extra field") {
-      implicit val decoder = decoderFactory(Config(allowUnknownFields = false))
+      implicit val config: Config = Config(allowUnknownFields = false)
+      implicit val decoder: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
 
       f.decode[MyClass].shouldFailSingle shouldBe UnexpectedValue(fa)
     }
 
     it("should allow extra field if it's a discriminator") {
-      val decoder = decoderFactory(Config(allowUnknownFields = false))
+      implicit val config: Config = Config(allowUnknownFields = false)
+      val decoder: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
 
       decoder.decode(f, Set(fa)).shouldSucceed shouldBe MyClass()
     }

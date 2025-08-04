@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import org.scalawag.bateman.json.lens._
 import org.scalawag.bateman.jsonapi.lens._
 import org.scalawag.bateman.json.generic.Config
 import org.scalawag.bateman.json.generic.naming.{CaseTransformation, PascalCase, SnakeCase}
-import org.scalawag.bateman.json.lens._
 import org.scalawag.bateman.json.literal._
 import org.scalawag.bateman.jsonapi.encoding.FieldsSpec.Fields.Explicit
 import org.scalawag.bateman.jsonapi.encoding._
@@ -87,7 +86,7 @@ class HListIncludedRelationshipEncoderTest extends HListEncoderTestBase {
 
       def includedBs: List[Int] =
         enc
-          .asRootFocus(included ~> * ~> attribute("b") ~> narrow[JNumber])
+          .asRootFocus(included ~> * ~> attribute("b") ~> narrowTo[JNumber])
           .shouldSucceed
           .values
           .map(_.toBigDecimal.toIntExact)

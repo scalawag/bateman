@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,10 +16,9 @@ package test.json.focus
 
 import cats.syntax.either._
 import org.scalawag.bateman.json.MissingIndex
-import org.scalawag.bateman.json.focus.weak._
 import test.json.BatemanTestBase
 
-class JFocusJArrayWeakOpsTest extends BatemanTestBase {
+class JFocusJArrayOpsWeakTest extends BatemanTestBase {
 
   describe("items") {
 
@@ -86,6 +85,58 @@ class JFocusJArrayWeakOpsTest extends BatemanTestBase {
       forAll(genJFocus(genNonEmptyJArray), genJAny) { (in, value) =>
         val out = in.prepend(value)
         out.value.items shouldBe in.value.insert(0, value).items
+        out.pointer shouldBe in.pointer
+        out.root.value.shouldHaveNoLocations
+      }
+    }
+
+  }
+
+  describe("updated") {
+
+    it("should update an item at the given index") {
+      forAll(genJFocus(genNonEmptyJArray), genJAny) { (in, value) =>
+        val out = in.updated(0, value)
+        out.value.items shouldBe in.value.updated(0, value).items
+        out.pointer shouldBe in.pointer
+        out.root.value.shouldHaveNoLocations
+      }
+    }
+
+  }
+
+  describe("delete") {
+
+    it("should delete an item at the given index") {
+      forAll(genJFocus(genNonEmptyJArray)) { in =>
+        val out = in.delete(0)
+        out.value.items shouldBe in.value.delete(0).items
+        out.pointer shouldBe in.pointer
+        out.root.value.shouldHaveNoLocations
+      }
+    }
+
+  }
+
+  describe("insert") {
+
+    it("should insert an item at the given index") {
+      forAll(genJFocus(genNonEmptyJArray), genJAny) { (in, value) =>
+        val out = in.insert(0, value)
+        out.value.items shouldBe in.value.insert(0, value).items
+        out.pointer shouldBe in.pointer
+        out.root.value.shouldHaveNoLocations
+      }
+    }
+
+  }
+
+  describe("++") {
+
+    it("should concatenate two arrays") {
+      forAll(genJFocus(genNonEmptyJArray), genJArray) { (in, other) =>
+        val out = in.++(other)
+        out.value.items shouldBe (in.value ++ other).items
         out.pointer shouldBe in.pointer
         out.root.value.shouldHaveNoLocations
       }

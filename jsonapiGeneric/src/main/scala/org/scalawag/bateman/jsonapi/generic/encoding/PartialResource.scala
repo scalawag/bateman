@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@ package org.scalawag.bateman.jsonapi.generic.encoding
 
 import cats.syntax.semigroup._
 import org.scalawag.bateman.json.{JAny, JObject, rightIfEmpty}
-import org.scalawag.bateman.jsonapi._
 import org.scalawag.bateman.jsonapi.encoding.{EncodeError, EncodeResult, Inclusions}
 import org.scalawag.bateman.json.syntax._
 import org.scalawag.bateman.jsonapi.encoding.ResourceEncoder.Encoded

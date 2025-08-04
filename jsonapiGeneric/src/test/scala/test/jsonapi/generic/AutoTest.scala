@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ import org.scalawag.bateman.jsonapi.generic.auto._
 import org.scalawag.bateman.jsonapi.syntax._
 import org.scalawag.bateman.json.lens._
 import org.scalawag.bateman.jsonapi.lens._
-import org.scalawag.bateman.json.literal._
 import test.json.BatemanTestBase
 import AutoTest._
 import org.scalawag.bateman.json.JNumber
@@ -63,14 +62,13 @@ class AutoTest extends BatemanTestBase {
   it("should encode default values") {
     implicit val cfg: Config = Config(encodeDefaultValues = true)
     val enc = MyClass("A", 8, MyRef(10)).toDocument.asRootFocus
-    enc(data ~> attribute("a") ~> narrow[JNumber]).shouldSucceed.value.value shouldBe "8"
+    enc(data ~> attribute("a") ~> narrowTo[JNumber]).shouldSucceed.value.value shouldBe "8"
   }
 
   it("should use the LID generator") {
     implicit val lidgen: LidGenerator = () => "xxx"
 
     val enc = MyClass("A", 8, MyRef(10)).toDocument.asRootFocus
-    println(enc.value.render)
     enc(data ~> relationship("myRef") ~> data ~> lid).shouldSucceed.value.value shouldBe "xxx"
     enc(included ~> 0 ~> lid).shouldSucceed.value.value shouldBe "xxx"
   }

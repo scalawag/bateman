@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,16 +14,16 @@
 
 package org.scalawag.bateman
 
-import scala.language.higherKinds
 import cats.syntax.either._
-import cats.syntax.parallel._
 import cats.data.{EitherNec, NonEmptyChain}
-import org.scalawag.bateman.json.focus.{JCursor, JFocus, JRootFocus}
+import org.scalawag.bateman.json.focus.{JFocus, JRootFocus}
 
 import scala.collection.compat.immutable.LazyList
 import org.scalawag.bateman.json.parser.ParseResult
 
 package object json {
+  type Single[+T] = T
+
   type JResult[+A] = EitherNec[JError, A]
 
   implicit class RichJResult[A](me: JResult[A]) {
@@ -99,7 +99,7 @@ package object json {
 
   /** Returns [[scala.None None]] if its argument is empty and a [[scala.Some Some]] containing the argument if it is not. */
 
-  def noneIfEmpty[A <: Traversable[_]](a: A): Option[A] = if (a.isEmpty) None else Some(a)
+  def noneIfEmpty[A <: Iterable[_]](a: A): Option[A] = if (a.isEmpty) None else Some(a)
 
   /** Returns an invalid result containing all the errors unless errors is empty, in which case, it returns a valid
     * result containing its second argument. */

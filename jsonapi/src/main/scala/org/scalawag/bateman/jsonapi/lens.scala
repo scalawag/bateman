@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,52 +15,51 @@
 package org.scalawag.bateman.jsonapi
 
 import org.scalawag.bateman.json._
-import org.scalawag.bateman.json.focus.{JCursor, JFocus, Single}
+import org.scalawag.bateman.json.focus.JFocus
 import org.scalawag.bateman.json.lens.{focus, _}
 import cats.syntax.either._
 import cats.data.NonEmptyChain
-import org.scalawag.bateman.json.focus.weak._
 import org.scalawag.bateman.jsonapi.encoding.Inclusions
 import org.scalawag.bateman.jsonapi.encoding.Inclusions.Key
 
 package object lens {
-  val about: CreatableJLens[JAny, JString] = focus ~> "about" ~> narrow[JString]
-  val attributes: CreatableJLens[JAny, JObject] = focus ~> "attributes" ~> narrow[JObject]
-  val code: CreatableJLens[JAny, JString] = focus ~> "code" ~> narrow[JString]
+  val about: CreatableJLens[JAny, JString] = focus ~> "about" ~> narrowTo[JString]
+  val attributes: CreatableJLens[JAny, JObject] = focus ~> "attributes" ~> narrowTo[JObject]
+  val code: CreatableJLens[JAny, JString] = focus ~> "code" ~> narrowTo[JString]
   val data: CreatableJLens[JAny, JAny] = "data"
-  val describedby: CreatableJLens[JAny, JString] = focus ~> "describedby" ~> narrow[JString]
-  val detail: CreatableJLens[JAny, JString] = focus ~> "detail" ~> narrow[JString]
-  val errors: CreatableJLens[JAny, JArray] = focus ~> "errors" ~> narrow[JArray]
-  val ext: CreatableJLens[JAny, JArray] = focus ~> "ext" ~> narrow[JArray]
-  val header: CreatableJLens[JAny, JString] = focus ~> "header" ~> narrow[JString]
-  val href: CreatableJLens[JAny, JString] = focus ~> "href" ~> narrow[JString]
+  val describedby: CreatableJLens[JAny, JString] = focus ~> "describedby" ~> narrowTo[JString]
+  val detail: CreatableJLens[JAny, JString] = focus ~> "detail" ~> narrowTo[JString]
+  val errors: CreatableJLens[JAny, JArray] = focus ~> "errors" ~> narrowTo[JArray]
+  val ext: CreatableJLens[JAny, JArray] = focus ~> "ext" ~> narrowTo[JArray]
+  val header: CreatableJLens[JAny, JString] = focus ~> "header" ~> narrowTo[JString]
+  val href: CreatableJLens[JAny, JString] = focus ~> "href" ~> narrowTo[JString]
   val hreflang: CreatableJLens[JAny, JAny] = focus ~> "hreflang"
-  val id: CreatableJLens[JAny, JString] = focus ~> "id" ~> narrow[JString]
-  val included: CreatableJLens[JAny, JArray] = focus ~> "included" ~> narrow[JArray]
-  val jsonapi: CreatableJLens[JAny, JObject] = focus ~> "jsonapi" ~> narrow[JObject]
-  val lid: CreatableJLens[JAny, JString] = focus ~> "lid" ~> narrow[JString]
-  val links: CreatableJLens[JAny, JObject] = focus ~> "links" ~> narrow[JObject]
-  val linkType: CreatableJLens[JAny, JString] = focus ~> "type" ~> narrow[JString]
-  val meta: CreatableJLens[JAny, JObject] = focus ~> "meta" ~> narrow[JObject]
-  val parameter: CreatableJLens[JAny, JString] = focus ~> "parameter" ~> narrow[JString]
-  val pointer: CreatableJLens[JAny, JString] = focus ~> "pointer" ~> narrow[JString]
-  val profile: CreatableJLens[JAny, JArray] = focus ~> "profile" ~> narrow[JArray]
-  val rel: CreatableJLens[JAny, JString] = focus ~> "rel" ~> narrow[JString]
-  val relationships: CreatableJLens[JAny, JObject] = focus ~> "relationships" ~> narrow[JObject]
-  val resourceType: CreatableJLens[JAny, JString] = focus ~> "type" ~> narrow[JString]
-  val source: CreatableJLens[JAny, JObject] = focus ~> "source" ~> narrow[JObject]
-  val status: CreatableJLens[JAny, JString] = focus ~> "status" ~> narrow[JString]
-  val title: CreatableJLens[JAny, JString] = focus ~> "title" ~> narrow[JString]
-  val version: CreatableJLens[JAny, JString] = focus ~> "version" ~> narrow[JString]
+  val id: CreatableJLens[JAny, JString] = focus ~> "id" ~> narrowTo[JString]
+  val included: CreatableJLens[JAny, JArray] = focus ~> "included" ~> narrowTo[JArray]
+  val jsonapi: CreatableJLens[JAny, JObject] = focus ~> "jsonapi" ~> narrowTo[JObject]
+  val lid: CreatableJLens[JAny, JString] = focus ~> "lid" ~> narrowTo[JString]
+  val links: CreatableJLens[JAny, JObject] = focus ~> "links" ~> narrowTo[JObject]
+  val linkType: CreatableJLens[JAny, JString] = focus ~> "type" ~> narrowTo[JString]
+  val meta: CreatableJLens[JAny, JObject] = focus ~> "meta" ~> narrowTo[JObject]
+  val parameter: CreatableJLens[JAny, JString] = focus ~> "parameter" ~> narrowTo[JString]
+  val pointer: CreatableJLens[JAny, JString] = focus ~> "pointer" ~> narrowTo[JString]
+  val profile: CreatableJLens[JAny, JArray] = focus ~> "profile" ~> narrowTo[JArray]
+  val rel: CreatableJLens[JAny, JString] = focus ~> "rel" ~> narrowTo[JString]
+  val relationships: CreatableJLens[JAny, JObject] = focus ~> "relationships" ~> narrowTo[JObject]
+  val resourceType: CreatableJLens[JAny, JString] = focus ~> "type" ~> narrowTo[JString]
+  val source: CreatableJLens[JAny, JObject] = focus ~> "source" ~> narrowTo[JObject]
+  val status: CreatableJLens[JAny, JString] = focus ~> "status" ~> narrowTo[JString]
+  val title: CreatableJLens[JAny, JString] = focus ~> "title" ~> narrowTo[JString]
+  val version: CreatableJLens[JAny, JString] = focus ~> "version" ~> narrowTo[JString]
 
   def meta(name: String): CreatableJLens[JAny, JAny] = meta ~> name
   def attribute(name: String): CreatableJLens[JAny, JAny] = attributes ~> name
-  def relationship(name: String): CreatableJLens[JAny, JObject] = relationships ~> name ~> narrow[JObject]
+  def relationship(name: String): CreatableJLens[JAny, JObject] = relationships ~> name ~> narrowTo[JObject]
 
   val nullableIncludedRef: IdJLens[JAny, JAny] = {
 
     case in @ JFocus.Value(_: JNull) =>
-      JCursor[Single, JAny](in).rightNec
+      in.rightNec
 
     case in @ JFocus.Value(_: JObject) =>
       in.asObject.flatMap { inObject =>
@@ -72,7 +71,7 @@ package object lens {
           matchingResourceObjects.flatMap {
             // Found one match. Decode it with the resource object decoder that was passed in.
             case List(fo) =>
-              JCursor[Single, JAny](fo).rightNec
+              fo.rightNec
             // Everything else indicates an error.
             case Nil =>
               MissingIncludedResourceObject(inObject, targetKey).leftNec
@@ -88,5 +87,5 @@ package object lens {
 
   // Defer to the nullable lens as long as the focused value is an object.
   val includedRef: IdJLens[JAny, JObject] =
-    _.asObject.flatMap(nullableIncludedRef).flatMap(_.foci.asObject).map(JCursor[Single, JObject](_))
+    _.asObject.flatMap(nullableIncludedRef).flatMap(_.asObject)
 }

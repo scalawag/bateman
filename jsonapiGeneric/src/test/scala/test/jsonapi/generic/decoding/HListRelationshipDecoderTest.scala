@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import org.scalawag.bateman.json.literal._
 import org.scalawag.bateman.json.lens.{focus, _}
 import org.scalawag.bateman.jsonapi.generic.Annotations.{Id, Relationship}
 import HListRelationshipDecoderTest._
-import org.scalawag.bateman.jsonapi.generic.semiauto.unchecked._
+import org.scalawag.bateman.jsonapi.generic.semiauto._
 import org.scalawag.bateman.jsonapi.lens._
 
 object HListRelationshipDecoderTest {
@@ -87,7 +87,7 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
     {
       "type": "MyClass"
     }
-  """, focus ~> narrow[JObject])
+  """, focus ~> narrowTo[JObject])
 
   private val nonObjectRelationships = Input(json"""
     {
@@ -141,7 +141,7 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
         }
       }
     """,
-    relationship("a") ~> data ~> narrow[JBoolean]
+    relationship("a") ~> data ~> narrowTo[JBoolean]
   )
 
   private val nullRelationshipData = Input(
@@ -155,7 +155,7 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
         }
       }
     """,
-    relationship("a") ~> data ~> narrow[JNull]
+    relationship("a") ~> data ~> narrowTo[JNull]
   )
 
   private val missingIdRelationshipDataObject = Input(
@@ -171,7 +171,7 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
         }
       }
     """,
-    relationship("a") ~> data ~> narrow[JObject]
+    relationship("a") ~> data ~> narrowTo[JObject]
   )
 
   private val idedRelationshipDataObject = Input(
@@ -202,7 +202,7 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
         }
       }
     """,
-    relationship("a") ~> data ~> narrow[JArray]
+    relationship("a") ~> data ~> narrowTo[JArray]
   )
 
   private val emptyRelationshipDataObjects = Input(
@@ -221,7 +221,7 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
         }
       }
     """,
-    relationship("a") ~> data ~> narrow[JArray]
+    relationship("a") ~> data ~> narrowTo[JArray]
   )
 
   private val idedRelationshipDataObjects = Input(
@@ -244,7 +244,7 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
         }
       }
     """,
-    relationship("a") ~> data ~> narrow[JArray]
+    relationship("a") ~> data ~> narrowTo[JArray]
   )
 
   private val mixedRelationshipDataObjects = Input(
@@ -265,7 +265,7 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
         }
       }
     """,
-    relationship("a") ~> data ~> narrow[JArray]
+    relationship("a") ~> data ~> narrowTo[JArray]
   )
 
   describe("MyIdRelationship") {
@@ -328,9 +328,9 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
     emptyRelationshipData.succeedsWith(MyClass(Nil))
     emptyRelationshipDataObjects.failsWithMultiple[MyClass] { in =>
       NonEmptyChain(
-        MissingField(in(focus ~> 0 ~> narrow[JObject]).shouldSucceed, "id"),
-        MissingField(in(focus ~> 1 ~> narrow[JObject]).shouldSucceed, "type"),
-        MissingField(in(focus ~> 1 ~> narrow[JObject]).shouldSucceed, "id")
+        MissingField(in(focus ~> 0 ~> narrowTo[JObject]).shouldSucceed, "id"),
+        MissingField(in(focus ~> 1 ~> narrowTo[JObject]).shouldSucceed, "type"),
+        MissingField(in(focus ~> 1 ~> narrowTo[JObject]).shouldSucceed, "id")
       )
     }
     idedRelationshipDataObjects.succeedsWith(MyClass(List(MyRefId("K"), MyRefId("L"))))
@@ -402,9 +402,9 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
     emptyRelationshipData.succeedsWith(MyClass(Some(Nil)))
     emptyRelationshipDataObjects.failsWithMultiple[MyClass] { in =>
       NonEmptyChain(
-        MissingField(in(focus ~> 0 ~> narrow[JObject]).shouldSucceed, "id"),
-        MissingField(in(focus ~> 1 ~> narrow[JObject]).shouldSucceed, "type"),
-        MissingField(in(focus ~> 1 ~> narrow[JObject]).shouldSucceed, "id")
+        MissingField(in(focus ~> 0 ~> narrowTo[JObject]).shouldSucceed, "id"),
+        MissingField(in(focus ~> 1 ~> narrowTo[JObject]).shouldSucceed, "type"),
+        MissingField(in(focus ~> 1 ~> narrowTo[JObject]).shouldSucceed, "id")
       )
     }
     idedRelationshipDataObjects.succeedsWith(MyClass(Some(List(MyRefId("K"), MyRefId("L")))))
@@ -476,9 +476,9 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
     emptyRelationshipData.succeedsWith(MyClass(Nil))
     emptyRelationshipDataObjects.failsWithMultiple[MyClass] { in =>
       NonEmptyChain(
-        MissingField(in(focus ~> 0 ~> narrow[JObject]).shouldSucceed, "id"),
-        MissingField(in(focus ~> 1 ~> narrow[JObject]).shouldSucceed, "type"),
-        MissingField(in(focus ~> 1 ~> narrow[JObject]).shouldSucceed, "id")
+        MissingField(in(focus ~> 0 ~> narrowTo[JObject]).shouldSucceed, "id"),
+        MissingField(in(focus ~> 1 ~> narrowTo[JObject]).shouldSucceed, "type"),
+        MissingField(in(focus ~> 1 ~> narrowTo[JObject]).shouldSucceed, "id")
       )
     }
     idedRelationshipDataObjects.succeedsWith(MyClass(List(MyRefId("K"), MyRefId("L"))))
@@ -550,9 +550,9 @@ class HListRelationshipDecoderTest extends HListDecoderTestBase {
     emptyRelationshipData.succeedsWith(MyClass(Some(Nil)))
     emptyRelationshipDataObjects.failsWithMultiple[MyClass] { in =>
       NonEmptyChain(
-        MissingField(in(focus ~> 0 ~> narrow[JObject]).shouldSucceed, "id"),
-        MissingField(in(focus ~> 1 ~> narrow[JObject]).shouldSucceed, "type"),
-        MissingField(in(focus ~> 1 ~> narrow[JObject]).shouldSucceed, "id")
+        MissingField(in(focus ~> 0 ~> narrowTo[JObject]).shouldSucceed, "id"),
+        MissingField(in(focus ~> 1 ~> narrowTo[JObject]).shouldSucceed, "type"),
+        MissingField(in(focus ~> 1 ~> narrowTo[JObject]).shouldSucceed, "id")
       )
     }
     idedRelationshipDataObjects.succeedsWith(MyClass(Some(List(MyRefId("K"), MyRefId("L")))))

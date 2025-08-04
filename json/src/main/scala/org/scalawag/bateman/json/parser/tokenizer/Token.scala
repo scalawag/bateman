@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ object Token {
       case t: Null         => "a null literal ('null')"
       case t: StringToken  => s"a string literal ('${t.value}')"
       case t: NumberToken  => s"a number literal ('${t.value}')"
-      case t: EndOfText   => "the end of text"
+      case t: EndOfText    => "the end of text"
     }
 }
 

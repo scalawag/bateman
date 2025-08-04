@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 package org.scalawag.bateman.json.validating
 
 import cats.data.EitherNec
-import org.scalawag.bateman.json.{Decoder, JAny, JAnyDecoder}
+import org.scalawag.bateman.json.{Decoder, JAny}
 
 /** Designed to be extended by the companion objects for types that needs to be semantically validated. It provides
   * an implicit [[Validator]], an implicit [[Decoder]] and factory methods. There must already be a [[JAnyDecoder]]

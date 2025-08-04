@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,13 +14,13 @@
 
 package test.jsonapi
 
-import org.scalawag.bateman.json.{Decoder, MissingField}
+import org.scalawag.bateman.json._
+import org.scalawag.bateman.json.focus.JFocus
 import test.json.BatemanTestBase
 import org.scalawag.bateman.json.literal._
 import org.scalawag.bateman.json.lens._
 import org.scalawag.bateman.json.syntax._
 import org.scalawag.bateman.jsonapi.lens._
-import org.scalawag.bateman.json.focus.weak._
 
 class LensTest extends BatemanTestBase {
   // This has a number of semantic errors, but we just need something to navigate down into.
@@ -105,7 +105,8 @@ class LensTest extends BatemanTestBase {
     }
 
     it("should decode id") {
-      implicit val dec = Decoder.jstringToJNumber.andThen(Decoder.jnumberToIntDecoder)
+      implicit val dec: Decoder[JString, Int] = (in: JFocus[JString]) =>
+        Decoder.jstringToJNumber.decode(in).flatMap(num => Decoder.jnumberToIntDecoder.decode(in.as(num)))
       json(data ~> id).flatMap(_.decode[Int]).shouldSucceed shouldBe 23
     }
   }
@@ -124,14 +125,14 @@ class LensTest extends BatemanTestBase {
 
   describe("attributes") {
     it("should focus on the attributes") {
-      val f = json(data ~> attributes).shouldSucceed.foci
+      val f = json(data ~> attributes).shouldSucceed
       f shouldBe json.field("data").flatMap(_.asObject).flatMap(_.field("attributes")).shouldSucceed
     }
   }
 
   describe("attribute") {
     it("should focus on a single attribute") {
-      val f = json(data ~> attribute("a")).shouldSucceed.foci
+      val f = json(data ~> attribute("a")).shouldSucceed
       f shouldBe json
         .field("data")
         .flatMap(_.asObject)
@@ -157,14 +158,14 @@ class LensTest extends BatemanTestBase {
 
   describe("relationships") {
     it("should focus on the relationships") {
-      val f = json(data ~> relationships).shouldSucceed.foci
+      val f = json(data ~> relationships).shouldSucceed
       f shouldBe json.field("data").flatMap(_.asObject).flatMap(_.field("relationships")).shouldSucceed
     }
   }
 
   describe("relationship") {
     it("should focus on a single relationship") {
-      val f = json(data ~> relationship("b")).shouldSucceed.foci
+      val f = json(data ~> relationship("b")).shouldSucceed
       f shouldBe json
         .field("data")
         .flatMap(_.asObject)
@@ -190,12 +191,12 @@ class LensTest extends BatemanTestBase {
 
   describe("meta") {
     it("should focus on the meta") {
-      val f = json(data ~> meta).shouldSucceed.foci
+      val f = json(data ~> meta).shouldSucceed
       f shouldBe json.field("data").flatMap(_.asObject).flatMap(_.field("meta")).shouldSucceed
     }
 
     it("should focus on a single meta") {
-      val f = json(data ~> relationship("b") ~> meta("created_on")).shouldSucceed.foci
+      val f = json(data ~> relationship("b") ~> meta("created_on")).shouldSucceed
       f shouldBe json
         .field("data")
         .flatMap(_.asObject)
@@ -223,7 +224,7 @@ class LensTest extends BatemanTestBase {
     }
 
     it("should add meta to existing document") {
-      val out = json.writeTo(data ~> meta("quux"), "froboz".toJAny).shouldSucceed.root
+      val out = json.writeTo(data ~> meta("quux"), "froboz").shouldSucceed.root
       out(data ~> meta("quux")).map(_.value).shouldSucceed shouldBe "froboz".toJAny
     }
   }

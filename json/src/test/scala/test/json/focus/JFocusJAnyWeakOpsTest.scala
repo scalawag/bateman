@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ import cats.syntax.either._
 import org.scalawag.bateman.json.JType.Summoner
 import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.focus._
-import org.scalawag.bateman.json.focus.weak._
 import test.json.BatemanTestBase
 
 import scala.reflect.ClassTag
@@ -132,11 +131,11 @@ class JFocusJAnyWeakOpsTest extends BatemanTestBase {
     }
   }
 
-  describe("modifyF") {
+  describe("modify (fallible)") {
     it("should modify the value in focus") {
       forAll(genJFocus(genJAny)) { f =>
         val successfulMutator = focusMutator.andThen(_.rightNec)
-        val modified = f.modifyF(successfulMutator).shouldSucceed
+        val modified = f.modify(successfulMutator).shouldSucceed
 
         modified.pointer shouldBe f.pointer
         modified.value shouldBe janyMutator(f.value)
@@ -146,7 +145,8 @@ class JFocusJAnyWeakOpsTest extends BatemanTestBase {
 
     it("should fail to modify the value in focus") {
       forAll(genJFocus(genJAny)) { f =>
-        val modified = f.modifyF(JsonTypeMismatch(_, JNull).leftNec)
+        val fn: JFocus[JAny] => JResult[JAny] = f => JsonTypeMismatch(f, JNull).leftNec
+        val modified = f.modify(fn)
 
         modified shouldBe JsonTypeMismatch(f, JNull).leftNec
       }
@@ -154,7 +154,7 @@ class JFocusJAnyWeakOpsTest extends BatemanTestBase {
 
     it("should return a narrow type (compilation)") {
       def fn: JFocus[JAny] => JResult[JString] = ???
-      def out: JResult[JFocus[JString]] = JNumber(4).asRootFocus.modifyF(fn)
+      def out: JResult[JFocus[JString]] = JNumber(4).asRootFocus.modify(fn)
     }
   }
 

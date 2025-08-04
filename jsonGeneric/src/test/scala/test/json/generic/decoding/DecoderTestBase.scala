@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,13 +24,13 @@ import test.json.BatemanTestBase
 class DecoderTestBase extends BatemanTestBase {
   case class Input[A <: JAny](
       text: JAny,
-      deepNav: JLens[Single, JAny, A],
-      resourcePath: JLens[Single, JAny, JAny] = focus
+      deepNav: JFocusLens[JAny, A],
+      resourcePath: JFocusLens[JAny, JAny] = focus
   )(implicit
       val name: sourcecode.Name
   ) {
     val json: JFocus[JAny] = text.asRootFocus
-    val deepFocus: JFocus[A] = json(deepNav).map(_.foci).shouldSucceed
+    val deepFocus: JFocus[A] = json(deepNav).shouldSucceed
 
     def succeedsWith[B](expected: B)(implicit position: Position, dec: JAnyDecoder[B]): Unit =
       it(s"should succeed on ${name.value}") {

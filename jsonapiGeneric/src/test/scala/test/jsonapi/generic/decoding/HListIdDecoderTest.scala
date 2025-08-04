@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import org.scalawag.bateman.json.lens.{focus, _}
 import org.scalawag.bateman.json.literal._
 import org.scalawag.bateman.jsonapi.generic.Annotations.Id
 import HListIdDecoderTest._
-import org.scalawag.bateman.jsonapi.generic.semiauto.unchecked._
+import org.scalawag.bateman.jsonapi.generic.semiauto._
 import org.scalawag.bateman.jsonapi.lens._
 
 object HListIdDecoderTest {
@@ -44,21 +44,21 @@ class HListIdDecoderTest extends HListDecoderTestBase {
     {
       "type": "MyClass"
     }
-  """, focus ~> narrow[JObject])
+  """, focus ~> narrowTo[JObject])
 
   private val nonStringId = Input(json"""
     {
       "type": "MyClass",
       "id": {}
     }
-  """, focus ~> "id" ~> narrow[JObject])
+  """, focus ~> "id" ~> narrowTo[JObject])
 
   private val nullIdValue = Input(json"""
     {
       "type": "MyClass",
       "id": null
     }
-  """, focus ~> "id" ~> narrow[JNull])
+  """, focus ~> "id" ~> narrowTo[JNull])
 
   private val fooIdValue = Input(json"""
     {

@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ import cats.data.NonEmptyChain
 import cats.syntax.either._
 import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.focus._
+import org.scalawag.bateman.json.lens._
 import test.json.BatemanTestBase
 
 class JFocusJObjectOpsTest extends BatemanTestBase {
@@ -114,6 +115,102 @@ class JFocusJObjectOpsTest extends BatemanTestBase {
       f shouldBe MissingFieldIndex(json, 8).leftNec
     }
 
+  }
+
+  describe("append") {
+    it("should append a field to the object") {
+      val out: JRootFocus[JObject] = json.append("z", JString("new"))
+      out.value.fieldList shouldBe json.value.append("z", JString("new")).fieldList
+      out.root.value.shouldHaveNoLocations
+    }
+  }
+
+  describe("prepend") {
+    it("should prepend a field to the object") {
+      val out: JRootFocus[JObject] = json.prepend("z", JString("new"))
+      out.value.fieldList shouldBe json.value.prepend("z", JString("new")).fieldList
+      out.root.value.shouldHaveNoLocations
+    }
+  }
+
+  describe("updated") {
+    it("should update the value of a field at the given index") {
+      val out: JRootFocus[JObject] = json.updated(0, JString("replaced"))
+      out.value.fieldList shouldBe json.value.updated(0, JString("replaced")).fieldList
+      out.root.value.shouldHaveNoLocations
+    }
+  }
+
+  describe("delete") {
+    it("should delete a field at the given index") {
+      val out: JRootFocus[JObject] = json.delete(0)
+      out.value.fieldList shouldBe json.value.delete(0).fieldList
+      out.root.value.shouldHaveNoLocations
+    }
+  }
+
+  describe("insert") {
+    it("should insert a JField at the given index") {
+      val f = JField(JString("z"), JString("inserted"))
+      val out: JRootFocus[JObject] = json.insert(1, f)
+      out.value.fieldList shouldBe json.value.insert(1, f).fieldList
+      out.root.value.shouldHaveNoLocations
+    }
+
+    it("should insert a field by name and value at the given index") {
+      val out: JRootFocus[JObject] = json.insert(1, "z", JString("inserted"))
+      out.value.fieldList shouldBe json.value.insert(1, "z", JString("inserted")).fieldList
+      out.root.value.shouldHaveNoLocations
+    }
+  }
+
+  describe("++") {
+    it("should concatenate two objects") {
+      val other = parseAs[JObject]("""{"x": 1, "y": 2}""")
+      val out: JRootFocus[JObject] = json ++ other.value
+      out.value.fieldList shouldBe (json.value ++ other.value).fieldList
+      out.root.value.shouldHaveNoLocations
+    }
+  }
+
+  describe("overwriteTo") {
+    it("should write a value through a lens") {
+      val out: JRootFocus[JObject] = json.overwriteTo("x", "new")
+      out.field("x").map(_.value) shouldBe JString("new").rightNec
+      out.root.value.shouldHaveNoLocations
+    }
+
+    it("should overwrite an existing value") {
+      val out: JRootFocus[JObject] = json.overwriteTo("a", "replaced")
+      out.field("a").map(_.value) shouldBe JString("replaced").rightNec
+      out.root.value.shouldHaveNoLocations
+    }
+
+    it("should create nested structure") {
+      val out: JRootFocus[JObject] = json.overwriteTo("x" ~> "y", "deep")
+      out.field("x").flatMap(_.asObject).flatMap(_.field("y")).map(_.value) shouldBe JString("deep").rightNec
+      out.root.value.shouldHaveNoLocations
+    }
+
+    it("should prepend when prepend = true") {
+      val out: JRootFocus[JObject] = json.overwriteTo("z", "first", prepend = true)
+      out.value.fieldList.head.name.value shouldBe "z"
+      out.root.value.shouldHaveNoLocations
+    }
+  }
+
+  describe("writeTo") {
+    it("should write a value through a lens") {
+      val out: JResult[JRootFocus[JObject]] = json.writeTo("x", "new")
+      out.map(_.field("x").map(_.value)) shouldBe JString("new").rightNec.rightNec
+      out.map(_.root.value.shouldHaveNoLocations)
+    }
+
+    it("should write to a nested path") {
+      val out: JResult[JRootFocus[JObject]] = json.writeTo("a" ~> "b" ~> "d", "new")
+      out.map(_.field("a").flatMap(_.asObject).flatMap(_.field("b")).flatMap(_.asObject).flatMap(_.field("d")).map(_.value)) shouldBe JString("new").rightNec.rightNec
+      out.map(_.root.value.shouldHaveNoLocations)
+    }
   }
 
 }

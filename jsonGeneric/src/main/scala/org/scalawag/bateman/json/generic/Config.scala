@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,15 +14,12 @@
 
 package org.scalawag.bateman.json.generic
 
-import org.scalawag.bateman.json.generic.naming.CaseTransformation
-import org.scalawag.bateman.json.{MissingField, UnexpectedValue}
-
 /** Controls the derivation of encoders and decoders. An instance must be available in implicit scope during
   * derivation or else the default configuration will be used.
   *
-  * @param fieldNameMapping maps a Scala field name to a JSON field name. [[CaseTransformation]] may come in very
+  * @param fieldNameMapping maps a Scala field name to a JSON field name. [[naming.CaseTransformation]] may come in very
   *                         handy here
-  * @param classNameMapping maps a Scala class name to a JSON string value. [[CaseTransformation]] may come in very
+  * @param classNameMapping maps a Scala class name to a JSON string value. [[naming.CaseTransformation]] may come in very
   *                         handy here
   * @param useDefaultsForMissingFields determines whether or not the default arguments declared in the case class are
   *                                    used for keys that are not found in the incoming JSON object. By default, they
@@ -35,7 +32,6 @@ import org.scalawag.bateman.json.{MissingField, UnexpectedValue}
   * @param encodeDefaultValues determines whether or not case class fields that are set to their default value are
   *                            encoded or not. The default behavior is to leave them out of the resulting JSON object.
   */
-
 case class Config(
     fieldNameMapping: String => String = identity,
     classNameMapping: String => String = identity,
@@ -50,6 +46,4 @@ case class Config(
 
 object Config {
   val default: Config = Config()
-
-  def get(implicit config: Config = Config.default): Config = config
 }

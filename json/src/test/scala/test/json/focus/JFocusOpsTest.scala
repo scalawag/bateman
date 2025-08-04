@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +22,9 @@ import test.json.BatemanTestBase
 
 class JFocusOpsTest extends BatemanTestBase {
 
-  val genDeepFocus: Gen[JFieldFocus[JString, JRootFocus[JObject]]] =
+  type DeepFocus = JFieldFocus[JString, JRootFocus[JObject]]
+
+  val genDeepFocus: Gen[DeepFocus] =
     for {
       obj <- genJObject
       name <- genJString.map(_.value)
@@ -33,9 +35,9 @@ class JFocusOpsTest extends BatemanTestBase {
     }
 
   val mutator: JString => JString = in => JString(in.value * 2)
-  val fmutator: JFieldFocus[JString, JRootFocus[JObject]] => JString = mutator.compose(_.value)
+  val fmutator: DeepFocus => JString = mutator.compose(_.value)
 
-  describe("modify") {
+  describe("modify (focus, pure)") {
     it("should modify the focus") {
       forAll(genDeepFocus) { f =>
         val out = f.modify(fmutator)
@@ -47,10 +49,11 @@ class JFocusOpsTest extends BatemanTestBase {
     }
   }
 
-  describe("modifyF") {
+  describe("modify (focus, fallible)") {
     it("should modify the focus") {
       forAll(genDeepFocus) { f =>
-        val out = f.modifyF(fmutator.andThen(_.rightNec)).shouldSucceed
+        val fn: DeepFocus => JResult[JString] = fmutator.andThen(_.rightNec)
+        val out = f.modify(fn).shouldSucceed
 
         out.pointer shouldBe f.pointer
         out.value shouldBe fmutator(f)
@@ -61,17 +64,18 @@ class JFocusOpsTest extends BatemanTestBase {
     it("should fail to modify the focus") {
       forAll(genDeepFocus) { f =>
         val err = JsonTypeMismatch(f, JNull)
-        val out = f.modifyF(_ => err.leftNec)
+        val fn: DeepFocus => JResult[JString] = _ => err.leftNec
+        val out = f.modify(fn)
 
         out.shouldFailSingle shouldBe err
       }
     }
   }
 
-  describe("modifyValue") {
+  describe("modify (value, pure)") {
     it("should modify the value in focus") {
       forAll(genDeepFocus) { f =>
-        val out = f.modifyValue(mutator)
+        val out = f.modify(mutator)
 
         out.pointer shouldBe f.pointer
         out.value shouldBe mutator(f.value)
@@ -80,10 +84,11 @@ class JFocusOpsTest extends BatemanTestBase {
     }
   }
 
-  describe("modifyValueF") {
+  describe("modify (value, fallible)") {
     it("should modify the value in focus") {
       forAll(genDeepFocus) { f =>
-        val out = f.modifyValueF(mutator.andThen(_.rightNec)).shouldSucceed
+        val fn: JString => JResult[JString] = mutator.andThen(_.rightNec)
+        val out = f.modify(fn).shouldSucceed
 
         out.pointer shouldBe f.pointer
         out.value shouldBe mutator(f.value)
@@ -94,7 +99,8 @@ class JFocusOpsTest extends BatemanTestBase {
     it("should fail to modify the value in focus") {
       forAll(genDeepFocus) { f =>
         val err = JsonTypeMismatch(f, JNull)
-        val out = f.modifyValueF(_ => err.leftNec)
+        val fn: JString => JResult[JString] = _ => err.leftNec
+        val out = f.modify(fn)
 
         out.shouldFailSingle shouldBe err
       }

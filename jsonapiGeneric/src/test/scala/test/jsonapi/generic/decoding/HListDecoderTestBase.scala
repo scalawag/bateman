@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,18 +16,17 @@ package test.jsonapi.generic.decoding
 
 import cats.data.NonEmptyChain
 import org.scalactic.source.Position
-import org.scalawag.bateman.json.focus.{Single, JFocus}
+import org.scalawag.bateman.json.focus.JFocus
 import org.scalawag.bateman.json.{JAny, JAnyDecoder, JError, JErrors}
 import org.scalawag.bateman.json.lens._
-import org.scalawag.bateman.json.focus.weak._
 import test.json.BatemanTestBase
 
 trait HListDecoderTestBase extends BatemanTestBase {
 
   case class Input[A <: JAny](
       text: JAny,
-      deepNav: JLens[Single, JAny, A],
-      resourcePath: JLens[Single, JAny, JAny] = focus
+      deepNav: JFocusLens[JAny, A],
+      resourcePath: JFocusLens[JAny, JAny] = focus
   )(implicit
       val name: sourcecode.Name
   ) {

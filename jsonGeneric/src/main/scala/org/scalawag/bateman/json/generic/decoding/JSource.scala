@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,25 +14,26 @@
 
 package org.scalawag.bateman.json.generic.decoding
 
-import org.scalawag.bateman.json.{JAny, JError, JObject, JResult}
+import org.scalawag.bateman.json.{JAny, JObject, JResult}
 import cats.syntax.either._
 import org.scalawag.bateman.json.focus.JFocus
 
 final case class JSource(root: JFocus[JObject], fields: Map[String, JFocus[JAny]] = Map.empty) {
   def getFieldSource(name: String): JResult[JFocus[JAny]] = fields(name).rightNec
 
-  //  def getFieldSourceUnsafe(name: String): JAny =
-  //    getFieldSource(name).getOrElse {
-  //      throw ProgrammerError(s"Field $name is not represented in the source JSON text.")
-  //    }
-
-  //  def unspecifiedField(name: String): MissingField =
-  //    fields.get(name) match {
-  //      case Some(p: JPointer.Child) => MissingField(root, p)
-  //      case Some(_)                 => throw ProgrammerError(s"Field $name was not sourced from a child in the JSON text.")
-  //      case None                    => throw ProgrammerError(s"Field $name is not represented in the source JSON text.")
-  //    }
-
-  //  def unexpectedValue(name: String): UnexpectedValue =
-  //    UnexpectedValue(getFieldSourceUnsafe(name))
+// TODO: figure out what was using these and fix them up.
+//  def getFieldSourceUnsafe(name: String): JAny =
+//    getFieldSource(name).getOrElse {
+//      throw ProgrammerError(s"Field $name is not represented in the source JSON text.")
+//    }
+//
+//  def unspecifiedField(name: String): MissingField =
+//    fields.get(name) match {
+//      case Some(JFocus(p: JPointer)) => MissingField(root, p)
+//      case Some(_)                 => throw ProgrammerError(s"Field $name was not sourced from a child in the JSON text.")
+//      case None                    => throw ProgrammerError(s"Field $name is not represented in the source JSON text.")
+//    }
+//
+//  def unexpectedValue(name: String): UnexpectedValue =
+//    UnexpectedValue(getFieldSourceUnsafe(name))
 }

@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 import java.util.UUID
 import scala.reflect.{ClassTag, classTag}
 import scala.util.{Failure, Success, Try}
-import org.scalawag.bateman.json.focus.weak._
 
 class DecoderTest extends BatemanTestBase {
 

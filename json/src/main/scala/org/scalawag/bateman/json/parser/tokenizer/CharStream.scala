@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
 package org.scalawag.bateman.json.parser.tokenizer
 
 import org.scalawag.bateman.json.JLocation
-import org.scalawag.bateman.json.parser.SyntaxError
 
 import java.io.File
 import scala.annotation.tailrec

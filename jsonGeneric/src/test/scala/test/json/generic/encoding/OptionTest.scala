@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,9 +14,9 @@
 
 package test.json.generic.encoding
 
-import org.scalawag.bateman.json.generic.semiauto.unchecked._
+import org.scalawag.bateman.json.generic.semiauto._
 import org.scalawag.bateman.json.syntax._
-import org.scalawag.bateman.json.{NotNull, Null, Nullable}
+import org.scalawag.bateman.json.{NotNull, Null, Nullable, JObjectEncoder}
 import test.json.generic.encoding.OptionTest._
 import test.json.{BatemanTestBase, DataDrivenTestUtils}
 
@@ -42,18 +42,18 @@ class OptionTest extends BatemanTestBase with DataDrivenTestUtils {
 //
 //  val jsonNullA = jsonNull.fields.getOrElse(fail)("a").value.asNull.getOrElse(fail)
 
-  implicit val aenc = deriveEncoderForCaseClass[A]()
-  implicit val benc = deriveEncoderForCaseClass[B]()
-  implicit val cenc = deriveEncoderForCaseClass[C]()
-  implicit val denc = deriveEncoderForCaseClass[D]()
-  implicit val eenc = deriveEncoderForCaseClass[E]()
-  implicit val fenc = deriveEncoderForCaseClass[F]()
-  implicit val genc = deriveEncoderForCaseClass[G]()
-  implicit val henc = deriveEncoderForCaseClass[H]()
-  implicit val ienc = deriveEncoderForCaseClass[I]()
-  implicit val jenc = deriveEncoderForCaseClass[J]()
-  implicit val kenc = deriveEncoderForCaseClass[K]()
-  implicit val lenc = deriveEncoderForCaseClass[L]()
+  implicit val aenc: JObjectEncoder[A] = deriveEncoderForCaseClass[A]
+  implicit val benc: JObjectEncoder[B] = deriveEncoderForCaseClass[B]
+  implicit val cenc: JObjectEncoder[C] = deriveEncoderForCaseClass[C]
+  implicit val denc: JObjectEncoder[D] = deriveEncoderForCaseClass[D]
+  implicit val eenc: JObjectEncoder[E] = deriveEncoderForCaseClass[E]
+  implicit val fenc: JObjectEncoder[F] = deriveEncoderForCaseClass[F]
+  implicit val genc: JObjectEncoder[G] = deriveEncoderForCaseClass[G]
+  implicit val henc: JObjectEncoder[H] = deriveEncoderForCaseClass[H]
+  implicit val ienc: JObjectEncoder[I] = deriveEncoderForCaseClass[I]
+  implicit val jenc: JObjectEncoder[J] = deriveEncoderForCaseClass[J]
+  implicit val kenc: JObjectEncoder[K] = deriveEncoderForCaseClass[K]
+  implicit val lenc: JObjectEncoder[L] = deriveEncoderForCaseClass[L]
 
   val cases: Iterable[DataDrivenTestCase[(Any, String)]] = {
     Iterable(
@@ -92,8 +92,9 @@ class OptionTest extends BatemanTestBase with DataDrivenTestUtils {
 
   cases.zipWithIndex foreach {
     case (DataDrivenTestCase((actual, expected), pos), n) =>
+      implicit val p = pos
       it(s"test case #$n") {
         actual shouldBe parse(expected).value.stripLocation
-      }(pos)
+      }
   }
 }

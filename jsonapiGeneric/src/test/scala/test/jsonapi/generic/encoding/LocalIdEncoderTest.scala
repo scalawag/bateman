@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ object LocalIdEncoderTest {
 class LocalIdEncoderTest extends BatemanTestBase {
   it("should generate a local ID using default generator") {
     val out = MyReferrer(MyReferent(77)).toDocument
-    println(out.spaces2)
+    import org.scalawag.bateman.json.lens._
     import org.scalawag.bateman.jsonapi.lens._
     out.asRootFocus(data ~> relationship("rel") ~> data ~> lid).flatMap(_.decode[UUID]).shouldSucceed
   }
@@ -45,7 +45,7 @@ class LocalIdEncoderTest extends BatemanTestBase {
     }
 
     val out = MyReferrer(MyReferent(77)).toDocument
-    println(out.spaces2)
+    import org.scalawag.bateman.json.lens._
     import org.scalawag.bateman.jsonapi.lens._
     out.asRootFocus(data ~> relationship("rel") ~> data ~> lid).flatMap(_.decode[String]).shouldSucceed.toInt shouldBe 1
   }

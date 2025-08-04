@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,9 +22,8 @@ import org.scalatest.matchers.should.Matchers
 import org.scalawag.bateman.json.focus.JFocus
 import org.scalawag.bateman.json.{InvalidValue, JAny, JNumber, JString, JsonTypeMismatch}
 import org.scalawag.bateman.json.syntax._
-import org.scalawag.bateman.json.focus.weak._
 
-class BatemanEnumTest extends AnyFunSpec with Matchers {
+object BatemanEnumTest {
   sealed trait Color extends EnumEntry with Lowercase
 
   case object Color extends Enum[Color] with BatemanEnum[Color] {
@@ -34,6 +33,10 @@ class BatemanEnumTest extends AnyFunSpec with Matchers {
 
     val values = findValues
   }
+}
+
+class BatemanEnumTest extends AnyFunSpec with Matchers {
+  import BatemanEnumTest.Color
 
   it("should encode") {
     (Color.Red: Color).toJAny shouldBe JString("red")

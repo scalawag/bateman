@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,11 @@ import org.scalawag.bateman.json._
 
 import scala.reflect.ClassTag
 
-class JFieldFocusOps[A <: JAny, P <: JStrongFocus[JObject]](me: JFieldFocus[A, P]) {
+/** Extends [[JFocus]] with methods that can be used when the JSON value in focus is strong (it's parentage is
+  * known) and the value is the value of a field within a [[JObject]]. The operations all return strong foci.
+  */
+
+class JFieldFocusOps[A <: JAny, P <: JFocus[JObject]](me: JFieldFocus[A, P]) {
   def narrow[B <: JAny: ClassTag: Summoner]: JResult[JFieldFocus[B, P]] =
     me.value match {
       case b: B => JFieldFocus(b, me.name, me.index, me.parent).rightNec
@@ -34,19 +38,61 @@ class JFieldFocusOps[A <: JAny, P <: JStrongFocus[JObject]](me: JFieldFocus[A, P
   def asNumber: JResult[JFieldFocus[JNumber, P]] = narrow[JNumber]
   def asBoolean: JResult[JFieldFocus[JBoolean, P]] = narrow[JBoolean]
 
-  def previous: JResult[JFieldFocus[JAny, P]] = me.parent.field(me.index - 1)
-  def next: JResult[JFieldFocus[JAny, P]] = me.parent.field(me.index + 1)
-  def first: JFieldFocus[JAny, P] = me.parent.fields.head
-  def last: JFieldFocus[JAny, P] = me.parent.fields.last
+  def delete()(implicit replacer: ValueReplacer.Aux[JObject, P, P]): P =
+    replacer(me.parent.value.delete(me.index), me.parent)
 
-  // TODO: make this maintain a strong focus instead of returning a weaker focus
-  def delete: JFocus[JObject] = {
-    import org.scalawag.bateman.json.focus.weak._
-    me.parent.modify(_.value.delete(me.index))
-  }
-
-  /** Returns a decoded representation of value in focus. */
-  def decode[Out](implicit dec: Decoder[A, Out]): JResult[Out] = dec.decode(me)
+  def modify(magnet: JFieldFocusOps.ModifyMagnet[A, P]): magnet.Out = magnet(me)
 
   def root(implicit rootFinder: RootFinder[P]): rootFinder.Root = rootFinder(me.parent)
+}
+
+object JFieldFocusOps {
+  trait ModifyMagnet[A <: JAny, P <: JFocus[JObject]] {
+    type Out
+    def apply(focus: JFieldFocus[A, P]): Out
+  }
+
+  object ModifyMagnet extends JFieldFocusModifyMagnetLowPriority {
+    implicit def focusFallible[A <: JAny, P <: JFocus[JObject], O <: JAny](
+        fn: JFieldFocus[A, P] => JResult[O]
+    )(implicit
+        replacer: ValueReplacer.Aux[O, JFieldFocus[A, P], JFieldFocus[O, P]]
+    ): ModifyMagnet[A, P] { type Out = JResult[JFieldFocus[O, P]] } =
+      new ModifyMagnet[A, P] {
+        type Out = JResult[JFieldFocus[O, P]]
+        def apply(focus: JFieldFocus[A, P]): JResult[JFieldFocus[O, P]] = fn(focus).map(replacer(_, focus))
+      }
+
+    implicit def valueFallible[A <: JAny, P <: JFocus[JObject], O <: JAny](
+        fn: A => JResult[O]
+    )(implicit
+        replacer: ValueReplacer.Aux[O, JFieldFocus[A, P], JFieldFocus[O, P]]
+    ): ModifyMagnet[A, P] { type Out = JResult[JFieldFocus[O, P]] } =
+      new ModifyMagnet[A, P] {
+        type Out = JResult[JFieldFocus[O, P]]
+        def apply(focus: JFieldFocus[A, P]): JResult[JFieldFocus[O, P]] = fn(focus.value).map(replacer(_, focus))
+      }
+  }
+
+  trait JFieldFocusModifyMagnetLowPriority {
+    implicit def focusPure[A <: JAny, P <: JFocus[JObject], O <: JAny](
+        fn: JFieldFocus[A, P] => O
+    )(implicit
+        replacer: ValueReplacer.Aux[O, JFieldFocus[A, P], JFieldFocus[O, P]]
+    ): ModifyMagnet[A, P] { type Out = JFieldFocus[O, P] } =
+      new ModifyMagnet[A, P] {
+        type Out = JFieldFocus[O, P]
+        def apply(focus: JFieldFocus[A, P]): JFieldFocus[O, P] = replacer(fn(focus), focus)
+      }
+
+    implicit def valuePure[A <: JAny, P <: JFocus[JObject], O <: JAny](
+        fn: A => O
+    )(implicit
+        replacer: ValueReplacer.Aux[O, JFieldFocus[A, P], JFieldFocus[O, P]]
+    ): ModifyMagnet[A, P] { type Out = JFieldFocus[O, P] } =
+      new ModifyMagnet[A, P] {
+        type Out = JFieldFocus[O, P]
+        def apply(focus: JFieldFocus[A, P]): JFieldFocus[O, P] = replacer(fn(focus.value), focus)
+      }
+  }
 }

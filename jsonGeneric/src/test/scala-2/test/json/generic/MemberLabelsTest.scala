@@ -1,0 +1,38 @@
+// bateman -- Copyright 2021-2026 -- Justin Patterson
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package test.json.generic
+
+import org.scalawag.bateman.json.generic.MemberLabels
+import test.json.BatemanTestBase
+
+class MemberLabelsTest extends BatemanTestBase {
+  case class Simple(a: Int, b: String, c: Boolean)
+  case class SingleField(only: Double)
+  case class Empty()
+
+  describe("MemberLabels") {
+    it("should extract field names from a multi-field case class") {
+      MemberLabels[Simple] shouldBe List("a", "b", "c")
+    }
+
+    it("should extract a single field name") {
+      MemberLabels[SingleField] shouldBe List("only")
+    }
+
+    it("should return empty list for a no-field case class") {
+      MemberLabels[Empty] shouldBe List.empty
+    }
+  }
+}

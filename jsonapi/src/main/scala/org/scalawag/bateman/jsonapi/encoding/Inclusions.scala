@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ import cats.syntax.parallel._
 import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.lens._
 import org.scalawag.bateman.jsonapi.lens._
-import org.scalawag.bateman.json.focus.weak._
 import org.scalawag.bateman.json.{JErrors, JObject, ProgrammerError}
 import org.scalawag.bateman.jsonapi.encoding.Inclusions.Key
 import cats.syntax.either._
@@ -98,7 +97,7 @@ object Inclusions {
         .map(_.foci)
         .flatMap {
           case Some(f @ JFocus.Value(_: JNull))   => Nil.rightNec
-          case Some(f @ JFocus.Value(_: JArray))  => f(* ~> narrow[JObject]).map(_.foci)
+          case Some(f @ JFocus.Value(_: JArray))  => f(* ~> narrowTo[JObject]).map(_.foci)
           case Some(f @ JFocus.Value(o: JObject)) => f.asObject.map(List(_))
           case Some(f)                            => JsonTypeMismatch(f, JObject, JNull, JArray).leftNec
           case None                               => Nil.rightNec
@@ -117,7 +116,7 @@ object Inclusions {
   }
 
   private def keyedIncluded(root: JFocus[JAny]): JResult[List[(Key, JFocus[JObject])]] =
-    root(included.? ~> * ~> narrow[JObject])
+    root(included.? ~> * ~> narrowTo[JObject])
       .map(_.foci)
       .flatMap { fos =>
         fos.parTraverse { fo =>
@@ -129,5 +128,5 @@ object Inclusions {
     (
       keyedPrimaryData(root),
       keyedIncluded(root)
-    ).parMapN(_ ::: _).map(_.groupBy(_._1).mapValues(_.map(_._2)).toMap)
+    ).parMapN(_ ::: _).map(_.groupBy(_._1).map { case (k, v) => k -> v.map(_._2) })
 }

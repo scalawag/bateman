@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -73,6 +73,55 @@ class JFocusJArrayOpsTest extends BatemanTestBase {
       f shouldBe MissingIndex(json, -1).leftNec
     }
 
+  }
+
+  describe("append") {
+    it("should append an item to the array") {
+      val out: JRootFocus[JArray] = json.append("new")
+      out.value.items shouldBe json.value.append(JString("new")).items
+      out.root.value.shouldHaveNoLocations
+    }
+  }
+
+  describe("prepend") {
+    it("should prepend an item to the array") {
+      val out: JRootFocus[JArray] = json.prepend("new")
+      out.value.items shouldBe json.value.prepend(JString("new")).items
+      out.root.value.shouldHaveNoLocations
+    }
+  }
+
+  describe("updated") {
+    it("should update an item at the given index") {
+      val out: JRootFocus[JArray] = json.updated(1, "replaced")
+      out.value.items shouldBe json.value.updated(1, JString("replaced")).items
+      out.root.value.shouldHaveNoLocations
+    }
+  }
+
+  describe("delete") {
+    it("should delete an item at the given index") {
+      val out: JRootFocus[JArray] = json.delete(0)
+      out.value.items shouldBe json.value.delete(0).items
+      out.root.value.shouldHaveNoLocations
+    }
+  }
+
+  describe("insert") {
+    it("should insert an item at the given index") {
+      val out: JRootFocus[JArray] = json.insert(1, "inserted")
+      out.value.items shouldBe json.value.insert(1, JString("inserted")).items
+      out.root.value.shouldHaveNoLocations
+    }
+  }
+
+  describe("++") {
+    it("should concatenate two arrays") {
+      val other = parseAs[JArray]("""["x", "y"]""")
+      val out: JRootFocus[JArray] = json ++ other.value
+      out.value.items shouldBe (json.value ++ other.value).items
+      out.root.value.shouldHaveNoLocations
+    }
   }
 
 }

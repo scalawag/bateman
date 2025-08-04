@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,8 +13,6 @@
 // limitations under the License.
 
 package org.scalawag.bateman.json
-
-import org.scalawag.bateman.json.focus.JFocus
 
 /** This is its own trait (and not just an alias) because it provides the ability to pass in an object containing
   * encoded discriminators.

@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,8 +15,6 @@
 package test.jsonapi.generic.encoding
 
 import org.scalactic.source.Position
-import org.scalatest.funspec.AnyFunSpec
-import org.scalatest.matchers.should.Matchers
 import org.scalawag.bateman.json._
 import org.scalawag.bateman.jsonapi.encoding.ResourceEncoder
 import org.scalawag.bateman.jsonapi.encoding.EncodeResult
@@ -25,7 +23,7 @@ import org.scalawag.bateman.jsonapi.syntax._
 import test.json.BatemanTestBase
 
 trait HListEncoderTestBase extends BatemanTestBase {
-  implicit class RichEncodable[A: ResourceEncoder](a: A) {
+  implicit class RichResourceEncodable[A: ResourceEncoder](a: A) {
     def shouldEncodeTo(json: JObject)(implicit position: Position): Unit =
       a.toDocument.render shouldBe json.render
   }

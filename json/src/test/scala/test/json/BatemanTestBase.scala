@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import org.scalacheck.Gen
 import org.scalactic.source.Position
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.{Assertion, Inside, OptionValues}
+import org.scalatest.{Assertion, EitherValues, Inside, OptionValues}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import org.scalawag.bateman.json
 import org.scalawag.bateman.json._
@@ -27,6 +27,7 @@ import org.scalawag.bateman.json.JErrors.formatErrorReport
 import org.scalawag.bateman.json.JType.Summoner
 import org.scalawag.bateman.json.focus.JRootFocus
 import org.scalawag.bateman.json.syntax._
+import org.scalawag.bateman.test.json.JAnyGenerators
 import org.typelevel.discipline.scalatest.FunSpecDiscipline
 
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime, ZoneOffset}
@@ -40,6 +41,7 @@ abstract class BatemanTestBase
     with ScalaCheckPropertyChecks
     with FunSpecDiscipline
     with JAnyGenerators
+    with EitherValues
     with OptionValues {
   implicit override val generatorDrivenConfig: PropertyCheckConfiguration =
     PropertyCheckConfiguration(sizeRange = 100, workers = 4)

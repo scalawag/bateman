@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -82,7 +82,7 @@ object IncludeSpec {
   def apply(spec: String, lengthLimit: Int = 1024, depthLimit: Int = 8): EncodeResult[IncludeSpec] = {
     def go(prefix: List[String], paths: Array[Array[String]]): IncludeSpec = {
       val children =
-        paths.groupBy(_.head).mapValues(_.map(_.tail)).toMap map {
+        paths.groupBy(_.head).map { case (k, v) => k -> v.map(_.tail) } map {
           case (h, pp) => h -> go(prefix :+ h, pp.filterNot(_.isEmpty))
         }
       Always(prefix.mkString("."), children)

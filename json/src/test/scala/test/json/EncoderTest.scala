@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ package test.json
 
 import cats.syntax.contravariant._
 import org.scalacheck.Arbitrary
-import org.scalactic.TolerantNumerics
+
 import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.syntax._
 
@@ -115,7 +115,7 @@ class EncoderTest extends BatemanTestBase {
     }
   }
 
-  describe("JArrayEncoder[") {
+  describe("JArrayEncoder[A]") {
     it("should encode empty array to empty list") {
       List.empty[JAny].toJAny shouldBe JArray.Empty
     }

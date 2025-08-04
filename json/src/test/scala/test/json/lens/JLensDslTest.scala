@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.lens.{focus, _}
 import org.scalacheck.Gen
 import test.json.BatemanTestBase
-import org.scalawag.bateman.json.focus.weak._
 
 class JLensDslTest extends BatemanTestBase {
   private val json = parseAs[JObject]("""
@@ -60,7 +59,7 @@ class JLensDslTest extends BatemanTestBase {
 
     it("should return the same focus") {
       forAll(genJFocus(genJAny)) { f =>
-        lens(f).map(_.foci) shouldBe f.rightNec
+        lens(f) shouldBe f.rightNec
       }
     }
 
@@ -74,13 +73,13 @@ class JLensDslTest extends BatemanTestBase {
 
     it("should return the same focus for root foci") {
       forAll(genJFocus(genJAny, 0)) { f =>
-        lens(f).map(_.foci) shouldBe f.rightNec
+        lens(f) shouldBe f.rightNec
       }
     }
 
     it("should return the root focus for deep foci") {
       forAll(genJFocus(genJAny)) { f =>
-        lens(f).map(_.foci) shouldBe f.root.rightNec
+        lens(f) shouldBe f.root.rightNec
       }
     }
 
@@ -90,11 +89,11 @@ class JLensDslTest extends BatemanTestBase {
   }
 
   describe("narrow") {
-    val lens: CreatableJLens[JAny, JString] = narrow[JString]
+    val lens: CreatableJLens[JAny, JString] = narrowTo[JString]
 
     it("should narrow the focus with an implicit decoder") {
       forAll(genJFocus(genJString)) { f =>
-        lens(f).map(_.foci) shouldBe f.rightNec
+        lens(f) shouldBe f.rightNec
       }
     }
 
@@ -102,7 +101,7 @@ class JLensDslTest extends BatemanTestBase {
       forAll(genJFocus(genJAny)) { f =>
         inside(f.value) {
           case s: JString =>
-            lens(f).map(_.foci) shouldBe f.rightNec
+            lens(f) shouldBe f.rightNec
           case _ =>
             lens(f) shouldBe JsonTypeMismatch(f, JString).leftNec
         }
@@ -120,7 +119,7 @@ class JLensDslTest extends BatemanTestBase {
       forAll(genJFocus(genNonEmptyJObject)) { f =>
         // Get a valid field name from the arbitrary object
         val name = f.value.fieldList.head.name.value
-        field(name)(f).map(_.foci) shouldBe f.fields.head.rightNec
+        field(name)(f) shouldBe f.fields.head.rightNec
       }
     }
 
@@ -173,7 +172,7 @@ class JLensDslTest extends BatemanTestBase {
 
     it("should extract multiple fields from the focused object") {
       forAll(genJFocus(genJObjectWithDuplicateFields)) { f =>
-        val Some(name) = getDuplicateFieldName(f.value)
+        val name = getDuplicateFieldName(f.value).value
         fields(name)(f).shouldSucceed.foci shouldBe f.fields(name)
       }
     }
@@ -262,7 +261,7 @@ class JLensDslTest extends BatemanTestBase {
 
       forAll(genArrayAndIndex) {
         case (f, i) =>
-          item(i)(f).map(_.foci) shouldBe f.items(i).rightNec
+          item(i)(f) shouldBe f.items(i).rightNec
       }
     }
 
@@ -353,7 +352,7 @@ class JLensDslTest extends BatemanTestBase {
 
       it("should work") {
         val lens: CreatableJLens[JAny, JAny] = field("a") ~> field("g")
-        lens(json).map(_.foci) shouldBe json.field("a").flatMap(_.asObject).flatMap(_.field("g"))
+        lens(json) shouldBe json.field("a").flatMap(_.asObject).flatMap(_.field("g"))
       }
 
       it("should fail fast if LHS fails") {
@@ -377,7 +376,7 @@ class JLensDslTest extends BatemanTestBase {
 
       it("should work") {
         val lens: IdJLens[JAny, JAny] = field("g") ~> item(1)
-        lens(json).map(_.foci) shouldBe json.field("g").flatMap(_.asArray).flatMap(_.item(1))
+        lens(json) shouldBe json.field("g").flatMap(_.asArray).flatMap(_.item(1))
       }
 
       it("should fail fast if LHS fails") {
@@ -448,7 +447,7 @@ class JLensDslTest extends BatemanTestBase {
     describe("IdJLens ~> CreatableJLens") {
       it("should work") {
         val lens: IdJLens[JAny, JAny] = 0 ~> "c"
-        lens(jarray).map(_.foci) shouldBe jarray.item(0).flatMap(_.asObject).flatMap(_.field("c"))
+        lens(jarray) shouldBe jarray.item(0).flatMap(_.asObject).flatMap(_.field("c"))
       }
 
       it("should fail fast if LHS fails") {

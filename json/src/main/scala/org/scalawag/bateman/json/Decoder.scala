@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ import cats.syntax.parallel._
 import cats.syntax.either._
 import org.scalawag.bateman.json.focus.{JFieldFocus, JFocus}
 import org.scalawag.bateman.json.validating.Validator
-import org.scalawag.bateman.json.focus.weak._
 
 import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
 import java.util.UUID
@@ -192,7 +191,6 @@ object Decoder extends DecoderLowP {
       .parTraverse { valueFocus =>
         val keyFocus = valueFocus match {
           case f: JFieldFocus[_, _] => JFieldFocus(f.name, f.name, f.index, f.parent)
-          case _                    => ???
         }
         (keyDecoder.decode(keyFocus), valueDecoder.decode(valueFocus)).tupled.map {
           case (kCursor, vCursor) =>

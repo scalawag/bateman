@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,9 +20,8 @@ import org.scalawag.bateman.json.lens.{focus, _}
 import org.scalawag.bateman.json.literal._
 import org.scalawag.bateman.jsonapi.generic.Annotations.Meta
 import HListMetaDecoderTest._
-import org.scalawag.bateman.jsonapi.generic.semiauto.unchecked._
+import org.scalawag.bateman.jsonapi.generic.semiauto._
 import org.scalawag.bateman.jsonapi.lens._
-import org.scalawag.bateman.json.focus.weak._
 
 object HListMetaDecoderTest {
   object MyIdMeta {
@@ -70,7 +69,7 @@ class HListMetaDecoderTest extends HListDecoderTestBase {
     {
       "type": "MyClass"
     }
-  """, focus ~> narrow[JObject])
+  """, focus ~> narrowTo[JObject])
 
   private val nonObjectMeta = Input(json"""
     {
@@ -102,7 +101,7 @@ class HListMetaDecoderTest extends HListDecoderTestBase {
         "a": null
       }
     }
-  """, meta("a") ~> narrow[JNull])
+  """, meta("a") ~> narrowTo[JNull])
 
   private val intMetaValue = Input(json"""
     {
@@ -129,7 +128,7 @@ class HListMetaDecoderTest extends HListDecoderTestBase {
         "a": [2,"3",5,null]
       }
     }
-  """, meta("a") ~> narrow[JArray])
+  """, meta("a") ~> narrowTo[JArray])
 
   describe("MyIdMeta") {
     import MyIdMeta._

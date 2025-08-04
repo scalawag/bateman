@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ package test.json.generic.decoding
 
 import org.scalawag.bateman.json.generic.Config
 import org.scalawag.bateman.json.generic.naming.{CamelCase, CaseTransformation, PascalCase}
-import org.scalawag.bateman.json.generic.semiauto.unchecked._
+import org.scalawag.bateman.json.generic.semiauto._
 import org.scalawag.bateman.json.lens.{focus, _}
 import org.scalawag.bateman.json.literal._
 import org.scalawag.bateman.json.{JNumber, _}
@@ -24,41 +24,41 @@ import org.scalawag.bateman.json.{JNumber, _}
 object FieldDecoderTest {
   object MyBareField {
     case class MyClass(a: Int)
-    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
+    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
   }
   object MyOptionField {
     case class MyClass(a: Option[Int])
-    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
+    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
   }
   object MyNullableField {
     case class MyClass(a: Nullable[Int])
-    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
+    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
   }
   object MyOptionNullableField {
     case class MyClass(a: Option[Nullable[Int]])
-    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
+    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
   }
   object MyBareFieldWithDefault {
     case class MyClass(a: Int = 417)
-    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
+    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
   }
   object MyOptionFieldWithDefault {
     case class MyClass(a: Option[Int] = Some(7))
-    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
+    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
   }
   object MyNullableFieldWithDefault {
     case class MyClass(a: Nullable[Int] = NotNull(7))
-    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
+    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
   }
   object MyOptionNullableFieldWithDefault {
     case class MyClass(a: Option[Nullable[Int]] = Some(NotNull(7)))
-    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
+    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
   }
 }
 
 class FieldDecoderTest extends DecoderTestBase {
-  private val emptyArray = Input(jsona"[]", focus)
-  private val emptyObject = Input(json"{}", focus ~> narrow[JObject])
+  private val emptyArray = Input(JArray(), focus)
+  private val emptyObject = Input(json"{}", focus ~> narrowTo[JObject])
   private val stringType = Input(json"""{"a": "oops"}""", "a")
   private val nullField = Input(json"""{"a": null}""", "a")
   private val intField = Input(json"""{"a": -17}""", "a")
@@ -145,8 +145,8 @@ class FieldDecoderTest extends DecoderTestBase {
 
   it("should heed the configuration for field names") {
     import FieldDecoderTest.MyBareField.MyClass
-    implicit val decoder: JObjectDecoder[MyClass] =
-      deriveDecoderForCaseClass[MyClass](Config(fieldNameMapping = CaseTransformation(CamelCase, PascalCase)))
+    implicit val config: Config = Config(fieldNameMapping = CaseTransformation(CamelCase, PascalCase))
+    implicit val decoder: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
 
     json"""{"A": -13437}""".asRootFocus.decode[MyClass].shouldSucceed shouldBe MyClass(-13437)
   }

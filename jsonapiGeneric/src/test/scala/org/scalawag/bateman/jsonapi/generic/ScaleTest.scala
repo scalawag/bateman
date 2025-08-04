@@ -385,7 +385,7 @@
 //        @Attribute f20: Option[Int] = None,
 //    )
 //
-//    implicit val codec = semiauto.unchecked.deriveResourceObjectCodecForCaseClass[MyClass]("my_class")
+//    implicit val codec = semiauto.deriveResourceObjectCodecForCaseClass[MyClass]("my_class")
 //
 //    val ro = parseAs[ResourceObject]("""
 //      {
@@ -422,7 +422,7 @@
 //        @Meta f20: Option[Int] = None,
 //    )
 //
-//    implicit val codec = semiauto.unchecked.deriveResourceObjectCodecForCaseClass[MyClass]("my_class")
+//    implicit val codec = semiauto.deriveResourceObjectCodecForCaseClass[MyClass]("my_class")
 //
 //    val ro = parseAs[ResourceObject]("""
 //      {

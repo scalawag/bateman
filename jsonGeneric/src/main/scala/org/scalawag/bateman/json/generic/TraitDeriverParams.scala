@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,11 +15,10 @@
 package org.scalawag.bateman.json.generic
 
 import org.scalawag.bateman.json.{JAny, JObject, ProgrammerError}
-import org.scalawag.bateman.json.lens.CreatableJLens
-import org.scalawag.bateman.json.focus.weak._
+import org.scalawag.bateman.json.lens.{CreatableJLens, CreatableJLensOps}
 import org.scalawag.bateman.json.generic.Discriminators.Discriminator
 
-import scala.reflect.{ClassTag, classTag}
+
 
 /** Contains all the arguments provided to a trait's encoder/decoder deriver at creation time.
   *
@@ -34,33 +33,22 @@ final case class TraitDeriverParams[F[_]](
 ) {
   implicit val implicitConfig: Config = config
 
-  // Adds a discriminator as the first field of the object. This is just my personal preference
-  // (as opposed to the last).
-  def addDiscriminator[A: ClassTag](base: JObject, value: JAny): JObject = {
-    val a = classTag[A]
-    base.asRootFocus(discriminatorLens.?).map(_.foci).map {
-      case Some(df) if df.value == base =>
+  /** Accumulates a discriminator value into the discriminators JObject. Each trait level in the hierarchy
+    * calls this to add its discriminator, building up a JObject that the leaf encoder will merge with the
+    * encoded fields. Uses the discriminator lens to write at the correct path (supporting nested
+    * discriminators like `meta.status`).
+    */
+  def addDiscriminator(discriminators: JObject, value: JAny): JObject = {
+    // Check for focus-is-root (the lens targets the object itself, not a child)
+    discriminators.asRootFocus(discriminatorLens.?).map(_.foci).map {
+      case Some(df) if df.value == discriminators =>
         throw ProgrammerError(s"""
           |discriminator issue...
           |The discriminator is not set to a child of the focus, but the focus itself.
           |Change your discriminator lens to focus on a value contained within the object.
         """.trim.stripMargin)
-      case Some(df) if df.value.stripLocation != value.stripLocation =>
-        throw ProgrammerError(s"""
-          |discriminator conflict...
-          |The concrete encoder has already encoded something in the location of the discriminator.
-          |This is not necessarily a problem except that it has a different value than what the
-          |abstract encoder wants to set it to.
-          |  concrete type: $a
-          |  discriminator: $discriminatorLens
-          |  concrete value: ${df.value.render}
-          |  abstract value: ${value.render}
-        """.trim.stripMargin)
       case _ =>
     }
-
-    // TODO: Make this impossible to fail somehow? The discriminator could be "focus" which would change
-    //       it from an object into something else.
-    base.asRootFocus.overwriteTo(discriminatorLens, value, prepend = true).root.asObject.map(_.value).getOrThrow
+    discriminators.asRootFocus.overwriteTo(discriminatorLens, value).value
   }
 }

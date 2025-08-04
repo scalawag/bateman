@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,12 +15,11 @@
 package test.json.generic.encoding
 
 import org.scalawag.bateman.json.generic.Config
-import org.scalawag.bateman.json.generic.naming.{CamelCase, CaseTransformation, PascalCase}
-import org.scalawag.bateman.json.generic.semiauto.unchecked.deriveEncoderForCaseClass
-import org.scalawag.bateman.json.lens.{focus, _}
+import org.scalawag.bateman.json.generic.naming.{CamelCase, PascalCase}
+import org.scalawag.bateman.json.generic.semiauto._
 import org.scalawag.bateman.json.syntax._
 import org.scalawag.bateman.json.literal._
-import org.scalawag.bateman.json.{JNumber, _}
+import org.scalawag.bateman.json._
 import test.json.BatemanTestBase
 
 object FieldEncoderTest {
@@ -53,7 +52,7 @@ object FieldEncoderTest {
 class FieldEncoderTest extends BatemanTestBase {
   describe("MyBareField") {
     import FieldEncoderTest.MyBareField._
-    import org.scalawag.bateman.json.generic.auto._
+    implicit val enc: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]
 
     it("should encode bare field") {
       MyClass(8) shouldEncodeTo json"""{"a": 8}"""
@@ -62,7 +61,7 @@ class FieldEncoderTest extends BatemanTestBase {
 
   describe("MyOptionField") {
     import FieldEncoderTest.MyOptionField._
-    import org.scalawag.bateman.json.generic.auto._
+    implicit val enc: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]
 
     it("should encode Some") {
       MyClass(Some(8)) shouldEncodeTo json"""{"a": 8}"""
@@ -75,7 +74,7 @@ class FieldEncoderTest extends BatemanTestBase {
 
   describe("MyNullableField") {
     import FieldEncoderTest.MyNullableField._
-    import org.scalawag.bateman.json.generic.auto._
+    implicit val enc: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]
 
     it("should encode NotNull") {
       MyClass(NotNull(8)) shouldEncodeTo json"""{"a": 8}"""
@@ -88,7 +87,7 @@ class FieldEncoderTest extends BatemanTestBase {
 
   describe("MyOptionNullableField") {
     import FieldEncoderTest.MyOptionNullableField._
-    import org.scalawag.bateman.json.generic.auto._
+    implicit val enc: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]
 
     it("should encode Some NotNull") {
       MyClass(Some(NotNull(8))) shouldEncodeTo json"""{"a": 8}"""
@@ -105,7 +104,7 @@ class FieldEncoderTest extends BatemanTestBase {
 
   describe("MyBareFieldWithDefault") {
     import FieldEncoderTest.MyBareFieldWithDefault._
-    import org.scalawag.bateman.json.generic.auto._
+    implicit val enc: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]
 
     it("should encode bare field") {
       MyClass(8) shouldEncodeTo json"""{"a": 8}"""
@@ -117,13 +116,14 @@ class FieldEncoderTest extends BatemanTestBase {
 
     it("should encode default value") {
       implicit val config: Config = Config(encodeDefaultValues = true)
+      implicit val enc: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]
       MyClass(417) shouldEncodeTo json"""{"a": 417}"""
     }
   }
 
   describe("MyOptionFieldWithDefault") {
     import FieldEncoderTest.MyOptionFieldWithDefault._
-    import org.scalawag.bateman.json.generic.auto._
+    implicit val enc: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]
 
     it("should encode Some") {
       MyClass(Some(8)) shouldEncodeTo json"""{"a": 8}"""
@@ -139,13 +139,14 @@ class FieldEncoderTest extends BatemanTestBase {
 
     it("should encode default value") {
       implicit val config: Config = Config(encodeDefaultValues = true)
+      implicit val enc: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]
       MyClass(Some(7)) shouldEncodeTo json"""{"a":7}"""
     }
   }
 
   describe("MyNullableFieldWithDefault") {
     import FieldEncoderTest.MyNullableFieldWithDefault._
-    import org.scalawag.bateman.json.generic.auto._
+    implicit val enc: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]
 
     it("should encode NotNull") {
       MyClass(NotNull(8)) shouldEncodeTo json"""{"a": 8}"""
@@ -161,13 +162,14 @@ class FieldEncoderTest extends BatemanTestBase {
 
     it("should encode default value") {
       implicit val config: Config = Config(encodeDefaultValues = true)
+      implicit val enc: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]
       MyClass(NotNull(7)) shouldEncodeTo json"""{"a": 7}"""
     }
   }
 
   describe("MyOptionNullableFieldWithDefault") {
     import FieldEncoderTest.MyOptionNullableFieldWithDefault._
-    import org.scalawag.bateman.json.generic.auto._
+    implicit val enc: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]
 
     it("should encode Some NotNull") {
       MyClass(Some(NotNull(8))) shouldEncodeTo json"""{"a": 8}"""
@@ -187,6 +189,7 @@ class FieldEncoderTest extends BatemanTestBase {
 
     it("should encode default value") {
       implicit val config: Config = Config(encodeDefaultValues = true)
+      implicit val enc: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]
       MyClass(Some(NotNull(7))) shouldEncodeTo json"""{"a": 7}"""
     }
   }
@@ -197,8 +200,8 @@ class FieldEncoderTest extends BatemanTestBase {
 
   it("should heed the configuration for field names") {
     import FieldEncoderTest.MyBareField.MyClass
-    implicit val decoder: JAnyEncoder[MyClass] =
-      deriveEncoderForCaseClass[MyClass](Config(fieldNameMapping = CamelCase to PascalCase))
+    implicit val config: Config = Config(fieldNameMapping = CamelCase to PascalCase)
+    implicit val encoder: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]
 
     MyClass(-13437) shouldEncodeTo json"""{"A": -13437}"""
   }

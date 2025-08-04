@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,11 +15,7 @@
 package org.scalawag.bateman.json
 
 import cats.{Monoid, Order}
-import cats.syntax.either._
-import org.scalawag.bateman.json.JNull.JNullImpl
 import org.scalawag.bateman.json.focus.JRootFocus
-
-import scala.annotation.tailrec
 
 /** Represents the type of JSON value as metadata. */
 
@@ -78,22 +74,9 @@ object JAny {
       * returns a focus, which can be used directly for the aforementioned activities without calling this method.
       */
 
-    def asRootFocus: JRootFocus[A] =
-      JRootFocus(me)
+    def asRootFocus: JRootFocus[A] = JRootFocus(me)
 
-    def stripLocation: A = {
-      if (me.location.isEmpty)
-        me
-      else
-        me match {
-          case in: JString  => in.copy(location = None)
-          case in: JNumber  => in.copy(location = None)
-          case in: JBoolean => in.copy(location = None)
-          case in: JNull    => JNull
-          case in: JArray   => in.copy(items = in.items.map(_.stripLocation), location = None)
-          case in: JObject  => in.copy(fieldList = in.fieldList.map(_.stripLocation), location = None)
-        }
-    }.asInstanceOf[A]
+    def stripLocation(implicit ls: LocationStripper[A]): A = ls.stripLocation(me)
   }
 }
 
@@ -171,7 +154,7 @@ case object JBoolean extends JType {
   * @param location the lexical position of this value in the incoming JSON text (if applicable)
   */
 
-final case class JNumber private[json] (value: String, location: Option[JLocation]) extends JAny {
+final case class JNumber private[bateman] (value: String, location: Option[JLocation]) extends JAny {
   override val jType: JType = JNumber
 
   lazy val toBigDecimal: BigDecimal = BigDecimal(value)

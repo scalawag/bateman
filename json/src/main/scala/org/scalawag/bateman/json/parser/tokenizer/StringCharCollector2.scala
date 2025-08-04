@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,6 +23,10 @@ import org.scalawag.bateman.json.parser.SyntaxError
 // UPDATE 2022-04-24 - switching from Stream to LazyList prevents the heap from blwoing up, but this implementation
 // still seems to be about 3x slower that the other one, so I'm going to leave that one in place until I can
 // investigate further.
+//
+// UPDATE 2026-02-17 - I made even more improvements to the StringCharCollector and now it's even faster. I guess the
+// question is whether I'll ever want to go back to this style, despite is sluggishness. Leaving here for posterity.
+// This code is not used.
 
 private[parser] object StringCharCollector2 extends CharCollector {
   private def isHex(c: Char) = c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F'

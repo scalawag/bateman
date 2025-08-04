@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,12 +14,8 @@
 
 package test.jsonapi.encoding
 
-import cats.data.NonEmptyChain
-import cats.syntax.either._
-import org.scalawag.bateman.json.JString
 import org.scalawag.bateman.jsonapi.encoding.FieldsSpec.Fields
-import org.scalawag.bateman.jsonapi.encoding.IncludeSpec.{Never, Opportunistically}
-import org.scalawag.bateman.jsonapi.encoding.{FieldsSpec, IncludePathTooDeep, IncludeSpec, IncludeTooLong}
+import org.scalawag.bateman.jsonapi.encoding.FieldsSpec
 import test.json.BatemanTestBase
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen._

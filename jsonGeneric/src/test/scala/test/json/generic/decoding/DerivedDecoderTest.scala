@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,13 +16,13 @@ package test.json.generic.decoding
 
 import cats.syntax.either._
 import org.scalawag.bateman.json.generic.Discriminators.{CustomDiscriminator, forType}
-import org.scalawag.bateman.json.generic.decoding.{InvalidDiscriminator, JSource}
+import org.scalawag.bateman.json.generic.decoding.JSource
 import org.scalawag.bateman.json.generic.naming.{CamelCase, CaseTransformation, PascalCase, SnakeCase}
-import org.scalawag.bateman.json.generic.{Config, Source, semiauto}
-import org.scalawag.bateman.json.literal.JsonStringContext
+import org.scalawag.bateman.json.generic.{Config, Source}
+import org.scalawag.bateman.json.literal._
+import org.scalawag.bateman.json.generic.decoding.InvalidDiscriminator
 import org.scalawag.bateman.json.{
   JNumber,
-  JObject,
   JObjectDecoder,
   JString,
   JsonTypeMismatch,
@@ -30,6 +30,8 @@ import org.scalawag.bateman.json.{
   ProgrammerError,
   UnexpectedValue
 }
+import org.scalawag.bateman.json.lens.stringToLens
+import org.scalawag.bateman.json.generic.semiauto._
 import test.json.BatemanTestBase
 
 class DerivedDecoderTest extends BatemanTestBase {
@@ -39,7 +41,7 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"a": 7, "b": "XXX", "c": true}""".asRootFocus
 
-    implicit val dec: JObjectDecoder[X] = semiauto.unchecked.deriveDecoderForCaseClass[X]()
+    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
     val da = JObjectDecoder[X].decode(json)
     da shouldBe X(7, "XXX", true).rightNec
   }
@@ -49,7 +51,7 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"a": 7, "b": "XXX", "c": true}""".asRootFocus
 
-    import org.scalawag.bateman.json.generic.auto._
+    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
 
     val da = JObjectDecoder[X].decode(json)
     da shouldBe X(7, "XXX", true).rightNec
@@ -60,7 +62,7 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"a": "7", "b": "XXX", "c": true}""".asRootFocus
 
-    import org.scalawag.bateman.json.generic.auto._
+    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
 
     val da = JObjectDecoder[X].decode(json)
     da shouldBe JsonTypeMismatch(json.fields.head, JNumber).leftNec
@@ -71,7 +73,7 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"b": "XXX", "c": true}""".asRootFocus
 
-    import org.scalawag.bateman.json.generic.auto._
+    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
 
     val da = JObjectDecoder[X].decode(json)
     da shouldBe MissingField(json, "a").leftNec
@@ -82,7 +84,7 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"a": 7}""".asRootFocus
 
-    import org.scalawag.bateman.json.generic.auto._
+    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
 
     val da = JObjectDecoder[X].decode(json)
     da shouldBe X(7, "jack", false).rightNec
@@ -93,7 +95,7 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"a": 7, "b": "XXX"}""".asRootFocus
 
-    import org.scalawag.bateman.json.generic.auto._
+    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
 
     val da = JObjectDecoder[X].decode(json)
     da shouldBe X(7, "XXX", false).rightNec
@@ -104,9 +106,8 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"a": 7, "c": true}""".asRootFocus
 
-    import org.scalawag.bateman.json.generic.auto._
-
-    implicit val config = Config(useDefaultsForMissingFields = false)
+    implicit val config: Config = Config(useDefaultsForMissingFields = false)
+    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
     val da = JObjectDecoder[X].decode(json)
     da shouldBe MissingField(json, "b").leftNec
   }
@@ -116,7 +117,7 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"a": 7, "b": "XXX", "c": true, "d": {}}""".asRootFocus
 
-    import org.scalawag.bateman.json.generic.auto._
+    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
 
     val da = JObjectDecoder[X].decode(json)
     da shouldBe X(7, "XXX", true).rightNec
@@ -127,9 +128,8 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"a": 7, "b": "XXX", "d": 5.67}""".asRootFocus
 
-    import org.scalawag.bateman.json.generic.auto._
-
     implicit val config: Config = Config(allowUnknownFields = false)
+    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
     val da = JObjectDecoder[X].decode(json)
     da shouldBe UnexpectedValue(json.field("d").shouldSucceed).leftNec
   }
@@ -139,9 +139,8 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"longer_name": "7", "d": 5.67}""".asRootFocus
 
-    import org.scalawag.bateman.json.generic.auto._
-
     implicit val config: Config = Config(allowUnknownFields = false, fieldNameMapping = CamelCase to SnakeCase)
+    implicit val dec: JObjectDecoder[YNamedClass] = deriveDecoderForCaseClass[YNamedClass]
     val da = JObjectDecoder[YNamedClass].decode(json)
     da shouldBe UnexpectedValue(json.field("d").shouldSucceed).leftNec
   }
@@ -151,7 +150,9 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"a": 7}""".asRootFocus
 
-    import org.scalawag.bateman.json.generic.auto._
+    implicit val xdec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
+    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]
+    implicit val dec: JObjectDecoder[Z] = deriveDecoderForTrait[Z]()
     val da = JObjectDecoder[Z].decode(json)
     da shouldBe MissingField(json, "type").leftNec
   }
@@ -161,7 +162,9 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"type": "X", "a": 7}""".asRootFocus
 
-    import org.scalawag.bateman.json.generic.auto._
+    implicit val xdec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
+    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]
+    implicit val dec: JObjectDecoder[Z] = deriveDecoderForTrait[Z]()
 
     val da = JObjectDecoder[Z].decode(json)
     da shouldBe X(7, "jack", false).rightNec
@@ -172,12 +175,12 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"type": "XX", "a": 7}""".asRootFocus
 
-    implicit val xdec: JObjectDecoder[X] = semiauto.unchecked.deriveDecoderForCaseClass[X]()
-    implicit val ydec: JObjectDecoder[Y] = semiauto.unchecked.deriveDecoderForCaseClass[Y]()
-    implicit val dec: JObjectDecoder[Z] = semiauto.unchecked.deriveDecoderForTrait[Z](discriminator =
+    implicit val xdec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
+    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]
+    implicit val dec: JObjectDecoder[Z] = deriveDecoderForTrait[Z](discriminator =
       CustomDiscriminator(
-        forType[X]("XX"),
-        forType[Y]("YY"),
+        forType[X].apply[JObjectDecoder, String]("XX"),
+        forType[Y].apply[JObjectDecoder, String]("YY"),
       )
     )
     val da = JObjectDecoder[Z].decode(json)
@@ -189,7 +192,9 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"type": "X"}""".asRootFocus
 
-    import org.scalawag.bateman.json.generic.auto._
+    implicit val xdec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
+    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]
+    implicit val dec: JObjectDecoder[Z] = deriveDecoderForTrait[Z]()
 
     val da = JObjectDecoder[Z].decode(json)
     // The discriminator field is stripped from the object by the abstract decoder before the concrete decoder has a go.
@@ -201,9 +206,8 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"longer_name": "XXX"}""".asRootFocus
 
-    import org.scalawag.bateman.json.generic.auto._
-
     implicit val config: Config = Config(fieldNameMapping = CaseTransformation(CamelCase, SnakeCase))
+    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
     val da = JObjectDecoder[X].decode(json)
     da shouldBe X("XXX").rightNec
   }
@@ -213,42 +217,27 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"type": "z_named_class"}""".asRootFocus
 
-    import org.scalawag.bateman.json.generic.auto._
-
     implicit val config: Config = Config(classNameMapping = PascalCase to SnakeCase)
+    implicit val ydec: JObjectDecoder[YNamedClass] = deriveDecoderForCaseClass[YNamedClass]
+    implicit val zdec: JObjectDecoder[ZNamedClass] = deriveDecoderForCaseClass[ZNamedClass]
+    implicit val dec: JObjectDecoder[XNamedClass] = deriveDecoderForTrait[XNamedClass]()
     val da = JObjectDecoder[XNamedClass].decode(json)
     da.shouldSucceed shouldBe ZNamedClass()
   }
 
   it("should detect invalid discriminator") {
+    import DerivedDecoderTest.LongNames._
+
     val json = json"""{"type": "x_named_class"}""".asRootFocus
 
-    import DerivedDecoderTest.LongNames._
-    import org.scalawag.bateman.json.generic.auto._
-
     implicit val config: Config = Config(classNameMapping = CaseTransformation(PascalCase, SnakeCase))
+    implicit val ydec: JObjectDecoder[YNamedClass] = deriveDecoderForCaseClass[YNamedClass]
+    implicit val zdec: JObjectDecoder[ZNamedClass] = deriveDecoderForCaseClass[ZNamedClass]
+    implicit val dec: JObjectDecoder[XNamedClass] = deriveDecoderForTrait[XNamedClass]()
     json.decode[XNamedClass] shouldBe InvalidDiscriminator(
-      json.field("type").flatMap(_.asString).shouldSucceed,
+      json.field("type").shouldSucceed,
       Set(JString("y_named_class"), JString("z_named_class"))
     ).leftNec
-  }
-
-  object Data {
-    import org.scalawag.bateman.json.generic.semiauto.unchecked._
-
-    sealed trait XNamedClass
-    case class YNamedClass(longerName: String) extends XNamedClass
-    case class ZNamedClass(b: Int = 8) extends XNamedClass
-
-    object XNamedClass {
-      implicit def xdec: JObjectDecoder[XNamedClass] = deriveDecoderForTrait[XNamedClass]()
-    }
-    object YNamedClass {
-      implicit def ydec: JObjectDecoder[YNamedClass] = deriveDecoderForCaseClass[YNamedClass]()
-    }
-    object ZNamedClass {
-      implicit def zdec: JObjectDecoder[ZNamedClass] = deriveDecoderForCaseClass[ZNamedClass]()
-    }
   }
 
   describe("source annotation") {
@@ -257,7 +246,8 @@ class DerivedDecoderTest extends BatemanTestBase {
 
       val json = json"""{"b": 31}""".asRootFocus
 
-      val decoded = semiauto.unchecked.deriveDecoderForCaseClass[MyClass]().decode(json)
+      val dec: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+      val decoded = dec.decode(json)
       decoded.shouldSucceed shouldBe MyClass(
         31,
         JSource(json, Map("b" -> json.field("b").shouldSucceed))
@@ -269,72 +259,23 @@ class DerivedDecoderTest extends BatemanTestBase {
 
       val json = json"""{"b": 31}""".asRootFocus
 
-      val decoded = semiauto.unchecked.deriveDecoderForCaseClass[MyClass]().decode(json)
+      val dec: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+      val decoded = dec.decode(json)
       decoded.shouldSucceed shouldBe MyClass(
         31,
         Some(JSource(json, Map("b" -> json.field("b").shouldSucceed)))
       )
     }
-
-    it("should not inject source into a wrongly-typed field") {
-      case class MyClass(b: Int, @Source src: String)
-
-      val json = json"""{"b": 31}""".asRootFocus
-
-      assertTypeError("""
-        semiauto.unchecked.deriveDecoder[MyClass].decode(json)
-      """)
-    }
-
-    it("should fail to compile unannotated source field") {
-      case class MyClass(b: Int, src: JSource)
-
-      assertTypeError(
-        """semiauto.unchecked.deriveDecoderForCaseClass[MyClass]()"""
-      )
-    }
   }
 
   it("should ignore discriminator collisions on decoding") {
-    import org.scalawag.bateman.json.generic.auto._
     import test.json.generic.decoding.DerivedDecoderTest.DiscriminatorCollision._
 
+    implicit val xdec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
+    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]
+    implicit val dec: JObjectDecoder[Z] = deriveDecoderForTrait[Z]()
+
     json"""{"type": "Y","a": 8, "b": 12 }""".asRootFocus.decode[Z].shouldSucceed shouldBe Y(8, 12, "Y")
-  }
-
-  describe("config override") {
-    import DerivedDecoderTest.LongNames._
-
-    implicit val ydec: JObjectDecoder[YNamedClass] =
-      semiauto.unchecked.deriveDecoderForCaseClass[YNamedClass]()
-    implicit val zdec: JObjectDecoder[ZNamedClass] =
-      semiauto.unchecked.deriveDecoderForCaseClass[ZNamedClass]()
-
-    val json = json"""{"type": "???"}""".asRootFocus
-
-    it("should replace the implicit config") {
-      implicit val xdec: JObjectDecoder[XNamedClass] =
-        semiauto.unchecked.deriveDecoderForTrait[XNamedClass](
-          config = (_: Config).copy(classNameMapping = PascalCase to SnakeCase)
-        )
-
-      json.decode[XNamedClass].shouldFailSingle shouldBe InvalidDiscriminator(
-        json.field("type").flatMap(_.asString).shouldSucceed,
-        Set(JString("y_named_class"), JString("z_named_class"))
-      )
-    }
-
-    it("should use the passed-in config") {
-      implicit val xdec: JObjectDecoder[XNamedClass] =
-        semiauto.unchecked.deriveDecoderForTrait[XNamedClass](
-          config = Config(classNameMapping = PascalCase to SnakeCase)
-        )
-
-      json.decode[XNamedClass].shouldFailSingle shouldBe InvalidDiscriminator(
-        json.field("type").flatMap(_.asString).shouldSucceed,
-        Set(JString("y_named_class"), JString("z_named_class"))
-      )
-    }
   }
 
   describe("custom discriminators") {
@@ -344,10 +285,10 @@ class DerivedDecoderTest extends BatemanTestBase {
 
       val json = json"""{"type": "x", "a": 31}""".asRootFocus
 
-      implicit val ydec: JObjectDecoder[Y.Inner] = semiauto.unchecked.deriveDecoderForCaseClass[Y.Inner]()
-      implicit val zdec: JObjectDecoder[Z.Inner] = semiauto.unchecked.deriveDecoderForCaseClass[Z.Inner]()
+      implicit val ydec: JObjectDecoder[Y.Inner] = deriveDecoderForCaseClass[Y.Inner]
+      implicit val zdec: JObjectDecoder[Z.Inner] = deriveDecoderForCaseClass[Z.Inner]
       val ex = intercept[ProgrammerError] {
-        semiauto.unchecked.deriveDecoderForTrait[X.Inner]()
+        deriveDecoderForTrait[X.Inner]()
       }
       ex.description should include("Inner")
     }
@@ -357,9 +298,9 @@ class DerivedDecoderTest extends BatemanTestBase {
 
       val json = json"""{"class": "z", "a": 31}""".asRootFocus
 
-      implicit val ydec: JObjectDecoder[Y.Inner] = semiauto.unchecked.deriveDecoderForCaseClass[Y.Inner]()
-      implicit val zdec: JObjectDecoder[Z.Inner] = semiauto.unchecked.deriveDecoderForCaseClass[Z.Inner]()
-      implicit val xdec: JObjectDecoder[X.Inner] = semiauto.unchecked.deriveDecoderForTrait[X.Inner](
+      implicit val ydec: JObjectDecoder[Y.Inner] = deriveDecoderForCaseClass[Y.Inner]
+      implicit val zdec: JObjectDecoder[Z.Inner] = deriveDecoderForCaseClass[Z.Inner]
+      implicit val xdec: JObjectDecoder[X.Inner] = deriveDecoderForTrait[X.Inner](
         "class",
         CustomDiscriminator(
           forType[Y.Inner]("y"),

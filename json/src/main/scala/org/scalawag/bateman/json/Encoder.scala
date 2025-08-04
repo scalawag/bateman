@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -43,8 +43,8 @@ object Encoder {
   implicit val shortEncoder: JNumberEncoder[Short] = JNumber(_)
   implicit val intEncoder: JNumberEncoder[Int] = JNumber(_)
   implicit val longEncoder: JNumberEncoder[Long] = JNumber(_)
-  implicit val floatEncoder: JNumberEncoder[Float] = JNumber(_)
-  implicit val doubleEncoder: JNumberEncoder[Double] = JNumber(_)
+  implicit val floatEncoder: JNumberEncoder[Float] = f => JNumber.unsafe(f.toString)
+  implicit val doubleEncoder: JNumberEncoder[Double] = d => JNumber.unsafe(d.toString)
   implicit val bigIntEncoder: JNumberEncoder[BigInt] = JNumber(_)
   implicit val bigDecEncoder: JNumberEncoder[BigDecimal] = JNumber(_)
 
@@ -56,32 +56,46 @@ object Encoder {
   implicit val instantEncoder: JStringEncoder[Instant] = stringEncoder.contramap(_.toString)
 
   // Encodes the value ignoring the focus.
-  implicit def focusEncoder[A <: JAny, B](implicit enc: Encoder[A, B]): Encoder[JFocus[A], B] = l => enc.encode(l.value)
+  implicit def focusEncoder[A <: JAny, B](implicit enc: Encoder[A, B]): Encoder[JFocus[A], B] =
+    new Encoder[JFocus[A], B] {
+      override def encode(l: JFocus[A]): B = enc.encode(l.value)
+    }
 
-  implicit def nullableEncoder[A: JAnyEncoder]: JAnyEncoder[Nullable[A]] = {
-    case NotNull(a) => a.toJAny
-    case Null       => JNull
-  }
+  implicit def nullableEncoder[A: JAnyEncoder]: JAnyEncoder[Nullable[A]] =
+    new JAnyEncoder[Nullable[A]] {
+      override def encode(nullable: Nullable[A]): JAny =
+        nullable match {
+          case NotNull(a) => a.toJAny
+          case Null       => JNull
+        }
+    }
 
-  implicit def seqEncoder[A: JAnyEncoder]: JArrayEncoder[Seq[A]] = { aa =>
-    JArray(aa.map(_.toJAny): _*)
-  }
+  implicit def seqEncoder[A: JAnyEncoder]: JArrayEncoder[Seq[A]] =
+    new JArrayEncoder[Seq[A]] {
+      override def encode(aa: Seq[A]): JArray = JArray(aa.map(_.toJAny): _*)
+    }
 
   implicit def listEncoder[A: JAnyEncoder]: JArrayEncoder[List[A]] = seqEncoder[A].contramap(_.toSeq)
 
-  implicit def mapEncoder[A: JStringEncoder, B: JAnyEncoder]: JObjectEncoder[Map[A, B]] = { (m, _) =>
-    JObject(
-      m.map { case (k, v) => JField(k.to[JString], v.toJAny) }.toList.sortBy(_.name.value),
-      None
-    )
-  }
+  implicit def mapEncoder[A: JStringEncoder, B: JAnyEncoder]: JObjectEncoder[Map[A, B]] =
+    new JObjectEncoder[Map[A, B]] {
+      def encode(m: Map[A, B], discriminators: JObject): JObject = {
+        JObject(
+          m.map { case (k, v) => JField(k.to[JString], v.toJAny) }.toList.sortBy(_.name.value),
+          None
+        )
+      }
+    }
 
-  implicit def pairsEncoder[A: JStringEncoder, B: JAnyEncoder]: JObjectEncoder[Seq[(A, B)]] = { (m, _) =>
-    JObject(
-      m.map { case (k, v) => JField(k.to[JString], v.toJAny) }.toList,
-      None
-    )
-  }
+  implicit def pairsEncoder[A: JStringEncoder, B: JAnyEncoder]: JObjectEncoder[Seq[(A, B)]] =
+    new JObjectEncoder[Seq[(A, B)]] {
+      def encode(m: Seq[(A, B)], discriminators: JObject): JObject = {
+        JObject(
+          m.map { case (k, v) => JField(k.to[JString], v.toJAny) }.toList,
+          None
+        )
+      }
+    }
 
   implicit def contravariantForEncoder[R]: Contravariant[Encoder[*, R]] =
     new Contravariant[Encoder[*, R]] {

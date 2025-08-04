@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import org.scalawag.bateman.json.lens.{focus, _}
 import org.scalawag.bateman.json.literal._
 import org.scalawag.bateman.jsonapi.generic.Annotations.Type
 import HListTypeDecoderTest._
-import org.scalawag.bateman.jsonapi.generic.semiauto.unchecked._
+import org.scalawag.bateman.jsonapi.generic.semiauto._
 import org.scalawag.bateman.jsonapi.lens._
 
 object HListTypeDecoderTest {
@@ -40,9 +40,9 @@ object HListTypeDecoderTest {
 
 class HListTypeDecoderTest extends HListDecoderTestBase {
   private val nonObjectResource = Input(jsona"[]", focus)
-  private val emptyResource = Input(json"{}", focus ~> narrow[JObject])
-  private val nonStringType = Input(json"""{"type":{}}""", focus ~> "type" ~> narrow[JObject])
-  private val nullTypeValue = Input(json"""{"type": null}""", focus ~> "type" ~> narrow[JNull])
+  private val emptyResource = Input(json"{}", focus ~> narrowTo[JObject])
+  private val nonStringType = Input(json"""{"type":{}}""", focus ~> "type" ~> narrowTo[JObject])
+  private val nullTypeValue = Input(json"""{"type": null}""", focus ~> "type" ~> narrowTo[JNull])
   private val stringTypeValue = Input(json"""{"type":"MyClass"}""", resourceType)
 
   describe("MyStringType") {

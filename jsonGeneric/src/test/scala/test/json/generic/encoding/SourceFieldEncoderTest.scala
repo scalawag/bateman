@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ package test.json.generic.encoding
 import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.generic.decoding.JSource
 import org.scalawag.bateman.json.syntax._
-import org.scalawag.bateman.json.generic.semiauto.unchecked._
+import org.scalawag.bateman.json.generic.semiauto._
 import org.scalawag.bateman.json.generic.{Config, Source}
 import org.scalawag.bateman.json.literal._
 import test.json.BatemanTestBase
@@ -25,19 +25,19 @@ import test.json.BatemanTestBase
 object SourceFieldEncoderTest {
   object MySourceField {
     case class MyClass(@Source a: JSource, b: Int)
-    implicit val encoderForMyClass: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]()
+    implicit val encoderForMyClass: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]
   }
   object MyOptionSourceField {
     case class MyClass(@Source a: Option[JSource], b: Int)
-    implicit val encoderForMyClass: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]()
+    implicit val encoderForMyClass: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]
   }
   object MySourceFieldWithDefault {
     case class MyClass(@Source a: JSource = JSource(JObject("c" -> JNull).asRootFocus), b: Int = 42)
-    implicit val encoderForMyClass: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]()
+    implicit val encoderForMyClass: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]
   }
   object MyOptionSourceFieldWithDefault {
     case class MyClass(@Source a: Option[JSource] = Some(JSource(JObject("c" -> JNull).asRootFocus)), b: Int = 77)
-    implicit val encoderForMyClass: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]()
+    implicit val encoderForMyClass: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]
   }
 }
 

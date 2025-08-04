@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,9 +13,6 @@
 // limitations under the License.
 
 package org.scalawag.bateman.json.generic
-
-import org.scalawag.bateman.json.Decoder
-import org.scalawag.bateman.json.generic.decoding.JSource
 
 /** Marks a case class field for source injection. This means that, instead of pulling the value from a field of the
   * input JSON object, metadata about the decoding is injected into the field. All fields with this tag should be

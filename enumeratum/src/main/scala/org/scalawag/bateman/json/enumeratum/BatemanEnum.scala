@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@ package org.scalawag.bateman.json.enumeratum
 
 import enumeratum.{Enum, EnumEntry}
 import cats.syntax.either._
-import cats.syntax.functor._
 import cats.syntax.contravariant._
 import org.scalawag.bateman.json.{Decoder, Encoder, InvalidValue, JError, JString, JStringDecoder, JStringEncoder}
 

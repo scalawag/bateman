@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import org.scalawag.bateman.json.validating.{EmptyTraitValidatedCompanion, Valid
 import test.json.validating.EmptyTraitValidatedCompanionTest.NonNegativeInteger
 
 object EmptyTraitValidatedCompanionTest {
-  trait NonNegativeInteger { _: Int => }
+  trait NonNegativeInteger { self: Int => }
 
   object NonNegativeInteger extends EmptyTraitValidatedCompanion[Int, NonNegativeInteger] {
     override def validate(in: Int): List[String] =

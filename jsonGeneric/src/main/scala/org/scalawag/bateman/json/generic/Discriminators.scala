@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@
 
 package org.scalawag.bateman.json.generic
 
-import scala.language.higherKinds
 import org.scalawag.bateman.json.JErrorFormatters._
 import org.scalawag.bateman.json.{JAny, JAnyEncoder, ProgrammerError}
 import org.scalawag.bateman.json.syntax._
@@ -42,9 +41,16 @@ object Discriminators {
     def apply[A: ClassTag](implicit config: Config, default: F[A]): DiscriminatorMapping[F, A]
   }
 
-  /** A discriminator implementation that just uses the last word of the class name of the concrete type and puts
-    * it into the location specified by the lens. It never returns an explicit type class instance because it has
-    * no means of acquiring one.
+  /** The default discriminator strategy. Derives the discriminator value automatically from the concrete type's
+    * class name by taking the last word (after any `$` or `.` separators) and running it through
+    * [[Config.classNameMapping]]. For example, `com.example.MyEvent$Completed` becomes `"Completed"` (or
+    * `"completed"` with snake_case mapping).
+    *
+    * This discriminator forbids duplicate values — if two concrete types produce the same discriminator value
+    * (e.g., identically-named classes in different packages), derivation fails at construction time.
+    *
+    * Never returns an explicit type class instance, so the implicitly-resolved encoder/decoder for each
+    * concrete type is always used.
     */
   class SimpleClassNameDiscriminator[F[_]] extends Discriminator[F] {
     override val duplicateValuesForbidden: Boolean = true
@@ -59,6 +65,21 @@ object Discriminators {
     def apply[F[_]]: SimpleClassNameDiscriminator[F] = new SimpleClassNameDiscriminator[F]
   }
 
+  /** A discriminator strategy that uses caller-provided mappings to determine discriminator values for each
+    * concrete type. This is needed when:
+    *   - The automatic class name mapping is insufficient (e.g., you want custom discriminator values)
+    *   - You have a multi-level sealed trait hierarchy and need layered discriminators with explicit
+    *     encoders/decoders that route through intermediate trait encoders
+    *
+    * Each mapping is a [[DiscriminatorMapper]] created via [[forType]], which associates a concrete type
+    * with a discriminator value and optionally captures an explicit type class instance. When an explicit
+    * instance is provided (e.g., a trait encoder for an intermediate sealed trait), it is used instead of
+    * the default implicit instance, enabling nested discrimination.
+    *
+    * By default, duplicate discriminator values are forbidden. Use the two-argument constructor to allow
+    * them (e.g., when multiple concrete types intentionally share a discriminator because they are
+    * distinguished by a second discriminator at a deeper level).
+    */
   case class CustomDiscriminator[F[_], A: ClassTag](duplicateValuesForbidden: Boolean)(
       mappers: DiscriminatorMapper[F, _ <: A]*
   ) extends Discriminator[F] {
@@ -77,6 +98,12 @@ object Discriminators {
       CustomDiscriminator(duplicateValuesForbidden = true)(mappers: _*)
   }
 
+  /** Associates a concrete type `A` with a discriminator value and captures the type class instance `F[A]`.
+    * Used within [[CustomDiscriminator]] mappings. When the discriminator is asked about a type `B`, this
+    * mapper responds if `A` is assignable from `B` (i.e., `B` is `A` or a subtype of `A`). This subtype
+    * matching is what enables layered discriminators: a mapper for an intermediate sealed trait will match
+    * all of that trait's concrete subtypes, routing them through the trait's own encoder/decoder.
+    */
   case class DiscriminatorMapper[F[_], A: ClassTag](value: JAny)(implicit F: F[A]) {
     def apply[B: ClassTag]: Option[DiscriminatorMapping[F, A]] = {
       val a: ClassTag[A] = classTag[A]
@@ -88,6 +115,12 @@ object Discriminators {
     }
   }
 
+  /** Entry point for building [[DiscriminatorMapper]] instances in a [[CustomDiscriminator]].
+    *
+    * Usage: `forType[MyConcreteType]("my_discriminator_value")` or, for layered discriminators,
+    * `forType[MyIntermediateTrait]("my_discriminator_value")` where an implicit encoder/decoder
+    * for the intermediate trait is in scope.
+    */
   def forType[A] = new ForTypeBuilder[A]
 
   class ForTypeBuilder[A] {

@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,8 +14,9 @@
 
 package test.json.focus
 
-import org.scalawag.bateman.json.JObject
-import org.scalawag.bateman.json.focus.weak._
+import org.scalawag.bateman.json._
+import org.scalawag.bateman.json.focus._
+import org.scalawag.bateman.json.lens._
 import test.json.BatemanTestBase
 
 class JFocusTest extends BatemanTestBase {
@@ -31,9 +32,12 @@ class JFocusTest extends BatemanTestBase {
         {
           "c": 8
         },
-        "foo",
-        []
+        {
+          "c": 12
+        }
       ],
+      "h": [1, 2, 3],
+      "opt": { "x": 99 },
       "deep": [
         [
           { "a": 4 },
@@ -49,6 +53,63 @@ class JFocusTest extends BatemanTestBase {
     }
   """)
 
-  def jarray = json.field("g").flatMap(_.asArray).shouldSucceed.value.asRootFocus
+  describe("decodeFrom (focus lens)") {
+    it("should decode a nested field") {
+      json.decodeFrom[Int]("a" ~> "g") shouldBe Right(4)
+    }
 
+    it("should decode a top-level field") {
+      json.decodeFrom[Int]("b") shouldBe Right(6)
+    }
+
+    it("should decode a string field") {
+      json.decodeFrom[String]("a" ~> "f") shouldBe Right("thing")
+    }
+
+    it("should fail on type mismatch") {
+      val err = json.decodeFrom[Int]("a" ~> "f").shouldFail
+      err.head shouldBe a[JsonTypeMismatch]
+    }
+
+    it("should fail on missing field") {
+      val err = json.decodeFrom[Int]("a" ~> "missing").shouldFail
+      err.head shouldBe a[MissingField]
+    }
+
+    it("should decode a boolean") {
+      json.decodeFrom[Boolean]("a" ~> "b") shouldBe Right(true)
+    }
+  }
+
+  describe("decodeFrom (cursor lens)") {
+    it("should decode all items in an array") {
+      json.decodeFrom[Int]("h" ~> *).shouldSucceed shouldBe List(1, 2, 3)
+    }
+
+    it("should decode nested fields across array items") {
+      json.decodeFrom[Int]("g" ~> * ~> "c").shouldSucceed shouldBe List(8, 12)
+    }
+
+    it("should fail when any item has a type mismatch") {
+      val badJson: JRootFocus[JAny] = parse("""{ "items": [1, "two", 3] }""")
+      badJson.decodeFrom[Int]("items" ~> *).shouldFail
+    }
+
+    it("should decode with an optional lens") {
+      json.decodeFrom[Int]("opt" ~> "x".?).shouldSucceed shouldBe Some(99)
+    }
+
+    it("should return None for a missing optional field") {
+      json.decodeFrom[Int]("opt" ~> "missing".?).shouldSucceed shouldBe None
+    }
+
+    it("should decode all values with **") {
+      val nums: JRootFocus[JAny] = parse("""{ "a": { "x": 1, "y": 2, "z": 3 } }""")
+      nums.decodeFrom[Int]("a" ~> **).shouldSucceed shouldBe List(1, 2, 3)
+    }
+
+    it("should accumulate errors across cursor items") {
+      json.decodeFrom[Int]("a" ~> **).shouldFail.length shouldBe 2
+    }
+  }
 }

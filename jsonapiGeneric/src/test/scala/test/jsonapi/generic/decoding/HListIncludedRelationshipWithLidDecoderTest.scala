@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,14 +18,13 @@ import cats.data.NonEmptyChain
 import cats.syntax.parallel._
 import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.focus.JFocus
-import org.scalawag.bateman.json.focus.weak._
 import org.scalawag.bateman.json.lens.{focus, _}
 import org.scalawag.bateman.json.literal._
 import org.scalawag.bateman.jsonapi.MissingIncludedResourceObject
 import org.scalawag.bateman.jsonapi.encoding.Inclusions
 import org.scalawag.bateman.jsonapi.generic.Annotations._
 import HListIncludedRelationshipWithLidDecoderTest._
-import org.scalawag.bateman.jsonapi.generic.semiauto.unchecked._
+import org.scalawag.bateman.jsonapi.generic.semiauto._
 import org.scalawag.bateman.jsonapi.lens._
 
 object HListIncludedRelationshipWithLidDecoderTest {
@@ -95,7 +94,7 @@ class HListIncludedRelationshipWithLidDecoderTest extends HListDecoderTestBase {
     {
       "type": "MyClass"
     }
-  """, focus ~> narrow[JObject])
+  """, focus ~> narrowTo[JObject])
 
   private val relationshipsIsAString = Input(json"""
     {
@@ -151,7 +150,7 @@ class HListIncludedRelationshipWithLidDecoderTest extends HListDecoderTestBase {
         }
       }
     """,
-    data ~> relationship("a") ~> data ~> narrow[JBoolean],
+    data ~> relationship("a") ~> data ~> narrowTo[JBoolean],
     data
   )
 
@@ -168,7 +167,7 @@ class HListIncludedRelationshipWithLidDecoderTest extends HListDecoderTestBase {
         }
       }
     """,
-    data ~> relationship("a") ~> data ~> narrow[JNull],
+    data ~> relationship("a") ~> data ~> narrowTo[JNull],
     data
   )
 
@@ -187,7 +186,7 @@ class HListIncludedRelationshipWithLidDecoderTest extends HListDecoderTestBase {
         }
       }
     """,
-    data ~> relationship("a") ~> data ~> narrow[JObject],
+    data ~> relationship("a") ~> data ~> narrowTo[JObject],
     data
   )
 
@@ -233,7 +232,7 @@ class HListIncludedRelationshipWithLidDecoderTest extends HListDecoderTestBase {
         }
       }
     """,
-    data ~> relationship("a") ~> data ~> narrow[JArray],
+    data ~> relationship("a") ~> data ~> narrowTo[JArray],
     data
   )
 
@@ -257,7 +256,7 @@ class HListIncludedRelationshipWithLidDecoderTest extends HListDecoderTestBase {
         }
       }
     """,
-    data ~> relationship("a") ~> data ~> narrow[JArray],
+    data ~> relationship("a") ~> data ~> narrowTo[JArray],
     data
   )
 
@@ -299,7 +298,7 @@ class HListIncludedRelationshipWithLidDecoderTest extends HListDecoderTestBase {
         ]
       }
     """,
-    data ~> relationship("a") ~> data ~> narrow[JArray],
+    data ~> relationship("a") ~> data ~> narrowTo[JArray],
     data
   )
 
@@ -332,7 +331,7 @@ class HListIncludedRelationshipWithLidDecoderTest extends HListDecoderTestBase {
         ]
       }
     """,
-    data ~> relationship("a") ~> data ~> narrow[JArray],
+    data ~> relationship("a") ~> data ~> narrowTo[JArray],
     data
   )
 
@@ -352,7 +351,7 @@ class HListIncludedRelationshipWithLidDecoderTest extends HListDecoderTestBase {
         }
       }
     """,
-    data ~> relationship("a") ~> data ~> narrow[JObject],
+    data ~> relationship("a") ~> data ~> narrowTo[JObject],
     data
   )
 
@@ -394,7 +393,7 @@ class HListIncludedRelationshipWithLidDecoderTest extends HListDecoderTestBase {
         "included": []
       }
     """,
-    data ~> relationship("a") ~> data ~> narrow[JObject],
+    data ~> relationship("a") ~> data ~> narrowTo[JObject],
     data
   )
   private val missingIncludedObjectRef =
@@ -523,8 +522,8 @@ class HListIncludedRelationshipWithLidDecoderTest extends HListDecoderTestBase {
     relationshipDataAreEmpty.succeedsWith(MyClass(Nil))
     relationshipDataAreMissingIds.failsWithMultiple[MyClass] { in =>
       NonEmptyChain(
-        MissingField(in(focus ~> 0 ~> narrow[JObject]).shouldSucceed, "id", "lid"),
-        MissingField(in(focus ~> 1 ~> narrow[JObject]).shouldSucceed, "id", "lid")
+        MissingField(in(focus ~> 0 ~> narrowTo[JObject]).shouldSucceed, "id", "lid"),
+        MissingField(in(focus ~> 1 ~> narrowTo[JObject]).shouldSucceed, "id", "lid")
       )
     }
     relationshipDataAreIncluded.succeedsWith(MyClass(List(MyRefObj("Kb"), MyRefObj("Lb"))))
@@ -570,8 +569,8 @@ class HListIncludedRelationshipWithLidDecoderTest extends HListDecoderTestBase {
     relationshipDataAreEmpty.succeedsWith(MyClass(Some(Nil)))
     relationshipDataAreMissingIds.failsWithMultiple[MyClass] { in =>
       NonEmptyChain(
-        MissingField(in(focus ~> 0 ~> narrow[JObject]).shouldSucceed, "id", "lid"),
-        MissingField(in(focus ~> 1 ~> narrow[JObject]).shouldSucceed, "id", "lid")
+        MissingField(in(focus ~> 0 ~> narrowTo[JObject]).shouldSucceed, "id", "lid"),
+        MissingField(in(focus ~> 1 ~> narrowTo[JObject]).shouldSucceed, "id", "lid")
       )
     }
     relationshipDataAreIncluded.succeedsWith(MyClass(Some(List(MyRefObj("Kb"), MyRefObj("Lb")))))
@@ -619,8 +618,8 @@ class HListIncludedRelationshipWithLidDecoderTest extends HListDecoderTestBase {
     relationshipDataAreEmpty.succeedsWith(MyClass(Nil))
     relationshipDataAreMissingIds.failsWithMultiple[MyClass] { in =>
       NonEmptyChain(
-        MissingField(in(focus ~> 0 ~> narrow[JObject]).shouldSucceed, "id", "lid"),
-        MissingField(in(focus ~> 1 ~> narrow[JObject]).shouldSucceed, "id", "lid")
+        MissingField(in(focus ~> 0 ~> narrowTo[JObject]).shouldSucceed, "id", "lid"),
+        MissingField(in(focus ~> 1 ~> narrowTo[JObject]).shouldSucceed, "id", "lid")
       )
     }
     relationshipDataAreIncluded.succeedsWith(
@@ -668,8 +667,8 @@ class HListIncludedRelationshipWithLidDecoderTest extends HListDecoderTestBase {
     relationshipDataAreEmpty.succeedsWith(MyClass(Some(Nil)))
     relationshipDataAreMissingIds.failsWithMultiple[MyClass] { in =>
       NonEmptyChain(
-        MissingField(in(focus ~> 0 ~> narrow[JObject]).shouldSucceed, "id", "lid"),
-        MissingField(in(focus ~> 1 ~> narrow[JObject]).shouldSucceed, "id", "lid")
+        MissingField(in(focus ~> 0 ~> narrowTo[JObject]).shouldSucceed, "id", "lid"),
+        MissingField(in(focus ~> 1 ~> narrowTo[JObject]).shouldSucceed, "id", "lid")
       )
     }
     relationshipDataAreIncluded.succeedsWith(MyClass(Some(List(MyRefObj("Kb"), MyRefObj("Lb")))))

@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,9 +15,9 @@
 package org.scalawag.bateman.jsonapi.encoding
 
 import org.scalawag.bateman.json.generic.Config
-import org.scalawag.bateman.json.generic.semiauto.unchecked._
+import org.scalawag.bateman.json.generic.semiauto._
 import org.scalawag.bateman.json.syntax._
-import org.scalawag.bateman.json.{JAny, JAnyEncoder, JObject, JObjectEncoder, JStringEncoder, Nullable}
+import org.scalawag.bateman.json.{JAny, JAnyEncoder, JObject, JObjectEncoder, JStringEncoder, Nullable, RichJResult}
 import org.scalawag.bateman.jsonapi._
 
 sealed trait Document {
@@ -58,10 +58,13 @@ sealed trait Document {
 }
 
 case object Document {
-  implicit val batemanEncoder: JObjectEncoder[Document] = {
-    case (doc: DataDocument, discs)     => JObjectEncoder[DataDocument].encode(doc, discs)
-    case (doc: ErrorDocument, discs)    => JObjectEncoder[ErrorDocument].encode(doc, discs)
-    case (doc: MetadataDocument, discs) => JObjectEncoder[MetadataDocument].encode(doc, discs)
+  implicit val batemanEncoder: JObjectEncoder[Document] = new JObjectEncoder[Document] {
+    override def encode(doc: Document, discs: JObject): JObject =
+      doc match {
+        case doc: DataDocument     => JObjectEncoder[DataDocument].encode(doc, discs)
+        case doc: ErrorDocument    => JObjectEncoder[ErrorDocument].encode(doc, discs)
+        case doc: MetadataDocument => JObjectEncoder[MetadataDocument].encode(doc, discs)
+      }
   }
 
   /** Creates a document with the specified key/value pair in its `meta` object. */
@@ -116,7 +119,7 @@ final case class DataDocument(
 }
 
 object DataDocument {
-  implicit val batemanEncoder: JObjectEncoder[DataDocument] = deriveEncoderForCaseClass[DataDocument]()
+  implicit val batemanEncoder: JObjectEncoder[DataDocument] = deriveEncoderForCaseClass[DataDocument]
 }
 
 /** A JSON:API document that contains [[https://jsonapi.org/format/#document-top-level errors]].
@@ -152,7 +155,7 @@ final case class ErrorDocument(
 }
 
 object ErrorDocument {
-  implicit val batemanEncoder: JObjectEncoder[ErrorDocument] = deriveEncoderForCaseClass[ErrorDocument]()
+  implicit val batemanEncoder: JObjectEncoder[ErrorDocument] = deriveEncoderForCaseClass[ErrorDocument]
 }
 
 /** A JSON:API document that contains at least [[https://jsonapi.org/format/#document-top-level metadata]].
@@ -202,13 +205,13 @@ final case class MetadataDocument(
 }
 
 object MetadataDocument {
-  private val requiredMetaToMeta: Config => Config =
-    _.withExplicitFieldNameMapping {
+  private implicit val config: Config =
+    Config.default.withExplicitFieldNameMapping {
       case "requiredMeta" => "meta"
     }
 
   implicit val batemanEncoder: JObjectEncoder[MetadataDocument] =
-    deriveEncoderForCaseClass[MetadataDocument](requiredMetaToMeta)
+    deriveEncoderForCaseClass[MetadataDocument]
 }
 
 final case class Jsonapi(
@@ -218,7 +221,7 @@ final case class Jsonapi(
 
 object Jsonapi {
   implicit val batemanEncoder: JObjectEncoder[Jsonapi] =
-    deriveEncoderForCaseClass[Jsonapi]()
+    deriveEncoderForCaseClass[Jsonapi]
 }
 
 sealed trait ErrorSource
@@ -228,25 +231,28 @@ object ErrorSource {
   final case class Pointer(pointer: String) extends ErrorSource
 
   object Pointer {
-    implicit val batemanEncoder: JObjectEncoder[Pointer] = deriveEncoderForCaseClass[Pointer]()
+    implicit val batemanEncoder: JObjectEncoder[Pointer] = deriveEncoderForCaseClass[Pointer]
   }
 
   final case class Parameter(parameter: String) extends ErrorSource
 
   object Parameter {
-    implicit val batemanEncoder: JObjectEncoder[Parameter] = deriveEncoderForCaseClass[Parameter]()
+    implicit val batemanEncoder: JObjectEncoder[Parameter] = deriveEncoderForCaseClass[Parameter]
   }
 
   final case class Header(header: String) extends ErrorSource
 
   object Header {
-    implicit val batemanEncoder: JObjectEncoder[Header] = deriveEncoderForCaseClass[Header]()
+    implicit val batemanEncoder: JObjectEncoder[Header] = deriveEncoderForCaseClass[Header]
   }
 
-  implicit val batemanEncoder: JObjectEncoder[ErrorSource] = {
-    case (src: Pointer, discs)   => JObjectEncoder[Pointer].encode(src, discs)
-    case (src: Parameter, discs) => JObjectEncoder[Parameter].encode(src, discs)
-    case (src: Header, discs)    => JObjectEncoder[Header].encode(src, discs)
+  implicit val batemanEncoder: JObjectEncoder[ErrorSource] = new JObjectEncoder[ErrorSource] {
+    override def encode(src: ErrorSource, discs: JObject): JObject =
+      src match {
+        case src: Pointer   => JObjectEncoder[Pointer].encode(src, discs)
+        case src: Parameter => JObjectEncoder[Parameter].encode(src, discs)
+        case src: Header    => JObjectEncoder[Header].encode(src, discs)
+      }
   }
 }
 
@@ -274,7 +280,7 @@ final case class Error(
 
 object Error {
   implicit val batemanEncoder: JObjectEncoder[Error] =
-    deriveEncoderForCaseClass[Error]()
+    deriveEncoderForCaseClass[Error]
 }
 
 sealed trait Resource {
@@ -301,22 +307,23 @@ final case class ResourceIdentifier(
 
 object ResourceIdentifier {
   // Needs custom encoder to support id/lid logic.
-  implicit val batemanEncoder: JObjectEncoder[ResourceIdentifier] = (ri, _) => {
-    import org.scalawag.bateman.json.focus.weak._
-    import org.scalawag.bateman.json.state._
-    import org.scalawag.bateman.jsonapi.lens._
+  implicit val batemanEncoder: JObjectEncoder[ResourceIdentifier] = new JObjectEncoder[ResourceIdentifier] {
+    override def encode(ri: ResourceIdentifier, discriminators: JObject): JObject = {
+      import org.scalawag.bateman.json.state._
+      import org.scalawag.bateman.jsonapi.lens._
 
-    val create = for {
-      _ <- encodeTo(resourceType, ri.resourceType.toJAny)
-      _ <-
-        if (ri.localId)
-          encodeTo(lid, ri.id)
-        else
-          encodeTo(id, ri.id)
-      _ <- encodeTo(meta, ri.meta)
-    } yield ()
+      val create = for {
+        _ <- encodeTo(resourceType, ri.resourceType.toJAny)
+        _ <-
+          if (ri.localId)
+            encodeTo(lid, ri.id)
+          else
+            encodeTo(id, ri.id)
+        _ <- encodeTo(meta, ri.meta)
+      } yield ()
 
-    create.runS(JObject.Empty.asRootFocus).flatMap(_.asObject).getOrThrow.value
+      create.runS(JObject.Empty.asRootFocus).flatMap(_.asObject).getOrThrow.value
+    }
   }
 
   def withLid(resourceType: String, id: String): ResourceIdentifier =
@@ -346,25 +353,26 @@ final case class ResourceObject(
 
 object ResourceObject {
   // Needs custom encoder to support id/lid logic.
-  implicit val batemanEncoder: JObjectEncoder[ResourceObject] = (ro, _) => {
-    import org.scalawag.bateman.json.focus.weak._
-    import org.scalawag.bateman.json.state._
-    import org.scalawag.bateman.jsonapi.lens._
+  implicit val batemanEncoder: JObjectEncoder[ResourceObject] = new JObjectEncoder[ResourceObject] {
+    override def encode(ro: ResourceObject, discriminators: JObject): JObject = {
+      import org.scalawag.bateman.json.state._
+      import org.scalawag.bateman.jsonapi.lens._
 
-    val create = for {
-      _ <- encodeTo(resourceType, ro.resourceType.toJAny)
-      _ <-
-        if (ro.localId)
-          encodeTo(lid, ro.id)
-        else
-          encodeTo(id, ro.id)
-      _ <- encodeTo(attributes, ro.attributes)
-      _ <- encodeTo(relationships, ro.relationships)
-      _ <- encodeTo(meta, ro.meta)
-      _ <- encodeTo(links, ro.links)
-    } yield ()
+      val create = for {
+        _ <- encodeTo(resourceType, ro.resourceType.toJAny)
+        _ <-
+          if (ro.localId)
+            encodeTo(lid, ro.id)
+          else
+            encodeTo(id, ro.id)
+        _ <- encodeTo(attributes, ro.attributes)
+        _ <- encodeTo(relationships, ro.relationships)
+        _ <- encodeTo(meta, ro.meta)
+        _ <- encodeTo(links, ro.links)
+      } yield ()
 
-    create.runS(JObject.Empty.asRootFocus).flatMap(_.asObject).getOrThrow.value
+      create.runS(JObject.Empty.asRootFocus).flatMap(_.asObject).getOrThrow.value
+    }
   }
 
   def apply(resourceType: String, id: String): ResourceObject = ResourceObject(resourceType, Some(id))
@@ -385,7 +393,7 @@ final case class Relationship(
 
 object Relationship {
   implicit val batemanEncoder: JObjectEncoder[Relationship] =
-    deriveEncoderForCaseClass[Relationship]()
+    deriveEncoderForCaseClass[Relationship]
 
   def apply[A: JObjectEncoder](data: A): Relationship = new Relationship(Some(data.toJAny))
   def apply[A: JObjectEncoder](data: Nullable[A]): Relationship = new Relationship(Some(data.toJAny))
@@ -395,9 +403,12 @@ object Relationship {
 sealed trait Link
 
 object Link {
-  implicit val batemanEncoder: JAnyEncoder[Link] = {
-    case in: BareLink => in.toJAny
-    case in: RichLink => in.toJAny
+  implicit val batemanEncoder: JAnyEncoder[Link] = new JAnyEncoder[Link] {
+    override def encode(in: Link): JAny =
+      in match {
+        case in: BareLink => in.toJAny
+        case in: RichLink => in.toJAny
+      }
   }
 
   implicit def fromString(href: String): BareLink = BareLink(href)
@@ -424,11 +435,11 @@ final case class RichLink(
 }
 
 object RichLink {
-  private val linkTypeToType: Config => Config =
-    _.withExplicitFieldNameMapping {
+  private implicit val config: Config =
+    Config.default.withExplicitFieldNameMapping {
       case "linkType" => "type"
     }
 
   implicit val batemanEncoder: JObjectEncoder[RichLink] =
-    deriveEncoderForCaseClass[RichLink](linkTypeToType)
+    deriveEncoderForCaseClass[RichLink]
 }

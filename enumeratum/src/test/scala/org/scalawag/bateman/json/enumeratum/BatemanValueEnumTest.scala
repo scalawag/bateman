@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,20 +18,34 @@ import enumeratum.values._
 import cats.syntax.either._
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalawag.bateman.json.{InvalidValue, JAny, JLocation, JNumber, JPointer, JString, JsonTypeMismatch}
+import org.scalawag.bateman.json.{InvalidValue, JNumber, JString}
 import org.scalawag.bateman.json.syntax._
+import BatemanValueEnumTest._
+
+object BatemanValueEnumTest {
+  sealed abstract class ShirtSize(val value: Int) extends IntEnumEntry
+
+  case object ShirtSize extends IntEnum[ShirtSize] with IntBatemanEnum[ShirtSize] {
+    case object Small extends ShirtSize(1)
+    case object Medium extends ShirtSize(2)
+    case object Large extends ShirtSize(3)
+
+    val values = findValues
+  }
+
+  sealed abstract class TriStateBool(val value: Char) extends CharEnumEntry
+
+  case object TriStateBool extends CharEnum[TriStateBool] with CharBatemanEnum[TriStateBool] {
+    case object True extends TriStateBool('T')
+    case object False extends TriStateBool('F')
+    case object Maybe extends TriStateBool('M')
+
+    val values = findValues
+  }
+}
 
 class BatemanValueEnumTest extends AnyFunSpec with Matchers {
   describe("Int") {
-    sealed abstract class ShirtSize(val value: Int) extends IntEnumEntry
-
-    case object ShirtSize extends IntEnum[ShirtSize] with IntBatemanEnum[ShirtSize] {
-      case object Small extends ShirtSize(1)
-      case object Medium extends ShirtSize(2)
-      case object Large extends ShirtSize(3)
-
-      val values = findValues
-    }
 
     it("should encode") {
       (ShirtSize.Small: ShirtSize).toJAny shouldBe JNumber(1)
@@ -48,16 +62,6 @@ class BatemanValueEnumTest extends AnyFunSpec with Matchers {
   }
 
   describe("Char") {
-    sealed abstract class TriStateBool(val value: Char) extends CharEnumEntry
-
-    case object TriStateBool extends CharEnum[TriStateBool] with CharBatemanEnum[TriStateBool] {
-
-      case object True extends TriStateBool('T')
-      case object False extends TriStateBool('F')
-      case object Maybe extends TriStateBool('M')
-
-      val values = findValues
-    }
 
     it("should encode") {
       (TriStateBool.False: TriStateBool).toJAny shouldBe JString("F")

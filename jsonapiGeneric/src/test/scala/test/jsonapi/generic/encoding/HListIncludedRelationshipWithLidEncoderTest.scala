@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.generic.Config
 import org.scalawag.bateman.json.generic.naming.{CaseTransformation, PascalCase, SnakeCase}
 import org.scalawag.bateman.json.lens._
-import org.scalawag.bateman.json.literal._
 import org.scalawag.bateman.jsonapi.encoding.FieldsSpec.Fields.Explicit
 import org.scalawag.bateman.jsonapi.encoding._
 import org.scalawag.bateman.jsonapi.generic.Annotations._
@@ -82,7 +81,7 @@ class HListIncludedRelationshipWithLidEncoderTest extends HListEncoderTestBase {
 
       def includedB: Int =
         enc
-          .asRootFocus(data ~> relationship("a") ~> data ~> includedRef ~> attribute("b") ~> narrow[JNumber])
+          .asRootFocus(data ~> relationship("a") ~> data ~> includedRef ~> attribute("b") ~> narrowTo[JNumber])
           .shouldSucceed
           .value
           .toBigDecimal
@@ -90,7 +89,7 @@ class HListIncludedRelationshipWithLidEncoderTest extends HListEncoderTestBase {
 
       def includedBs: List[Int] =
         enc
-          .asRootFocus(data ~> relationship("a") ~> data ~> * ~> includedRef ~> attribute("b") ~> narrow[JNumber])
+          .asRootFocus(data ~> relationship("a") ~> data ~> * ~> includedRef ~> attribute("b") ~> narrowTo[JNumber])
           .shouldSucceed
           .values
           .map(_.toBigDecimal.toIntExact)
@@ -542,7 +541,7 @@ class HListIncludedRelationshipWithLidEncoderTest extends HListEncoderTestBase {
 
       enc
         .asRootFocus(
-          data ~> relationship("multiple_words_here") ~> data ~> includedRef ~> attribute("b") ~> narrow[JNumber]
+          data ~> relationship("multiple_words_here") ~> data ~> includedRef ~> attribute("b") ~> narrowTo[JNumber]
         )
         .shouldSucceed
         .value
@@ -560,7 +559,7 @@ class HListIncludedRelationshipWithLidEncoderTest extends HListEncoderTestBase {
         .shouldSucceed
 
       enc
-        .asRootFocus(data ~> relationship("a") ~> data ~> includedRef ~> attribute("b") ~> narrow[JNumber])
+        .asRootFocus(data ~> relationship("a") ~> data ~> includedRef ~> attribute("b") ~> narrowTo[JNumber])
         .shouldSucceed
         .value
         .toBigDecimal
@@ -578,14 +577,14 @@ class HListIncludedRelationshipWithLidEncoderTest extends HListEncoderTestBase {
         .toDocument(IncludeSpec.Opportunistically, FieldsSpec.All)
 
       enc
-        .asRootFocus(data ~> relationship("a") ~> data ~> includedRef ~> attribute("b") ~> narrow[JNumber])
+        .asRootFocus(data ~> relationship("a") ~> data ~> includedRef ~> attribute("b") ~> narrowTo[JNumber])
         .shouldSucceed
         .value
         .toBigDecimal
         .toIntExact shouldBe 1
 
       enc
-        .asRootFocus(data ~> relationship("b") ~> data ~> includedRef ~> attribute("b") ~> narrow[JNumber])
+        .asRootFocus(data ~> relationship("b") ~> data ~> includedRef ~> attribute("b") ~> narrowTo[JNumber])
         .shouldSucceed
         .value
         .toBigDecimal

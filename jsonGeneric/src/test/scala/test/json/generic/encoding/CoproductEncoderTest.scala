@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
 package test.json.generic.encoding
 
 import org.scalawag.bateman.json.generic.Discriminators._
-import org.scalawag.bateman.json.generic.decoding.InvalidDiscriminator
 import org.scalawag.bateman.json.generic.naming.{PascalCase, SnakeCase}
 import org.scalawag.bateman.json.generic.{
   Config,
@@ -23,9 +22,12 @@ import org.scalawag.bateman.json.generic.{
   MissingDiscriminatorMapping,
   MultipleDiscriminatorMappings
 }
-import org.scalawag.bateman.json.literal.JsonStringContext
+import org.scalawag.bateman.json.literal._
 import org.scalawag.bateman.json.syntax._
-import org.scalawag.bateman.json.{JBoolean, JNumber, MissingField, ProgrammerError, lens}
+import org.scalawag.bateman.json.{JBoolean, JNumber, JObjectEncoder, ProgrammerError}
+import org.scalawag.bateman.json.lens
+import org.scalawag.bateman.json.lens.stringToLens
+import org.scalawag.bateman.json.generic.semiauto._
 import test.json.BatemanTestBase
 
 import scala.reflect.classTag
@@ -45,7 +47,9 @@ import test.json.generic.encoding.CoproductEncoderTest._
 
 class CoproductEncoderTest extends BatemanTestBase {
   describe("default config") {
-    import org.scalawag.bateman.json.generic.auto._
+    implicit val yenc: JObjectEncoder[Y] = deriveEncoderForCaseClass[Y]
+    implicit val zenc: JObjectEncoder[Z] = deriveEncoderForCaseClass[Z]
+    implicit val xenc: JObjectEncoder[X] = deriveEncoderForTrait[X]()
 
     it("should encode abstractly") {
       (Y(71): X).toJAny shouldBe json"""{"type":"Y","a":71}""".stripLocation
@@ -53,8 +57,10 @@ class CoproductEncoderTest extends BatemanTestBase {
   }
 
   describe("with case transformation") {
-    import org.scalawag.bateman.json.generic.auto._
-    implicit val config = Config(classNameMapping = PascalCase to SnakeCase)
+    implicit val config: Config = Config(classNameMapping = PascalCase to SnakeCase)
+    implicit val yenc: JObjectEncoder[Y] = deriveEncoderForCaseClass[Y]
+    implicit val zenc: JObjectEncoder[Z] = deriveEncoderForCaseClass[Z]
+    implicit val xenc: JObjectEncoder[X] = deriveEncoderForTrait[X]()
 
     it("should encode abstractly") {
       (Y(71): X).toJAny shouldBe json"""{"type":"y","a":71}""".stripLocation
@@ -62,10 +68,9 @@ class CoproductEncoderTest extends BatemanTestBase {
   }
 
   describe("with custom discriminator name") {
-    import org.scalawag.bateman.json.generic.semiauto.unchecked._
-    implicit val yenc = deriveEncoderForCaseClass[Y]()
-    implicit val zenc = deriveEncoderForCaseClass[Z]()
-    implicit val xenc = deriveEncoderForTrait[X]("ilk")
+    implicit val yenc: JObjectEncoder[Y] = deriveEncoderForCaseClass[Y]
+    implicit val zenc: JObjectEncoder[Z] = deriveEncoderForCaseClass[Z]
+    implicit val xenc: JObjectEncoder[X] = deriveEncoderForTrait[X]("ilk")
 
     it("should encode abstractly") {
       (Y(71): X).toJAny shouldBe json"""{"ilk":"Y","a":71}""".stripLocation
@@ -73,15 +78,13 @@ class CoproductEncoderTest extends BatemanTestBase {
   }
 
   describe("with custom discriminator mapping") {
-    import org.scalawag.bateman.json.generic.semiauto.unchecked._
-
-    implicit val benc = deriveEncoderForCaseClass[Bogus]()
-    implicit val yenc = deriveEncoderForCaseClass[Y]()
-    implicit val zenc = deriveEncoderForCaseClass[Z]()
-    implicit val xenc = deriveEncoderForTrait[X](discriminator =
+    implicit val benc: JObjectEncoder[Bogus] = deriveEncoderForCaseClass[Bogus]
+    implicit val yenc: JObjectEncoder[Y] = deriveEncoderForCaseClass[Y]
+    implicit val zenc: JObjectEncoder[Z] = deriveEncoderForCaseClass[Z]
+    implicit val xenc: JObjectEncoder[X] = deriveEncoderForTrait[X](discriminator =
       CustomDiscriminator(
-        forType[Y](1),
-        forType[Z](true),
+        forType[Y].apply[JObjectEncoder, Int](1),
+        forType[Z].apply[JObjectEncoder, Boolean](true),
       )
     )
 
@@ -97,9 +100,9 @@ class CoproductEncoderTest extends BatemanTestBase {
       intercept[MultipleDiscriminatorMappings[Y]] {
         deriveEncoderForTrait[X](discriminator =
           CustomDiscriminator(
-            forType[Y](1),
-            forType[Y](false),
-            forType[Z](true),
+            forType[Y].apply[JObjectEncoder, Int](1),
+            forType[Y].apply[JObjectEncoder, Boolean](false),
+            forType[Z].apply[JObjectEncoder, Boolean](true),
           )
         )
       } shouldBe MultipleDiscriminatorMappings[Y](
@@ -111,8 +114,8 @@ class CoproductEncoderTest extends BatemanTestBase {
       intercept[DiscriminatorCollision] {
         deriveEncoderForTrait[X](discriminator =
           CustomDiscriminator(
-            forType[Y](1),
-            forType[Z](1),
+            forType[Y].apply[JObjectEncoder, Int](1),
+            forType[Z].apply[JObjectEncoder, Int](1),
           )
         )
       } shouldBe DiscriminatorCollision(Map(JNumber(1) -> List(classTag[Y], classTag[Z])))
@@ -121,8 +124,8 @@ class CoproductEncoderTest extends BatemanTestBase {
     it("should allow duplicate discriminators when told") {
       deriveEncoderForTrait[X](discriminator =
         CustomDiscriminator(duplicateValuesForbidden = false)(
-          forType[Y](1),
-          forType[Z](1),
+          forType[Y].apply[JObjectEncoder, Int](1),
+          forType[Z].apply[JObjectEncoder, Int](1),
         )
       )
       succeed
@@ -130,15 +133,14 @@ class CoproductEncoderTest extends BatemanTestBase {
   }
 
   it("should detect duplicate discriminator values") {
-    import org.scalawag.bateman.json.generic.semiauto.unchecked._
-    implicit val yenc = deriveEncoderForCaseClass[Y]()
-    implicit val zenc = deriveEncoderForCaseClass[Z]()
+    implicit val yenc: JObjectEncoder[Y] = deriveEncoderForCaseClass[Y]
+    implicit val zenc: JObjectEncoder[Z] = deriveEncoderForCaseClass[Z]
 
     val ex = intercept[DiscriminatorCollision] {
       deriveEncoderForTrait[X](discriminator =
         CustomDiscriminator(
-          forType[Y](1),
-          forType[Z](1),
+          forType[Y].apply[JObjectEncoder, Int](1),
+          forType[Z].apply[JObjectEncoder, Int](1),
         )
       )
     }
@@ -147,14 +149,13 @@ class CoproductEncoderTest extends BatemanTestBase {
   }
 
   it("should detect missing discriminator mappings") {
-    import org.scalawag.bateman.json.generic.semiauto.unchecked._
-    implicit val yenc = deriveEncoderForCaseClass[Y]()
-    implicit val zenc = deriveEncoderForCaseClass[Z]()
+    implicit val yenc: JObjectEncoder[Y] = deriveEncoderForCaseClass[Y]
+    implicit val zenc: JObjectEncoder[Z] = deriveEncoderForCaseClass[Z]
 
     val ex = intercept[MissingDiscriminatorMapping[_]] {
       deriveEncoderForTrait[X](discriminator =
         CustomDiscriminator(
-          forType[Y](1)
+          forType[Y].apply[JObjectEncoder, Int](1)
         )
       )
     }
@@ -163,16 +164,15 @@ class CoproductEncoderTest extends BatemanTestBase {
   }
 
   it("should detect duplicate discriminator mappings") {
-    import org.scalawag.bateman.json.generic.semiauto.unchecked._
-    implicit val yenc = deriveEncoderForCaseClass[Y]()
-    implicit val zenc = deriveEncoderForCaseClass[Z]()
+    implicit val yenc: JObjectEncoder[Y] = deriveEncoderForCaseClass[Y]
+    implicit val zenc: JObjectEncoder[Z] = deriveEncoderForCaseClass[Z]
 
     val ex = intercept[MultipleDiscriminatorMappings[_]] {
       deriveEncoderForTrait[X](discriminator =
         CustomDiscriminator(
-          forType[Y](1),
-          forType[Y](2),
-          forType[Z](1),
+          forType[Y].apply[JObjectEncoder, Int](1),
+          forType[Y].apply[JObjectEncoder, Int](2),
+          forType[Z].apply[JObjectEncoder, Int](1),
         )
       )
     }
@@ -182,9 +182,8 @@ class CoproductEncoderTest extends BatemanTestBase {
   }
 
   it("should throw on discriminator field collisions") {
-    import org.scalawag.bateman.json.generic.semiauto.unchecked._
-    implicit val aenc = deriveEncoderForCaseClass[CollideA]()
-    implicit val enc = deriveEncoderForTrait[Collide]("foo")
+    implicit val aenc: JObjectEncoder[CollideA] = deriveEncoderForCaseClass[CollideA]
+    implicit val enc: JObjectEncoder[Collide] = deriveEncoderForTrait[Collide]("foo")
 
     intercept[ProgrammerError] {
       (CollideA("bar"): Collide).toJAny
@@ -192,19 +191,18 @@ class CoproductEncoderTest extends BatemanTestBase {
   }
 
   it("should ignore benign collisions") {
-    import org.scalawag.bateman.json.generic.semiauto.unchecked._
-    implicit val aenc = deriveEncoderForCaseClass[CollideA]()
-    implicit val enc = deriveEncoderForTrait[Collide]("foo")
+    implicit val aenc: JObjectEncoder[CollideA] = deriveEncoderForCaseClass[CollideA]
+    implicit val enc: JObjectEncoder[Collide] = deriveEncoderForTrait[Collide]("foo")
 
     (CollideA("CollideA"): Collide).toJAny shouldBe json"""{"foo": "CollideA"}""".stripLocation
   }
 
   it("should throw on focus discriminators") {
-    import org.scalawag.bateman.json.generic.semiauto.unchecked._
-    implicit val aenc = deriveEncoderForCaseClass[CollideA]()
-    implicit val enc = deriveEncoderForTrait[Collide](lens.focus)
+    implicit val config: Config = Config.default
+    implicit val aenc: JObjectEncoder[CollideA] = deriveEncoderForCaseClass[CollideA]
 
     intercept[ProgrammerError] {
+      implicit val enc: JObjectEncoder[Collide] = deriveEncoderForTrait[Collide](lens.focus)
       (CollideA("bar"): Collide).toJAny
     }
   }

@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,16 @@ import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.lens.{focus, _}
 import test.json.BatemanTestBase
 import org.scalawag.bateman.json.focus.{JCursor, JFocus}
-import org.scalawag.bateman.json.focus.weak._
+import ModifyTest._
+
+import org.scalawag.bateman.json.syntax._
+
+object ModifyTest {
+  final case class MyProduct(a: Int, b: String)
+  sealed trait MySum
+  final case class MyBoolean(value: Boolean) extends MySum
+  final case class MyNumber(value: Int) extends MySum
+}
 
 class ModifyTest extends BatemanTestBase {
   private val json = parseAs[JObject]("""
@@ -51,13 +60,6 @@ class ModifyTest extends BatemanTestBase {
     }
   """)
 
-  import cats.syntax.either._
-  import cats.syntax.parallel._
-  import org.scalawag.bateman.json.syntax._
-  final case class MyProduct(a: Int, b: String)
-  sealed trait MySum
-  final case class MyBoolean(value: Boolean) extends MySum
-  final case class MyNumber(value: Int) extends MySum
 
   implicit val encoderForMySum: JAnyEncoder[MySum] = {
     case MyBoolean(b) => b.toJAny
@@ -66,14 +68,14 @@ class ModifyTest extends BatemanTestBase {
 
   describe("editing") {
     it("should edit a value in the document") {
+      val fn: JFocus[JAny] => JNumber = {
+        case JFocus.Value(arr: JArray) => JNumber(arr.items.size)
+        case _                         => fail()
+      }
       json(focus ~> "g")
-        .map(_.modify {
-          case JFocus.Value(arr: JArray) => JNumber(arr.items.size)
-          case _                         => fail
-        })
+        .map(_.modify(fn))
         .shouldSucceed
         .root
-        .map(_.value)
         .value shouldRenderTo
         parse("""
         {
@@ -101,11 +103,12 @@ class ModifyTest extends BatemanTestBase {
     }
 
     it("should edit a value in the document deeper") {
+      val fn: JFocus[JAny] => JNumber = {
+        case JFocus.Value(in: JArray) => JNumber(in.items.size)
+        case _                        => fail()
+      }
       json(focus ~> "deep" ~> 1)
-        .map(_.modify {
-          case JFocus.Value(in: JArray) => JNumber(in.items.size)
-          case _                        => fail
-        })
+        .map(_.modify(fn))
         .shouldSucceed
         .root
         .value shouldEncodeTo
@@ -137,8 +140,8 @@ class ModifyTest extends BatemanTestBase {
     }
 
     it("should append a field to an object") {
-      json(focus ~> "a" ~> narrow[JObject])
-        .map(_.foci.append("foo", JString("bar")))
+      json(focus ~> "a" ~> narrowTo[JObject])
+        .map(_.append("foo", JString("bar")))
         .shouldSucceed
         .root
         .value shouldEncodeTo
@@ -175,8 +178,8 @@ class ModifyTest extends BatemanTestBase {
     }
 
     it("should prepend a field to an object") {
-      json(focus ~> "a" ~> narrow[JObject])
-        .map(_.foci.prepend("foo", JString("bar")))
+      json(focus ~> "a" ~> narrowTo[JObject])
+        .map(_.prepend("foo", JString("bar")))
         .shouldSucceed
         .root
         .value shouldEncodeTo
@@ -213,8 +216,8 @@ class ModifyTest extends BatemanTestBase {
     }
 
     it("should append a field to an array") {
-      json(focus ~> "g" ~> narrow[JArray])
-        .map(_.foci.append(JString("bar")))
+      json(focus ~> "g" ~> narrowTo[JArray])
+        .map(_.append(JString("bar")))
         .shouldSucceed
         .root
         .value shouldEncodeTo
@@ -251,8 +254,8 @@ class ModifyTest extends BatemanTestBase {
     }
 
     it("should prepend a field to an array") {
-      json(focus ~> "g" ~> narrow[JArray])
-        .map(_.foci.prepend(JString("bar")))
+      json(focus ~> "g" ~> narrowTo[JArray])
+        .map(_.prepend(JString("bar")))
         .shouldSucceed
         .root
         .value shouldEncodeTo

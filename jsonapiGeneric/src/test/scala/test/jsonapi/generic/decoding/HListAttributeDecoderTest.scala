@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,11 +16,10 @@ package test.jsonapi.generic.decoding
 
 import cats.data.NonEmptyChain
 import org.scalawag.bateman.json._
-import org.scalawag.bateman.json.focus.weak._
 import org.scalawag.bateman.json.lens.{focus, _}
 import org.scalawag.bateman.json.literal._
 import org.scalawag.bateman.jsonapi.lens._
-import org.scalawag.bateman.jsonapi.generic.semiauto.unchecked._
+import org.scalawag.bateman.jsonapi.generic.semiauto._
 import HListAttributeDecoderTest._
 import org.scalawag.bateman.jsonapi.generic.Annotations._
 
@@ -70,7 +69,7 @@ class HListAttributeDecoderTest extends HListDecoderTestBase {
     {
       "type": "MyClass"
     }
-  """, focus ~> narrow[JObject])
+  """, focus ~> narrowTo[JObject])
 
   private val nonObjectAttributes = Input(json"""
     {
@@ -102,7 +101,7 @@ class HListAttributeDecoderTest extends HListDecoderTestBase {
         "a": null
       }
     }
-  """, attribute("a") ~> narrow[JNull])
+  """, attribute("a") ~> narrowTo[JNull])
 
   private val intAttributeValue = Input(json"""
     {
@@ -129,7 +128,7 @@ class HListAttributeDecoderTest extends HListDecoderTestBase {
         "a": [2,"3",5,null]
       }
     }
-  """, attribute("a") ~> narrow[JArray])
+  """, attribute("a") ~> narrowTo[JArray])
 
   describe("MyIdAttribute") {
     import MyIdAttribute._

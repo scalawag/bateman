@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,6 +27,12 @@ case class JPointer(tokens: List[JPointer.Token]) {
 
   /** Create a new JPointer corresponding to a field of this JSON object. */
   def field(key: String): JPointer = JPointer(this.tokens :+ JPointer.Key(key))
+
+  /** Create a new JPointer corresponding to an index of this JSON array. */
+  def /(index: Int): JPointer = item(index)
+
+  /** Create a new JPointer corresponding to a field of this JSON object. */
+  def /(key: String): JPointer = field(key)
 
   def parent: JPointer = JPointer(this.tokens.init)
   override lazy val toString: String = tokens.map(_.token).mkString("/", "/", "")

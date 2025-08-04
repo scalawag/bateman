@@ -1,4 +1,4 @@
-// bateman -- Copyright 2021-2023 -- Justin Patterson
+// bateman -- Copyright 2021-2026 -- Justin Patterson
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,9 +14,8 @@
 
 package org.scalawag.bateman.json.focus
 
-import scala.language.{higherKinds, implicitConversions}
 import org.scalawag.bateman.json._
-import org.scalawag.bateman.json.lens.{JLens, ListJLens}
+import org.scalawag.bateman.json.lens.{JCursorLens, JFocusLens}
 
 //======================================================================================================================
 
@@ -44,40 +43,54 @@ sealed trait JFocus[+A <: JAny] {
   def parentOption: Option[JFocus[JAny]]
 }
 
-object JFocus {
+object JFocus extends JFocusLowPriority {
 
   object Value {
     def unapply(focus: JFocus[JAny]): Option[JAny] = Some(focus.value)
   }
 
-  implicit class RichJFocus[F[+_], A <: JAny](me: JFocus[A]) {
-    def apply[B <: JAny](op: JLens[F, A, B]): JResult[JCursor[F, B]] = op(me)
+  implicit class RichJFocus[A <: JAny](me: JFocus[A]) {
+    def apply[B <: JAny](op: JFocusLens[A, B]): JResult[JFocus[B]] = op(me)
+    def apply[F[+_], B <: JAny](op: JCursorLens[F, A, B]): JResult[JCursor[F, B]] = op(me)
+
+    /** Navigates to a focus via a lens, then decodes the value there. */
+    def decodeFrom[B](op: JFocusLens[A, JAny])(implicit dec: JAnyDecoder[B]): JResult[B] =
+      op(me).flatMap(_.decode[B])
+
+    /** Navigates to a cursor via a lens, then decodes all values in the cursor. */
+    def decodeFrom[B] = new DecodeFromCursor[A, B](me)
   }
-}
 
-//======================================================================================================================
+  /** Helper class to allow `decodeFrom[B](cursorLens)` to infer `F` from the lens while `B` is explicitly provided. */
+  class DecodeFromCursor[A <: JAny, B](me: JFocus[A]) {
+    def apply[F[+_]](op: JCursorLens[F, A, JAny])(implicit dec: JAnyDecoder[B], T: cats.Traverse[F]): JResult[F[B]] = {
+      import cats.syntax.parallel._
+      op(me).flatMap(_.foci.parTraverse(_.decode[B]))
+    }
+  }
 
-/** Represents all strongly-typed foci. Anything that derives from this should have a strong static type. */
-
-sealed trait JStrongFocus[+A <: JAny] extends JFocus[A]
-
-object JStrongFocus {
-  implicit final def toJFocusOps[A <: JStrongFocus[JAny], B <: JAny](in: A)(implicit
-      valueFinder: ValueFinder.Aux[A, B]
-  ): JFocusOps[A, B] = new JFocusOps(in)
-
-  implicit final def toJFocusJObjectOps[A <: JStrongFocus[JObject]](in: A): JFocusJObjectOps[A] =
+  implicit final def toJFocusJObjectOps[A <: JFocus[JObject]](in: A): JFocusJObjectOps[A] =
     new JFocusJObjectOps(in)
 
-  implicit final def toJFocusJArrayOps[A <: JStrongFocus[JArray]](in: A): JFocusJArrayOps[A] =
+  implicit final def toJFocusJArrayOps[A <: JFocus[JArray]](in: A): JFocusJArrayOps[A] =
     new JFocusJArrayOps(in)
 }
 
+/** Low-priority implicits for base ops on JFocus. These apply when the high-priority ops in JFocus companion
+  * can't match (e.g., toJFocusOps needs ValueFinder which doesn't exist for abstract JFocus[JAny]).
+  */
+trait JFocusLowPriority {
+  implicit final def toJFocusBaseOps[A <: JAny](in: JFocus[A]): JFocusWeakOps[A] =
+    new JFocusWeakOps(in)
+
+}
+
 //======================================================================================================================
 
-final case class JRootFocus[+A <: JAny] private[json] (value: A) extends JStrongFocus[A] {
+final case class JRootFocus[+A <: JAny] private[bateman] (value: A) extends JFocus[A] {
   override val pointer: JPointer = JPointer.Root
   override def parentOption: Option[JFocus[JAny]] = None
+  def root: JRootFocus[A] = this
 }
 
 object JRootFocus {
@@ -86,7 +99,7 @@ object JRootFocus {
 
 //======================================================================================================================
 
-sealed trait JChildFocus[+A <: JAny, +P <: JFocus[JAny]] extends JStrongFocus[A] {
+sealed trait JChildFocus[+A <: JAny, +P <: JFocus[JAny]] extends JFocus[A] {
   val parent: P
   override def parentOption: Option[JFocus[JAny]] = Some(parent)
 }
@@ -100,10 +113,15 @@ final case class JFieldFocus[+A <: JAny, +P <: JFocus[JObject]] private[json] (
     parent: P
 ) extends JChildFocus[A, P] {
   val pointer: JPointer = parent.pointer.field(name.value)
+
+  def previous: JResult[JFieldFocus[JAny, P]] = parent.field(index - 1)
+  def next: JResult[JFieldFocus[JAny, P]] = parent.field(index + 1)
+  def first: JFieldFocus[JAny, P] = parent.fields.head
+  def last: JFieldFocus[JAny, P] = parent.fields.last
 }
 
 object JFieldFocus {
-  implicit final def toJFieldFocusOps[A <: JAny, P <: JStrongFocus[JObject]](
+  implicit final def toJFieldFocusOps[A <: JAny, P <: JFocus[JObject]](
       in: JFieldFocus[A, P]
   ): JFieldFocusOps[A, P] = new JFieldFocusOps(in)
 }
@@ -116,9 +134,14 @@ final case class JItemFocus[+A <: JAny, +P <: JFocus[JArray]] private[json] (
     parent: P
 ) extends JChildFocus[A, P] {
   val pointer: JPointer = parent.pointer.item(index)
+
+  def previous: JResult[JItemFocus[JAny, P]] = parent.item(index - 1)
+  def next: JResult[JItemFocus[JAny, P]] = parent.item(index + 1)
+  def first: JItemFocus[JAny, P] = parent.items.head
+  def last: JItemFocus[JAny, P] = parent.items.last
 }
 
 object JItemFocus {
-  implicit final def toJItemFocusOps[A <: JAny, P <: JStrongFocus[JArray]](in: JItemFocus[A, P]): JItemFocusOps[A, P] =
+  implicit final def toJItemFocusOps[A <: JAny, P <: JFocus[JArray]](in: JItemFocus[A, P]): JItemFocusOps[A, P] =
     new JItemFocusOps(in)
 }
