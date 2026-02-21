@@ -1,0 +1,108 @@
+digraph "blah" {
+    node[fontname=Courier]
+    node [shape=plaintext]
+    edge [fontsize="8pt", fontname=Helvetica]
+
+    subgraph R1 {
+        rank=same
+        A1 [label=<
+            <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8">
+              <TR>
+                <TD><B>JObject</B></TD>
+                <TD PORT="from">"a"</TD>
+                <TD>"b"</TD>
+                <TD>"c"</TD>
+              </TR>
+            </TABLE>
+        >]
+        F1 [label=<
+            <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8">
+              <TR>
+                <TD><B>JRootFocus</B></TD>
+              </TR>
+            </TABLE>
+        >]
+    }
+
+    subgraph R2 {
+        rank=same
+        A2 [label=<
+            <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8">
+              <TR>
+                <TD><B>JArray</B></TD>
+                <TD>0</TD>
+                <TD>1</TD>
+                <TD PORT="from">2</TD>
+                <TD>3</TD>
+              </TR>
+            </TABLE>
+        >]
+        F2 [label=<
+            <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8">
+              <TR>
+                <TD><B>JFieldFocus</B></TD>
+                <TD>"a"</TD>
+                <TD>1</TD>
+              </TR>
+            </TABLE>
+        >]
+    }
+
+    subgraph R3 {
+        rank=same
+        A3 [label=<
+            <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8">
+              <TR>
+                <TD><B>JObject</B></TD>
+                <TD>"w"</TD>
+                <TD PORT="from">"x"</TD>
+                <TD>"y"</TD>
+                <TD>"z"</TD>
+              </TR>
+            </TABLE>
+        >]
+        F3 [label=<
+            <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8">
+              <TR>
+                <TD><B>JItemFocus</B></TD>
+                <TD>2</TD>
+              </TR>
+            </TABLE>
+        >]
+    }
+
+    subgraph R4 {
+        rank=same
+        A4 [label=<
+            <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8">
+              <TR>
+                <TD><B>JString</B></TD>
+                <TD>"foo"</TD>
+              </TR>
+            </TABLE>
+        >]
+        F4 [label=<
+            <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8">
+              <TR>
+                <TD><B>JFieldFocus</B></TD>
+                <TD>"x"</TD>
+                <TD>1</TD>
+              </TR>
+            </TABLE>
+        >]
+    }
+
+    A1:from:s -> A2:n [label=child]
+    A2:from:s -> A3:n [label=child]
+    A3:from:s -> A4:n [label=child]
+
+
+    F1 -> A1 [label=value]
+    F2 -> A2 [label=value]
+    F3 -> A3 [label=value]
+    F4 -> A4 [label=value]
+
+//    F4 -> F3 -> F2 -> F1 [constraint=false]
+    F1 -> F2 -> F3 -> F4 [dir=back, label=parent]
+
+}

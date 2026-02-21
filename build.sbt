@@ -269,8 +269,59 @@ val enumeratum = projectMatrix
   .jsPlatform(scalaVersions = jsScalaVersions, scalaJSLinkerConfig ~= { _.withBatchMode(true) })
   .addCoverageAxis(Versions.scala213)
 
+val docs = project
+  .in(file("docs"))
+  .settings(commonSettings)
+  // This is needed to build the doc examples with mdoc
+  .dependsOn(
+    jsonLiteral.jvm(Versions.scala212),
+    enumeratum.jvm(Versions.scala212),
+    circe.jvm(Versions.scala212),
+    jsonapiGeneric.jvm(Versions.scala212)
+  )
+  .enablePlugins(ParadoxSitePlugin, ScalaUnidocPlugin)
+  .settings(
+    paradoxTheme := Some(builtinParadoxTheme("generic")),
+    crossPaths := false,
+    autoAPIMappings := true,
+    paradoxNavigationDepth := 3,
+    Compile / paradoxProperties ++= Map(
+      "scaladoc.base_url" -> ".../api",
+      "scaladoc.cats.base_url" -> "https://typelevel.org/cats/api/",
+    ),
+    Global / excludeLintKeys += paradoxNavigationDepth,
+    // unidoc seems to barf  on Scala 2.13 projects with a binary incompatibility error.
+    ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(
+      json.jvm(Versions.scala212),
+      jsonGeneric.jvm(Versions.scala212),
+      jsonLiteral.jvm(Versions.scala212),
+      jsonapi.jvm(Versions.scala212),
+      jsonapiGeneric.jvm(Versions.scala212),
+      circe.jvm(Versions.scala212),
+      enumeratum.jvm(Versions.scala212),
+    ),
+    ScalaUnidoc / siteSubdirName := "api",
+    addMappingsToSiteDir(ScalaUnidoc / packageDoc / mappings, ScalaUnidoc / siteSubdirName),
+  )
+  .enablePlugins(MdocPlugin)
+  .settings(
+    // Use mdoc and a preprocessor for paradox (to evaluate code fences only)
+    mdocIn := baseDirectory.value / "src" / "main" / "mdoc",
+    mdocOut := (Compile / paradox / sourceManaged).value,
+    // Without this, mdoc will puke on custom paradox link types
+    mdocExtraArguments ++= Seq("--no-link-hygiene"),
+    // For some reason, paradox isn't looking in its source_managed directory, so explicitly set this.
+    Compile / paradox / sourceDirectory := mdocOut.value,
+    // Always run mdoc before paradox
+    Compile / paradox := (Compile / paradox).dependsOn(mdoc.toTask("")).value,
+  )
+  .settings(
+    libraryDependencies += "org.scalawag.sarong" %% "sarong" % "0.1.1"
+  )
+
 val root = project
   .in(file("."))
+  .aggregate(docs)
   .aggregate(
     List(json, jsonGeneric, jsonLiteral, jsonapi, jsonapiGeneric, circe, enumeratum).flatMap(
       _.projectRefs
