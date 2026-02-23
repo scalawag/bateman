@@ -22,7 +22,7 @@ import org.scalawag.bateman.json.lens._
 import org.scalawag.bateman.json.syntax._
 import scala.reflect.ClassTag
 import org.scalawag.bateman.json.JType.Summoner
-import org.scalawag.bateman.json.focus.{JFocus, JFocusWeakOps}
+import org.scalawag.bateman.json.focus.JFocus
 
 /** Provides a monadic state API for navigating and editing JSON documents using [[JFocus]] as the state.
   *
@@ -62,7 +62,7 @@ package object state {
   def value[A <: JAny]: State[A, A] = focus.map(_.value)
 
   /** Moves the focus to the root of the document. */
-  def root[A <: JAny]: IndexedState[A, JAny] = apply((_: JFocus[A]).root.asRight)
+  def root[A <: JAny]: IndexedState[A, JAny] = apply((f: JFocus[A]) => f.root.asRight)
 
   /** Navigates down into the document using an [[IdJLens]]. */
   def down[A <: JAny, B <: JAny](lens: IdJLens[A, B]): IndexedState[A, B] = apply(lens(_))
@@ -72,17 +72,22 @@ package object state {
 
   /** Narrows the focus to a specific JSON type. Fails if the value is not of the target type. */
   def narrow[B <: JAny: ClassTag: Summoner]: IndexedState[JAny, B] =
-    apply((_: JFocus[JAny]).narrow[B])
+    apply((f: JFocus[JAny]) => f.narrow[B])
 
   /** Moves the focus up to the parent of the current focus. Fails if the focus is at the root. */
-  def up[A <: JAny]: IndexedState[A, JAny] = apply((_: JFocus[A]).parent)
+  def up[A <: JAny]: IndexedState[A, JAny] = apply((f: JFocus[A]) =>
+    f.parentOption match {
+      case Some(p) => p.rightNec
+      case None    => NoParent(f).leftNec
+    }
+  )
 
   /** Transforms the value at the current focus using a pure function on the value.
     * The result is encoded to JSON via the implicit [[Encoder]].
     */
   def modify[A <: JAny, B, C <: JAny](fn: A => B)(implicit encoder: Encoder[B, C]): IndexedState[A, C] =
     IndexedStateT.apply[JResult, JFocus[A], JFocus[C], C] { fa =>
-      val fb = new JFocusWeakOps(fa).replace(fn(fa.value).toJAny)
+      val fb = fa.replace(fn(fa.value).toJAny)
       (fb -> fb.value).rightNec
     }
 
@@ -91,7 +96,7 @@ package object state {
     */
   def modifyF[A <: JAny, B, C <: JAny](fn: A => JResult[B])(implicit encoder: Encoder[B, C]): IndexedState[A, C] =
     IndexedStateT.apply[JResult, JFocus[A], JFocus[C], C] { fa =>
-      fn(fa.value).map(b => new JFocusWeakOps(fa).replace(b.toJAny)).map(fb => fb -> fb.value)
+      fn(fa.value).map(b => fa.replace(b.toJAny)).map(fb => fb -> fb.value)
     }
 
   /** Transforms the value at the current focus using a pure function on the focus.
@@ -99,7 +104,7 @@ package object state {
     */
   def modifyFocus[A <: JAny, B, C <: JAny](fn: JFocus[A] => B)(implicit encoder: Encoder[B, C]): IndexedState[A, C] =
     IndexedStateT.apply[JResult, JFocus[A], JFocus[C], C] { fa =>
-      val fb = new JFocusWeakOps(fa).replace(fn(fa).toJAny)
+      val fb = fa.replace(fn(fa).toJAny)
       (fb -> fb.value).rightNec
     }
 
@@ -110,18 +115,18 @@ package object state {
       fn: JFocus[A] => JResult[B]
   )(implicit encoder: Encoder[B, C]): IndexedState[A, C] =
     IndexedStateT.apply[JResult, JFocus[A], JFocus[C], C] { fa =>
-      fn(fa).map(b => new JFocusWeakOps(fa).replace(b.toJAny)).map(fb => fb -> fb.value)
+      fn(fa).map(b => fa.replace(b.toJAny)).map(fb => fb -> fb.value)
     }
 
   /** Replaces the value at the current focus with the given value, encoding it via the implicit [[Encoder]]. */
   def replace[A <: JAny, B, C <: JAny](value: B)(implicit encoder: Encoder[B, C]): IndexedState[A, C] =
     IndexedStateT.apply[JResult, JFocus[A], JFocus[C], C] { sin =>
-      val sout = new JFocusWeakOps(sin).replace(value)
+      val sout = sin.replace(value)
       (sout -> sout.value).rightNec
     }
 
   /** Deletes the value at the current focus and moves to the parent. Fails if the focus is at the root. */
-  def delete[A <: JAny](): IndexedState[A, JAny] = apply((_: JFocus[A]).delete())
+  def delete[A <: JAny](): IndexedState[A, JAny] = apply((f: JFocus[A]) => f.delete())
 
   /** Encodes a value and replaces the current focus with the encoded JSON. */
   def encode[A <: JAny, B](a: B)(implicit JAnyEncoder: JAnyEncoder[B]): IndexedState[A, JAny] = replace(a.toJAny)

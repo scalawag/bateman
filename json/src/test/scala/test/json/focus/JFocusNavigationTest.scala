@@ -14,7 +14,6 @@
 
 package test.json.focus
 
-import cats.syntax.either._
 import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.focus._
 import test.json.BatemanTestBase
@@ -90,7 +89,7 @@ class JFocusNavigationTest extends BatemanTestBase {
       val firstUser: UserItemObj = usersArray.item(0).shouldSucceed.asObject.shouldSucceed
       val nameField: NameField = firstUser.field("name").shouldSucceed
 
-      val result: JRootFocus[JObject] = nameField.root
+      val result = nameField.root
       result.value shouldBe json.value
     }
 
@@ -100,7 +99,7 @@ class JFocusNavigationTest extends BatemanTestBase {
       val scoresField: JFieldFocus[JArray, UserItemObj] = firstUser.field("scores").shouldSucceed.asArray.shouldSucceed
       val firstScore: JItemFocus[JAny, JFieldFocus[JArray, UserItemObj]] = scoresField.item(0).shouldSucceed
 
-      val result: JRootFocus[JObject] = firstScore.root
+      val result = firstScore.root
       result.value shouldBe json.value
     }
   }
@@ -112,7 +111,7 @@ class JFocusNavigationTest extends BatemanTestBase {
       val nameField: NameField = firstUser.field("name").shouldSucceed
 
       // Use weak replace at depth (strong modify requires deep implicit chains).
-      val modified: JFocus[JString] = nameField.replace(JString(nameField.value.stripLocation.asInstanceOf[JString].value.toUpperCase))
+      val modified: JFocus[JString] = (nameField: JFocus[JAny]).replace(JString(nameField.value.stripLocation.asInstanceOf[JString].value.toUpperCase))
 
       modified.value.value shouldBe "ALICE"
       modified.pointer shouldBe nameField.pointer
@@ -136,8 +135,7 @@ class JFocusNavigationTest extends BatemanTestBase {
 
     it("should modify a shallow field with strong types preserved") {
       val usersField: JFieldFocus[JArray, Root] = json.field("users").shouldSucceed.asArray.shouldSucceed
-      val fn: JArray => JObject = _ => JObject.Empty
-      val modified: JFieldFocus[JObject, Root] = usersField.modify(fn)
+      val modified: JFieldFocus[JObject, Root] = usersField.modify(_ => JObject.Empty)
       modified.value shouldBe JObject.Empty
       modified.name.value shouldBe "users"
     }
@@ -150,7 +148,7 @@ class JFocusNavigationTest extends BatemanTestBase {
       val nameField: NameField = firstUser.field("name").shouldSucceed
       val weakNameField: JFocus[JAny] = nameField
 
-      // Use weak delete at depth via JFocusWeakOps.
+      // Use weak delete at depth via JFocus.
       val result: JFocus[JAny] = weakNameField.delete().shouldSucceed
       // Trying to type the result strongly should fail
       assertTypeError("""

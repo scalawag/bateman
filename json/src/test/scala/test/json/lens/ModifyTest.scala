@@ -15,9 +15,9 @@
 package test.json.lens
 
 import org.scalawag.bateman.json._
+import org.scalawag.bateman.json.focus.JFocus
 import org.scalawag.bateman.json.lens.{focus, _}
 import test.json.BatemanTestBase
-import org.scalawag.bateman.json.focus.{JCursor, JFocus}
 import ModifyTest._
 
 import org.scalawag.bateman.json.syntax._
@@ -68,12 +68,14 @@ class ModifyTest extends BatemanTestBase {
 
   describe("editing") {
     it("should edit a value in the document") {
-      val fn: JFocus[JAny] => JNumber = {
-        case JFocus.Value(arr: JArray) => JNumber(arr.items.size)
-        case _                         => fail()
+      val fn: JFocus[JAny] => JNumber = { wf =>
+        wf.value match {
+          case arr: JArray => JNumber(arr.items.size)
+          case _           => fail()
+        }
       }
       json(focus ~> "g")
-        .map(_.modify(fn))
+        .map(f => f.modifyFocus(fn))
         .shouldSucceed
         .root
         .value shouldRenderTo
@@ -103,12 +105,14 @@ class ModifyTest extends BatemanTestBase {
     }
 
     it("should edit a value in the document deeper") {
-      val fn: JFocus[JAny] => JNumber = {
-        case JFocus.Value(in: JArray) => JNumber(in.items.size)
-        case _                        => fail()
+      val fn: JFocus[JAny] => JNumber = { wf =>
+        wf.value match {
+          case in: JArray => JNumber(in.items.size)
+          case _          => fail()
+        }
       }
       json(focus ~> "deep" ~> 1)
-        .map(_.modify(fn))
+        .map(f => f.modifyFocus(fn))
         .shouldSucceed
         .root
         .value shouldEncodeTo

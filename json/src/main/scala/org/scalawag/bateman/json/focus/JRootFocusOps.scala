@@ -14,66 +14,22 @@
 
 package org.scalawag.bateman.json.focus
 
-import cats.syntax.either._
-import org.scalawag.bateman.json.JType.Summoner
 import org.scalawag.bateman.json._
 
-import scala.reflect.ClassTag
-
 class JRootFocusOps[InValue <: JAny](me: JRootFocus[InValue]) {
-  def narrow[B <: JAny: ClassTag: Summoner]: JResult[JRootFocus[B]] =
-    me.value match {
-      case b: B => JRootFocus(b).rightNec
-      case _    => JsonTypeMismatch(me, JType[B]).leftNec
-    }
+  def modify[O <: JAny](fn: InValue => O): JRootFocus[O] = JRootFocus(fn(me.value))
 
-  def asNull: JResult[JRootFocus[JNull]] = narrow[JNull]
-  def asArray: JResult[JRootFocus[JArray]] = narrow[JArray]
-  def asObject: JResult[JRootFocus[JObject]] = narrow[JObject]
-  def asString: JResult[JRootFocus[JString]] = narrow[JString]
-  def asNumber: JResult[JRootFocus[JNumber]] = narrow[JNumber]
-  def asBoolean: JResult[JRootFocus[JBoolean]] = narrow[JBoolean]
+  def modify[O <: JAny](fn: InValue => JResult[O])(implicit d: DummyImplicit): JResult[JRootFocus[O]] =
+    fn(me.value).map(JRootFocus(_))
 
-  def modify(magnet: JRootFocusOps.ModifyMagnet[InValue]): magnet.Out = magnet(me)
-}
+  def modifyFocus[O <: JAny](fn: JRootFocus[InValue] => O): JRootFocus[O] =
+    JRootFocus(fn(me))
 
-object JRootFocusOps {
-  trait ModifyMagnet[V <: JAny] {
-    type Out
-    def apply(focus: JRootFocus[V]): Out
-  }
+  def modifyFocus[O <: JAny](fn: JRootFocus[InValue] => JResult[O])(implicit d: DummyImplicit): JResult[JRootFocus[O]] =
+    fn(me).map(JRootFocus(_))
 
-  object ModifyMagnet extends JRootFocusModifyMagnetLowPriority {
-    implicit def focusFallible[V <: JAny, O <: JAny](
-        fn: JRootFocus[V] => JResult[O]
-    ): ModifyMagnet[V] { type Out = JResult[JRootFocus[O]] } =
-      new ModifyMagnet[V] {
-        type Out = JResult[JRootFocus[O]]
-        def apply(focus: JRootFocus[V]): JResult[JRootFocus[O]] = fn(focus).map(JRootFocus(_))
-      }
+  def replace[O <: JAny](newValue: O): JRootFocus[O] = JRootFocus(newValue)
 
-    implicit def valueFallible[V <: JAny, O <: JAny](
-        fn: V => JResult[O]
-    ): ModifyMagnet[V] { type Out = JResult[JRootFocus[O]] } =
-      new ModifyMagnet[V] {
-        type Out = JResult[JRootFocus[O]]
-        def apply(focus: JRootFocus[V]): JResult[JRootFocus[O]] = fn(focus.value).map(JRootFocus(_))
-      }
-  }
-
-  trait JRootFocusModifyMagnetLowPriority {
-    implicit def focusPure[V <: JAny, O <: JAny](
-        fn: JRootFocus[V] => O
-    ): ModifyMagnet[V] { type Out = JRootFocus[O] } =
-      new ModifyMagnet[V] {
-        type Out = JRootFocus[O]
-        def apply(focus: JRootFocus[V]): JRootFocus[O] = JRootFocus(fn(focus))
-      }
-
-    implicit def valuePure[V <: JAny, O <: JAny](fn: V => O): ModifyMagnet[V] { type Out = JRootFocus[O] } =
-      new ModifyMagnet[V] {
-        type Out = JRootFocus[O]
-        def apply(focus: JRootFocus[V]): JRootFocus[O] = JRootFocus(fn(focus.value))
-      }
-  }
+  def replace[O <: JAny](newValue: JResult[O])(implicit d: DummyImplicit): JResult[JRootFocus[O]] =
+    newValue.map(JRootFocus(_))
 }

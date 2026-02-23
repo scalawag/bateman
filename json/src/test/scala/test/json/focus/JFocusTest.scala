@@ -14,102 +14,181 @@
 
 package test.json.focus
 
+import cats.syntax.either._
+import org.scalawag.bateman.json.JType.Summoner
 import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.focus._
-import org.scalawag.bateman.json.lens._
 import test.json.BatemanTestBase
 
+import scala.reflect.ClassTag
+
 class JFocusTest extends BatemanTestBase {
-  private val json = parseAs[JObject]("""
-    {
-      "a": {
-        "g": 4,
-        "f": "thing",
-        "b": true
-      },
-      "b": 6,
-      "g": [
-        {
-          "c": 8
-        },
-        {
-          "c": 12
+
+  describe("narrowing") {
+    val ins: List[JRootFocus[JAny]] = List(JString("a"), JNumber(4), JBoolean(true), JNull, JObject.Empty, JArray.Empty).map(_.asRootFocus)
+
+    def narrowTestCases[A <: JAny: ClassTag: Summoner](): Unit = {
+      describe(s"narrow[${JType[A]}]") {
+        ins.foreach { in =>
+          if (in.value.jType == JType[A])
+            it(s"should succeed from ${in.value.jType}") {
+              val out: JResult[JFocus[A]] = in.narrow[A]
+              out shouldBe in.rightNec
+            }
+          else
+            it(s"should fail from ${in.value.jType}") {
+              val out: JResult[JFocus[A]] = in.narrow[A]
+              out shouldBe JsonTypeMismatch(in, JType[A]).leftNec
+            }
         }
-      ],
-      "h": [1, 2, 3],
-      "opt": { "x": 99 },
-      "deep": [
-        [
-          { "a": 4 },
-          { "a": true },
-          { "a": "g" }
-        ],
-        [
-          { "a": 17 },
-          { "a": 83 },
-          { "a": 56.78e4 }
-        ]
-      ]
-    }
-  """)
-
-  describe("decodeFrom (focus lens)") {
-    it("should decode a nested field") {
-      json.decodeFrom[Int]("a" ~> "g") shouldBe Right(4)
+      }
     }
 
-    it("should decode a top-level field") {
-      json.decodeFrom[Int]("b") shouldBe Right(6)
+    narrowTestCases[JNull]()
+    narrowTestCases[JNumber]()
+    narrowTestCases[JString]()
+    narrowTestCases[JBoolean]()
+    narrowTestCases[JObject]()
+    narrowTestCases[JArray]()
+
+    def asTestCases[A <: JAny: Summoner](fn: JFocus[JAny] => JResult[JFocus[A]]): Unit = {
+      describe(s"as${JType[A].toString.tail}") {
+        ins.foreach { in =>
+          if (in.value.jType == JType[A])
+            it(s"should succeed from ${in.value.jType}") {
+              val out: JResult[JFocus[A]] = fn(in)
+              out shouldBe in.rightNec
+            }
+          else
+            it(s"should fail from ${in.value.jType}") {
+              val out: JResult[JFocus[A]] = fn(in)
+              out shouldBe JsonTypeMismatch(in, JType[A]).leftNec
+            }
+        }
+      }
     }
 
-    it("should decode a string field") {
-      json.decodeFrom[String]("a" ~> "f") shouldBe Right("thing")
+    asTestCases(_.asNull)
+    asTestCases(_.asNumber)
+    asTestCases(_.asString)
+    asTestCases(_.asBoolean)
+    asTestCases(_.asObject)
+    asTestCases(_.asArray)
+  }
+
+  describe("map") {
+    it("should map over a root focus") {
+      val f: JFocus[JString] = JString("hello").asRootFocus
+      val result: JFocus[JNumber] = f.map(s => JNumber(s.value.length))
+      result.value.toBigDecimal shouldBe BigDecimal(5)
+      result.pointer shouldBe f.pointer
     }
 
-    it("should fail on type mismatch") {
-      val err = json.decodeFrom[Int]("a" ~> "f").shouldFail
-      err.head shouldBe a[JsonTypeMismatch]
+    it("should map over a field focus") {
+      val obj = parseAs[JObject]("""{"a": "hello"}""")
+      val f: JFocus[JAny] = obj.field("a").shouldSucceed
+      val result = f.map(_ => JNumber(42))
+      result.value.toBigDecimal shouldBe BigDecimal(42)
+      result.pointer shouldBe f.pointer
     }
 
-    it("should fail on missing field") {
-      val err = json.decodeFrom[Int]("a" ~> "missing").shouldFail
-      err.head shouldBe a[MissingField]
-    }
-
-    it("should decode a boolean") {
-      json.decodeFrom[Boolean]("a" ~> "b") shouldBe Right(true)
+    it("should map over an item focus") {
+      val arr = parseAs[JArray]("""["hello", "world"]""")
+      val f: JFocus[JAny] = arr.item(1).shouldSucceed
+      val result = f.map(_ => JNumber(42))
+      result.value.toBigDecimal shouldBe BigDecimal(42)
+      result.pointer shouldBe f.pointer
     }
   }
 
-  describe("decodeFrom (cursor lens)") {
-    it("should decode all items in an array") {
-      json.decodeFrom[Int]("h" ~> *).shouldSucceed shouldBe List(1, 2, 3)
+  describe("as") {
+    it("should replace the value while preserving focus structure") {
+      val f: JFocus[JAny] = JString("hello").asRootFocus
+      val result: JFocus[JNumber] = f.as(JNumber(42))
+      result.value.toBigDecimal shouldBe BigDecimal(42)
+      result.pointer shouldBe f.pointer
     }
 
-    it("should decode nested fields across array items") {
-      json.decodeFrom[Int]("g" ~> * ~> "c").shouldSucceed shouldBe List(8, 12)
+    it("should work on a field focus") {
+      val obj = parseAs[JObject]("""{"a": "hello"}""")
+      val f: JFocus[JAny] = obj.field("a").shouldSucceed
+      val result = f.as(JNumber(42))
+      result.value.toBigDecimal shouldBe BigDecimal(42)
+      result.pointer shouldBe f.pointer
+    }
+  }
+
+  describe("navigate") {
+    val json = parseAs[JObject]("""
+      {
+        "users": [
+          {"name": "alice"},
+          {"name": "bob"}
+        ]
+      }
+    """)
+
+    it("should navigate to a nested field via key tokens") {
+      val pointer = JPointer.Root.field("users")
+      val result = json.navigate(pointer).shouldSucceed
+      result.value shouldBe a[JArray]
     }
 
-    it("should fail when any item has a type mismatch") {
-      val badJson: JRootFocus[JAny] = parse("""{ "items": [1, "two", 3] }""")
-      badJson.decodeFrom[Int]("items" ~> *).shouldFail
+    it("should navigate into an array via index token") {
+      val pointer = JPointer.Root.field("users").item(0)
+      val result = json.navigate(pointer).shouldSucceed
+      result.asObject.shouldSucceed.field("name").shouldSucceed.asString.shouldSucceed.value.value shouldBe "alice"
     }
 
-    it("should decode with an optional lens") {
-      json.decodeFrom[Int]("opt" ~> "x".?).shouldSucceed shouldBe Some(99)
+    it("should navigate to a deeply nested value via mixed tokens") {
+      val pointer = JPointer.Root.field("users").item(1).field("name")
+      val result = json.navigate(pointer).shouldSucceed
+      result.asString.shouldSucceed.value.value shouldBe "bob"
     }
 
-    it("should return None for a missing optional field") {
-      json.decodeFrom[Int]("opt" ~> "missing".?).shouldSucceed shouldBe None
+    it("should fail when an index token targets a non-array") {
+      val pointer = JPointer.Root.field("users").item(0).field("name").item(0)
+      val nameFocus = json.navigate(JPointer.Root.field("users").item(0).field("name")).shouldSucceed
+      val err = json.navigate(pointer).shouldFail
+      err.head shouldBe JsonTypeMismatch(nameFocus, JArray)
     }
 
-    it("should decode all values with **") {
-      val nums: JRootFocus[JAny] = parse("""{ "a": { "x": 1, "y": 2, "z": 3 } }""")
-      nums.decodeFrom[Int]("a" ~> **).shouldSucceed shouldBe List(1, 2, 3)
+    it("should fail when a key token targets a non-object") {
+      val pointer = JPointer.Root.field("users").field("invalid")
+      val usersFocus = json.navigate(JPointer.Root.field("users")).shouldSucceed
+      val err = json.navigate(pointer).shouldFail
+      err.head shouldBe JsonTypeMismatch(usersFocus, JObject)
     }
 
-    it("should accumulate errors across cursor items") {
-      json.decodeFrom[Int]("a" ~> **).shouldFail.length shouldBe 2
+    it("should return itself for an empty pointer") {
+      val result = json.navigate(JPointer.Root).shouldSucceed
+      result.value shouldBe json.value
+    }
+  }
+
+  describe("decode") {
+    it("should decode the value") {
+      forAll(genJFocus(genJString)) { in =>
+        val out = in.decode[String].shouldSucceed
+
+        out shouldBe in.value.value
+      }
+    }
+
+    it("should fail of the decoder fails") {
+      forAll(genJFocus(genJAny)) {
+        case in @ JFocus.Value(s: JString) =>
+          in.decode[String].shouldSucceed shouldBe s.value
+        case in =>
+          in.decode[String] shouldBe JsonTypeMismatch(in, JString).leftNec
+      }
+    }
+
+    it("should decode the value with explicit decoder (use case)") {
+      forAll(genJFocus(genJString)) { in =>
+        val out = in.decode(Decoder.stringDecoder).shouldSucceed
+        out shouldBe in.value.value
+      }
     }
   }
 }

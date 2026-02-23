@@ -15,8 +15,10 @@
 package test.json.focus
 
 import cats.syntax.either._
+import org.scalacheck.Gen
 import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.focus._
+import org.scalawag.bateman.json.syntax.AnyBatemanOps
 import test.json.BatemanTestBase
 
 class JFieldFocusOpsTest extends BatemanTestBase {
@@ -43,11 +45,10 @@ class JFieldFocusOpsTest extends BatemanTestBase {
 
   describe("narrow") {
     it("should narrow a field to the correct type") {
-      val result: JResult[JFieldFocus[JString, JRootFocus[JObject]]] = fieldFocus("name").narrow[JString]
-      val f = result.shouldSucceed
-      f.value.value shouldBe "alice"
-      f.name.value shouldBe "name"
-      f.index shouldBe 0
+      val result = fieldFocus("name").narrow[JString].shouldSucceed
+      result.value.value shouldBe "alice"
+      result.name.value shouldBe "name"
+      result.index shouldBe 0
     }
 
     it("should fail when narrowing to the wrong type") {
@@ -137,8 +138,7 @@ class JFieldFocusOpsTest extends BatemanTestBase {
 
   describe("delete") {
     it("should remove the field and return the parent focus type") {
-      val f = nameFocus
-      val result: JRootFocus[JObject] = f.delete()
+      val result: JRootFocus[JObject] = nameFocus.delete()
       result.value.fieldList.map(_.name.value) should not contain "name"
       result.value.fieldList should have size (json.value.fieldList.size - 1)
       result.root.value.shouldHaveNoLocations
@@ -156,8 +156,7 @@ class JFieldFocusOpsTest extends BatemanTestBase {
 
   describe("modify (value, pure)") {
     it("should transform the field value and preserve the focus type") {
-      val fn: JString => JNumber = s => JNumber(s.value.length)
-      val result: JFieldFocus[JNumber, JRootFocus[JObject]] = nameFocus.modify(fn)
+      val result: JFieldFocus[JNumber, JRootFocus[JObject]] = nameFocus.modify(s => s.value.length.toJAny)
       result.value.toBigDecimal shouldBe BigDecimal(5)
       result.name.value shouldBe "name"
     }
@@ -165,54 +164,65 @@ class JFieldFocusOpsTest extends BatemanTestBase {
 
   describe("modify (value, fallible)") {
     it("should transform the field value on success") {
-      val fn: JString => JResult[JNumber] = s => JNumber(s.value.length).rightNec
-      val result: JResult[JFieldFocus[JNumber, JRootFocus[JObject]]] = nameFocus.modify(fn)
-      val f = result.shouldSucceed
-      f.value.toBigDecimal shouldBe BigDecimal(5)
-      f.name.value shouldBe "name"
+      val result = nameFocus.modify(s => JNumber(s.value.length).rightNec).shouldSucceed
+      result.value.toBigDecimal shouldBe BigDecimal(5)
+      result.name.value shouldBe "name"
     }
 
     it("should propagate the error on failure") {
       val err = JsonTypeMismatch(nameFocus, JNull)
-      val fn: JString => JResult[JNumber] = _ => err.leftNec
-      val result: JResult[JFieldFocus[JNumber, JRootFocus[JObject]]] = nameFocus.modify(fn)
+      val result: JResult[JFieldFocus[JNumber, JRootFocus[JObject]]] = nameFocus.modify(_ => err.leftNec)
       result.shouldFailSingle shouldBe err
     }
   }
 
-  describe("modify (focus, pure)") {
+  describe("modifyFocus (focus, pure)") {
     it("should transform via focus and preserve the focus type") {
-      val f = nameFocus
-      val fn: JFieldFocus[JString, JRootFocus[JObject]] => JNumber = ff => JNumber(ff.value.value.length)
-      val result: JFieldFocus[JNumber, JRootFocus[JObject]] = f.modify(fn)
+      val result: JFieldFocus[JNumber, JRootFocus[JObject]] =
+        nameFocus.modifyFocus(ff => JNumber(ff.value.value.length))
       result.value.toBigDecimal shouldBe BigDecimal(5)
       result.name.value shouldBe "name"
     }
   }
 
-  describe("modify (focus, fallible)") {
+  describe("modifyFocus (focus, fallible)") {
     it("should transform via focus on success") {
-      val f = nameFocus
-      val fn: JFieldFocus[JString, JRootFocus[JObject]] => JResult[JNumber] =
-        ff => JNumber(ff.value.value.length).rightNec
-      val result: JResult[JFieldFocus[JNumber, JRootFocus[JObject]]] = f.modify(fn)
-      val out = result.shouldSucceed
-      out.value.toBigDecimal shouldBe BigDecimal(5)
+      val result = nameFocus.modifyFocus(ff => JNumber(ff.value.value.length).rightNec).shouldSucceed
+      result.value.toBigDecimal shouldBe BigDecimal(5)
     }
 
     it("should propagate the error on failure") {
-      val f = nameFocus
-      val err = JsonTypeMismatch(f, JNull)
-      val fn: JFieldFocus[JString, JRootFocus[JObject]] => JResult[JNumber] = _ => err.leftNec
-      val result: JResult[JFieldFocus[JNumber, JRootFocus[JObject]]] = f.modify(fn)
+      val err = JsonTypeMismatch(nameFocus, JNull)
+      val result: JResult[JFieldFocus[JNumber, JRootFocus[JObject]]] = nameFocus.modifyFocus(_ => err.leftNec)
+      result.shouldFailSingle shouldBe err
+    }
+  }
+
+  describe("replace (value)") {
+    it("should replace the field value and preserve the focus type") {
+      val result: JFieldFocus[JNumber, JRootFocus[JObject]] = nameFocus.replace(JNumber(99))
+      result.value.toBigDecimal shouldBe BigDecimal(99)
+      result.name.value shouldBe "name"
+    }
+  }
+
+  describe("replace (fallible)") {
+    it("should replace the field value on success") {
+      val result: JResult[JFieldFocus[JNumber, JRootFocus[JObject]]] = nameFocus.replace(JNumber(99).rightNec)
+      result.shouldSucceed.value.toBigDecimal shouldBe BigDecimal(99)
+      result.shouldSucceed.name.value shouldBe "name"
+    }
+
+    it("should propagate the error on failure") {
+      val err = JsonTypeMismatch(nameFocus, JNull)
+      val result: JResult[JFieldFocus[JNumber, JRootFocus[JObject]]] = nameFocus.replace(err.leftNec)
       result.shouldFailSingle shouldBe err
     }
   }
 
   describe("root") {
     it("should return the root focus with the correct strong type") {
-      val f = nameFocus
-      val result: JRootFocus[JObject] = f.root
+      val result = nameFocus.root
       result.value shouldBe json.value
     }
   }
@@ -276,21 +286,18 @@ class JFieldFocusOpsTest extends BatemanTestBase {
       arrFieldFocus("x").asNumber.shouldSucceed
 
     it("should narrow a field and reflect the array-rooted parent chain") {
-      val result: JResult[JFieldFocus[JNumber, ObjItem]] = arrFieldFocus("x").narrow[JNumber]
-      val f = result.shouldSucceed
-      f.value.toBigDecimal shouldBe BigDecimal(1)
-      f.parent shouldBe objItem
+      val result = arrFieldFocus("x").narrow[JNumber].shouldSucceed
+      result.value.toBigDecimal shouldBe BigDecimal(1)
+      result.parent shouldBe objItem
     }
 
     it("should navigate to the root array through the parent chain") {
-      val f = arrNumberFieldFocus
-      val result: JRootFocus[JArray] = f.root
+      val result = arrNumberFieldFocus.root
       result.value shouldBe arrJson.value
     }
 
     it("should delete a field and return the item focus parent") {
-      val f = arrNumberFieldFocus
-      val result: ObjItem = f.delete()
+      val result: ObjItem = arrNumberFieldFocus.delete()
       result.value.fieldList.map(_.name.value) should not contain "x"
       result.value.fieldList should have size 2
     }
@@ -305,8 +312,7 @@ class JFieldFocusOpsTest extends BatemanTestBase {
     }
 
     it("should modify a field value and preserve the parent chain") {
-      val fn: JNumber => JString = n => JString(n.toBigDecimal.toString)
-      val result: JFieldFocus[JString, ObjItem] = arrNumberFieldFocus.modify(fn)
+      val result: JFieldFocus[JString, ObjItem] = arrNumberFieldFocus.modify(n => JString(n.toBigDecimal.toString))
       result.value.value shouldBe "1"
       result.name.value shouldBe "x"
       result.parent.index shouldBe 0
@@ -325,6 +331,89 @@ class JFieldFocusOpsTest extends BatemanTestBase {
 
       val last: JFieldFocus[JAny, ObjItem] = f.last
       last.name.value shouldBe "z"
+    }
+  }
+
+  // --- Property-based tests ---
+
+  type DeepFocus = JFieldFocus[JString, JRootFocus[JObject]]
+
+  val genDeepFocus: Gen[DeepFocus] =
+    for {
+      obj <- genJObject
+      name <- genJString.map(_.value)
+      value <- genJString
+    } yield {
+      val root = obj.append(name, value)
+      root.asRootFocus.asObject.flatMap(x => x.field(name)).flatMap(_.asString).getOrThrow
+    }
+
+  val propMutator: JString => JString = in => JString(in.value * 2)
+  val propFocusMutator: DeepFocus => JString = propMutator.compose(_.value)
+
+  describe("modify (value, pure, property)") {
+    it("should modify the value in focus") {
+      forAll(genDeepFocus) { f =>
+        val out = f.modify(propMutator)
+
+        out.pointer shouldBe f.pointer
+        out.value shouldBe propMutator(f.value)
+        out.root.value.shouldHaveNoLocations
+      }
+    }
+  }
+
+  describe("modify (value, fallible, property)") {
+    it("should modify the value in focus") {
+      forAll(genDeepFocus) { f =>
+        val out = f.modify(s => propMutator(s).rightNec).shouldSucceed
+
+        out.pointer shouldBe f.pointer
+        out.value shouldBe propMutator(f.value)
+        out.root.value.shouldHaveNoLocations
+      }
+    }
+
+    it("should fail to modify the value in focus") {
+      forAll(genDeepFocus) { f =>
+        val err = JsonTypeMismatch(f, JNull)
+        val out = f.modify(_ => err.leftNec)
+
+        out.shouldFailSingle shouldBe err
+      }
+    }
+  }
+
+  describe("modifyFocus (focus, pure, property)") {
+    it("should modify the focus") {
+      forAll(genDeepFocus) { f =>
+        val out = f.modifyFocus(propFocusMutator)
+
+        out.pointer shouldBe f.pointer
+        out.value shouldBe propFocusMutator(f)
+        out.root.value.shouldHaveNoLocations
+      }
+    }
+  }
+
+  describe("modifyFocus (focus, fallible, property)") {
+    it("should modify the focus") {
+      forAll(genDeepFocus) { f =>
+        val out = f.modifyFocus(ff => propFocusMutator(ff).rightNec).shouldSucceed
+
+        out.pointer shouldBe f.pointer
+        out.value shouldBe propFocusMutator(f)
+        out.root.value.shouldHaveNoLocations
+      }
+    }
+
+    it("should fail to modify the focus") {
+      forAll(genDeepFocus) { f =>
+        val err = JsonTypeMismatch(f, JNull)
+        val out = f.modifyFocus(_ => err.leftNec)
+
+        out.shouldFailSingle shouldBe err
+      }
     }
   }
 }

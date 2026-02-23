@@ -78,7 +78,7 @@ trait ValueReplacerLowP {
 
       override def apply(value: NewValue, focus: JFocus[OldValue]): JFocus[NewValue] = {
         val newRoot = rebuildDocument(value, focus)
-        new JFocusWeakOps(focus).replicateAs(newRoot, value)
+        focus.replicateAs(newRoot, value)
       }
     }
 

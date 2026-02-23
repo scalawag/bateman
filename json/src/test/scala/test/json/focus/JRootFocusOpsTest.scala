@@ -115,46 +115,60 @@ class JRootFocusOpsTest extends BatemanTestBase {
 
   describe("modify (value, pure)") {
     it("should transform the value and preserve JRootFocus type") {
-      val fn: JString => JNumber = s => JNumber(s.value.length)
-      val result: JRootFocus[JNumber] = str.modify(fn)
+      val result: JRootFocus[JNumber] = str.modify(s => JNumber(s.value.length))
       result.value.toBigDecimal shouldBe BigDecimal(5)
     }
   }
 
   describe("modify (value, fallible)") {
     it("should transform the value on success") {
-      val fn: JString => JResult[JNumber] = s => JNumber(s.value.length).rightNec
-      val result: JResult[JRootFocus[JNumber]] = str.modify(fn)
+      val result: JResult[JRootFocus[JNumber]] = str.modify(s => JNumber(s.value.length).rightNec)
       result.shouldSucceed.value.toBigDecimal shouldBe BigDecimal(5)
     }
 
     it("should propagate the error on failure") {
       val err = JsonTypeMismatch(str, JNull)
-      val fn: JString => JResult[JNumber] = _ => err.leftNec
-      val result: JResult[JRootFocus[JNumber]] = str.modify(fn)
+      val result: JResult[JRootFocus[JNumber]] = str.modify(_ => err.leftNec)
       result.shouldFailSingle shouldBe err
     }
   }
 
-  describe("modify (focus, pure)") {
+  describe("modifyFocus (focus, pure)") {
     it("should transform via focus and preserve JRootFocus type") {
-      val fn: JRootFocus[JString] => JNumber = f => JNumber(f.value.value.length)
-      val result: JRootFocus[JNumber] = str.modify(fn)
+      val result: JRootFocus[JNumber] = str.modifyFocus(f => JNumber(f.value.value.length))
       result.value.toBigDecimal shouldBe BigDecimal(5)
     }
   }
 
-  describe("modify (focus, fallible)") {
+  describe("modifyFocus (focus, fallible)") {
     it("should transform via focus on success") {
-      val fn: JRootFocus[JString] => JResult[JNumber] = f => JNumber(f.value.value.length).rightNec
-      val result: JResult[JRootFocus[JNumber]] = str.modify(fn)
+      val result: JResult[JRootFocus[JNumber]] = str.modifyFocus(f => JNumber(f.value.value.length).rightNec)
       result.shouldSucceed.value.toBigDecimal shouldBe BigDecimal(5)
     }
 
     it("should propagate the error on failure") {
       val err = JsonTypeMismatch(str, JNull)
-      val fn: JRootFocus[JString] => JResult[JNumber] = _ => err.leftNec
-      val result: JResult[JRootFocus[JNumber]] = str.modify(fn)
+      val result: JResult[JRootFocus[JNumber]] = str.modifyFocus(_ => err.leftNec)
+      result.shouldFailSingle shouldBe err
+    }
+  }
+
+  describe("replace (value)") {
+    it("should replace the root value") {
+      val result: JRootFocus[JNumber] = str.replace(JNumber(99))
+      result.value.toBigDecimal shouldBe BigDecimal(99)
+    }
+  }
+
+  describe("replace (fallible)") {
+    it("should replace the root value on success") {
+      val result: JResult[JRootFocus[JNumber]] = str.replace(JNumber(99).rightNec)
+      result.shouldSucceed.value.toBigDecimal shouldBe BigDecimal(99)
+    }
+
+    it("should propagate the error on failure") {
+      val err = JsonTypeMismatch(str, JNull)
+      val result: JResult[JRootFocus[JNumber]] = str.replace(err.leftNec)
       result.shouldFailSingle shouldBe err
     }
   }

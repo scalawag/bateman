@@ -19,6 +19,15 @@ trait LocationStripper[A <: JAny] {
 }
 
 object LocationStripper extends LocationStripperLowPriority {
+
+  /** Strips location information from a JAny value while preserving its concrete type.
+    *
+    * This is safe because [[JAny]] is sealed and [[forJAny]] preserves the runtime type
+    * for all subtypes, but the type system cannot express this since [[LocationStripper]]
+    * is invariant.
+    */
+  def strip[C <: JAny](value: C): C = forJAny.stripLocation(value).asInstanceOf[C]
+
   implicit val forJNull: LocationStripper[JNull] = _ => JNull
 
   implicit val forJString: LocationStripper[JString] = a => if (a.location.isEmpty) a else a.copy(location = None)

@@ -83,8 +83,6 @@ class JFocusJObjectOps[A <: JFocus[JObject]](me: A) {
       case Some(field) => field.rightNec
     }
 
-  def modify(magnet: JFocusJObjectOps.ModifyMagnet[A]): magnet.Out = magnet(me)
-
   def append[B: JAnyEncoder](name: String, value: B)(implicit replacer: ValueReplacer.Aux[JObject, A, A]): A =
     replacer(me.value.append(name, value.toJAny), me)
 
@@ -113,7 +111,7 @@ class JFocusJObjectOps[A <: JFocus[JObject]](me: A) {
       value: D,
       prepend: Boolean = false
   )(implicit replacer: ValueReplacer.Aux[JObject, A, A]): A = {
-    val result = new JFocusWeakOps(JRootFocus(me.value)).overwriteTo(lens, value, prepend)
+    val result = new JFocusOps(JRootFocus(me.value)).overwriteTo(lens, value, prepend)
     result.root.value match {
       case o: JObject => replacer(o, me)
       case other => throw new IllegalStateException(s"expected JObject but got ${other.jType}")
@@ -125,37 +123,10 @@ class JFocusJObjectOps[A <: JFocus[JObject]](me: A) {
       value: D,
       prepend: Boolean = false
   )(implicit enc: Encoder[D, E], replacer: ValueReplacer.Aux[JObject, A, A]): JResult[A] =
-    new JFocusWeakOps(JRootFocus(me.value))
+    new JFocusOps(JRootFocus(me.value))
       .writeTo(lens, value, prepend)
       .map(fb => fb.root.value match {
         case o: JObject => replacer(o, me)
         case other => throw new IllegalStateException(s"expected JObject but got ${other.jType}")
       })
-}
-
-object JFocusJObjectOps {
-  trait ModifyMagnet[A <: JFocus[JObject]] {
-    type Out
-    def apply(focus: A): Out
-  }
-
-  object ModifyMagnet extends JFocusJObjectModifyMagnetLowPriority {
-    implicit def fallible[A <: JFocus[JObject]](fn: JObject => JResult[JObject])(implicit
-        replacer: ValueReplacer.Aux[JObject, A, A]
-    ): ModifyMagnet[A] { type Out = JResult[A] } =
-      new ModifyMagnet[A] {
-        type Out = JResult[A]
-        def apply(focus: A): JResult[A] = fn(focus.value).map(replacer(_, focus))
-      }
-  }
-
-  trait JFocusJObjectModifyMagnetLowPriority {
-    implicit def pure[A <: JFocus[JObject]](fn: JObject => JObject)(implicit
-        replacer: ValueReplacer.Aux[JObject, A, A]
-    ): ModifyMagnet[A] { type Out = A } =
-      new ModifyMagnet[A] {
-        type Out = A
-        def apply(focus: A): A = replacer(fn(focus.value), focus)
-      }
-  }
 }

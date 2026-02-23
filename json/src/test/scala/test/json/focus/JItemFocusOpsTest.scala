@@ -36,10 +36,9 @@ class JItemFocusOpsTest extends BatemanTestBase {
 
   describe("narrow") {
     it("should narrow an item to the correct type") {
-      val result: JResult[JItemFocus[JString, JRootFocus[JArray]]] = itemFocus(0).narrow[JString]
-      val f = result.shouldSucceed
-      f.value.value shouldBe "hello"
-      f.index shouldBe 0
+      val result = itemFocus(0).narrow[JString].shouldSucceed
+      result.value.value shouldBe "hello"
+      result.index shouldBe 0
     }
 
     it("should fail when narrowing to the wrong type") {
@@ -129,8 +128,7 @@ class JItemFocusOpsTest extends BatemanTestBase {
 
   describe("delete") {
     it("should remove the item and return the parent focus type") {
-      val f = stringItemFocus
-      val result: JRootFocus[JArray] = f.delete()
+      val result: JRootFocus[JArray] = stringItemFocus.delete()
       result.value.items should have size (json.value.items.size - 1)
       result.root.value.shouldHaveNoLocations
     }
@@ -147,8 +145,7 @@ class JItemFocusOpsTest extends BatemanTestBase {
 
   describe("modify (value, pure)") {
     it("should transform the item value and preserve the focus type") {
-      val fn: JString => JNumber = s => JNumber(s.value.length)
-      val result: JItemFocus[JNumber, JRootFocus[JArray]] = stringItemFocus.modify(fn)
+      val result: JItemFocus[JNumber, JRootFocus[JArray]] = stringItemFocus.modify(s => JNumber(s.value.length))
       result.value.toBigDecimal shouldBe BigDecimal(5)
       result.index shouldBe 0
     }
@@ -156,53 +153,63 @@ class JItemFocusOpsTest extends BatemanTestBase {
 
   describe("modify (value, fallible)") {
     it("should transform the item value on success") {
-      val fn: JString => JResult[JNumber] = s => JNumber(s.value.length).rightNec
-      val result: JResult[JItemFocus[JNumber, JRootFocus[JArray]]] = stringItemFocus.modify(fn)
-      val f = result.shouldSucceed
-      f.value.toBigDecimal shouldBe BigDecimal(5)
-      f.index shouldBe 0
+      val result = stringItemFocus.modify(s => JNumber(s.value.length).rightNec).shouldSucceed
+      result.value.toBigDecimal shouldBe BigDecimal(5)
+      result.index shouldBe 0
     }
 
     it("should propagate the error on failure") {
       val err = JsonTypeMismatch(stringItemFocus, JNull)
-      val fn: JString => JResult[JNumber] = _ => err.leftNec
-      val result: JResult[JItemFocus[JNumber, JRootFocus[JArray]]] = stringItemFocus.modify(fn)
+      val result: JResult[JItemFocus[JNumber, JRootFocus[JArray]]] = stringItemFocus.modify(_ => err.leftNec)
       result.shouldFailSingle shouldBe err
     }
   }
 
-  describe("modify (focus, pure)") {
+  describe("modifyFocus (focus, pure)") {
     it("should transform via focus and preserve the focus type") {
-      val f = stringItemFocus
-      val fn: JItemFocus[JString, JRootFocus[JArray]] => JNumber = ff => JNumber(ff.value.value.length)
-      val result: JItemFocus[JNumber, JRootFocus[JArray]] = f.modify(fn)
+      val result: JItemFocus[JNumber, JRootFocus[JArray]] = stringItemFocus.modifyFocus(ff => JNumber(ff.value.value.length))
       result.value.toBigDecimal shouldBe BigDecimal(5)
     }
   }
 
-  describe("modify (focus, fallible)") {
+  describe("modifyFocus (focus, fallible)") {
     it("should transform via focus on success") {
-      val f = stringItemFocus
-      val fn: JItemFocus[JString, JRootFocus[JArray]] => JResult[JNumber] =
-        ff => JNumber(ff.value.value.length).rightNec
-      val result: JResult[JItemFocus[JNumber, JRootFocus[JArray]]] = f.modify(fn)
-      val out = result.shouldSucceed
-      out.value.toBigDecimal shouldBe BigDecimal(5)
+      val result = stringItemFocus.modifyFocus(ff => JNumber(ff.value.value.length).rightNec).shouldSucceed
+      result.value.toBigDecimal shouldBe BigDecimal(5)
     }
 
     it("should propagate the error on failure") {
-      val f = stringItemFocus
-      val err = JsonTypeMismatch(f, JNull)
-      val fn: JItemFocus[JString, JRootFocus[JArray]] => JResult[JNumber] = _ => err.leftNec
-      val result: JResult[JItemFocus[JNumber, JRootFocus[JArray]]] = f.modify(fn)
+      val err = JsonTypeMismatch(stringItemFocus, JNull)
+      val result: JResult[JItemFocus[JNumber, JRootFocus[JArray]]] = stringItemFocus.modifyFocus(_ => err.leftNec)
+      result.shouldFailSingle shouldBe err
+    }
+  }
+
+  describe("replace (value)") {
+    it("should replace the item value and preserve the focus type") {
+      val result: JItemFocus[JNumber, JRootFocus[JArray]] = stringItemFocus.replace(JNumber(99))
+      result.value.toBigDecimal shouldBe BigDecimal(99)
+      result.index shouldBe 0
+    }
+  }
+
+  describe("replace (fallible)") {
+    it("should replace the item value on success") {
+      val result: JResult[JItemFocus[JNumber, JRootFocus[JArray]]] = stringItemFocus.replace(JNumber(99).rightNec)
+      result.shouldSucceed.value.toBigDecimal shouldBe BigDecimal(99)
+      result.shouldSucceed.index shouldBe 0
+    }
+
+    it("should propagate the error on failure") {
+      val err = JsonTypeMismatch(stringItemFocus, JNull)
+      val result: JResult[JItemFocus[JNumber, JRootFocus[JArray]]] = stringItemFocus.replace(err.leftNec)
       result.shouldFailSingle shouldBe err
     }
   }
 
   describe("root") {
     it("should return the root focus with the correct strong type") {
-      val f = stringItemFocus
-      val result: JRootFocus[JArray] = f.root
+      val result = stringItemFocus.root
       result.value shouldBe json.value
     }
   }
@@ -265,21 +272,18 @@ class JItemFocusOpsTest extends BatemanTestBase {
       objItemFocus(0).asNumber.shouldSucceed
 
     it("should narrow an item and reflect the object-rooted parent chain") {
-      val result: JResult[JItemFocus[JNumber, ScoresField]] = objItemFocus(0).narrow[JNumber]
-      val f = result.shouldSucceed
-      f.value.toBigDecimal shouldBe BigDecimal(10)
-      f.parent shouldBe scoresField
+      val result = objItemFocus(0).narrow[JNumber].shouldSucceed
+      result.value.toBigDecimal shouldBe BigDecimal(10)
+      result.parent shouldBe scoresField
     }
 
     it("should navigate to the root object through the parent chain") {
-      val f = objNumberItemFocus
-      val result: JRootFocus[JObject] = f.root
+      val result = objNumberItemFocus.root
       result.value shouldBe objJson.value
     }
 
     it("should delete an item and return the field focus parent") {
-      val f = objNumberItemFocus
-      val result: ScoresField = f.delete()
+      val result: ScoresField = objNumberItemFocus.delete()
       result.value.items should have size 2
       result.name.value shouldBe "scores"
     }
@@ -294,8 +298,7 @@ class JItemFocusOpsTest extends BatemanTestBase {
     }
 
     it("should modify an item value and preserve the parent chain") {
-      val fn: JNumber => JString = n => JString(n.toBigDecimal.toString)
-      val result: JItemFocus[JString, ScoresField] = objNumberItemFocus.modify(fn)
+      val result: JItemFocus[JString, ScoresField] = objNumberItemFocus.modify(n => JString(n.toBigDecimal.toString))
       result.value.value shouldBe "10"
       result.index shouldBe 0
       result.parent.name.value shouldBe "scores"

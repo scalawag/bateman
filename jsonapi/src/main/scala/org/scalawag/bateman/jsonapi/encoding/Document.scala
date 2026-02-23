@@ -322,7 +322,7 @@ object ResourceIdentifier {
         _ <- encodeTo(meta, ri.meta)
       } yield ()
 
-      create.runS(JObject.Empty.asRootFocus).flatMap(_.asObject).getOrThrow.value
+      create.runS(JObject.Empty.asRootFocus).flatMap(_.narrow[JObject]).getOrThrow.value
     }
   }
 
@@ -371,7 +371,7 @@ object ResourceObject {
         _ <- encodeTo(links, ro.links)
       } yield ()
 
-      create.runS(JObject.Empty.asRootFocus).flatMap(_.asObject).getOrThrow.value
+      create.runS(JObject.Empty.asRootFocus).flatMap(_.narrow[JObject]).getOrThrow.value
     }
   }
 

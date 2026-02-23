@@ -474,7 +474,7 @@ class HListIncludedRelationshipDecoderTest extends HListDecoderTestBase {
       JsonTypeMismatch(in(root ~> data ~> relationship("a") ~> data).shouldSucceed, JArray)
 
     def missingIncludedError(in: JFocus[JAny]) =
-      (in.asObject, in.decode[Inclusions.Key]).parMapN(MissingIncludedResourceObject.apply).shouldSucceed
+      (in.narrow[JObject], in.decode[Inclusions.Key]).parMapN(MissingIncludedResourceObject.apply).shouldSucceed
 
     def missingIncludedObjectFromArrayRef(in: JFocus[JAny]) =
       NonEmptyChain(

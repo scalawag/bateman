@@ -45,8 +45,6 @@ class JFocusJArrayOps[A <: JFocus[JArray]](me: A) {
       case None    => MissingIndex(me, index).leftNec
     }
 
-  def modify(magnet: JFocusJArrayOps.ModifyMagnet[A]): magnet.Out = magnet(me)
-
   def append[B: JAnyEncoder](item: B)(implicit replacer: ValueReplacer.Aux[JArray, A, A]): A =
     replacer(me.value.append(item.toJAny), me)
 
@@ -64,31 +62,4 @@ class JFocusJArrayOps[A <: JFocus[JArray]](me: A) {
 
   def delete(index: Int)(implicit replacer: ValueReplacer.Aux[JArray, A, A]): A =
     replacer(me.value.delete(index), me)
-}
-
-object JFocusJArrayOps {
-  trait ModifyMagnet[A <: JFocus[JArray]] {
-    type Out
-    def apply(focus: A): Out
-  }
-
-  object ModifyMagnet extends JFocusJArrayModifyMagnetLowPriority {
-    implicit def fallible[A <: JFocus[JArray]](fn: JArray => JResult[JArray])(implicit
-        replacer: ValueReplacer.Aux[JArray, A, A]
-    ): ModifyMagnet[A] { type Out = JResult[A] } =
-      new ModifyMagnet[A] {
-        type Out = JResult[A]
-        def apply(focus: A): JResult[A] = fn(focus.value).map(replacer(_, focus))
-      }
-  }
-
-  trait JFocusJArrayModifyMagnetLowPriority {
-    implicit def pure[A <: JFocus[JArray]](fn: JArray => JArray)(implicit
-        replacer: ValueReplacer.Aux[JArray, A, A]
-    ): ModifyMagnet[A] { type Out = A } =
-      new ModifyMagnet[A] {
-        type Out = A
-        def apply(focus: A): A = replacer(fn(focus.value), focus)
-      }
-  }
 }

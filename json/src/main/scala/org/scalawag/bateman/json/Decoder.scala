@@ -140,7 +140,7 @@ object Decoder extends DecoderLowP {
       dec: JAnyDecoder[To]
   ): JAnyDecoder[Nullable[To]] =
     cur =>
-      cur.asNull match {
+      cur.narrow[JNull] match {
         case Right(in) =>
           Null.rightNec
         case Left(_) =>
@@ -233,7 +233,7 @@ object Decoder extends DecoderLowP {
 
   implicit class JAnyToJAnyDecoderOps[In <: JAny, Out <: JAny](me: Decoder[In, Out]) {
     def andThen[Out2](that: Decoder[Out, Out2]): Decoder[In, Out2] =
-      in => me.decode(in).map(in.as).flatMap(that.decode)
+      in => me.decode(in).map(out => in.map((_: In) => out)).flatMap(that.decode)
   }
 
   /** Creates a decoder that turns a JSON string into a numeric type.
@@ -266,31 +266,31 @@ trait DecoderLowP extends DecoderLowLowP {
     * decoder available. It will fail with a JsonTypeMismatch if it is not the correct JSON type. If it is the correct
     * JSON type, it will defer to the underlying decoder.
     */
-  implicit def widenJNullDecoder[A](implicit dec: Decoder[JNull, A]): JAnyDecoder[A] = widenDecoder(_.asNull)
+  implicit def widenJNullDecoder[A](implicit dec: Decoder[JNull, A]): JAnyDecoder[A] = widenDecoder(_.narrow[JNull])
 
   /** Creates a decoder that will attempt to narrow a [[JAny]] to a [[JNumber]] where there is no specific [[JAny]]
     * decoder available. It will fail with a JsonTypeMismatch if it is not the correct JSON type. If it is the correct
     * JSON type, it will defer to the underlying decoder.
     */
-  implicit def widenJNumberDecoder[A](implicit dec: JNumberDecoder[A]): JAnyDecoder[A] = widenDecoder(_.asNumber)
+  implicit def widenJNumberDecoder[A](implicit dec: JNumberDecoder[A]): JAnyDecoder[A] = widenDecoder(_.narrow[JNumber])
 
   /** Creates a decoder that will attempt to narrow a [[JAny]] to a [[JBoolean]] where there is no specific [[JAny]]
     * decoder available. It will fail with a JsonTypeMismatch if it is not the correct JSON type. If it is the correct
     * JSON type, it will defer to the underlying decoder.
     */
-  implicit def widenJBooleanDecoder[A](implicit dec: JBooleanDecoder[A]): JAnyDecoder[A] = widenDecoder(_.asBoolean)
+  implicit def widenJBooleanDecoder[A](implicit dec: JBooleanDecoder[A]): JAnyDecoder[A] = widenDecoder(_.narrow[JBoolean])
 
   /** Creates a decoder that will attempt to narrow a [[JAny]] to a [[JObject]] where there is no specific [[JAny]]
     * decoder available. It will fail with a JsonTypeMismatch if it is not the correct JSON type. If it is the correct
     * JSON type, it will defer to the underlying decoder.
     */
-  implicit def widenJObjectDecoder[A](implicit dec: Decoder[JObject, A]): JAnyDecoder[A] = widenDecoder(_.asObject)
+  implicit def widenJObjectDecoder[A](implicit dec: Decoder[JObject, A]): JAnyDecoder[A] = widenDecoder(_.narrow[JObject])
 
   /** Creates a decoder that will attempt to narrow a [[JAny]] to a [[JArray]] where there is no specific [[JAny]]
     * decoder available. It will fail with a JsonTypeMismatch if it is not the correct JSON type. If it is the correct
     * JSON type, it will defer to the underlying decoder.
     */
-  implicit def widenJArrayDecoder[A](implicit dec: JArrayDecoder[A]): JAnyDecoder[A] = widenDecoder(_.asArray)
+  implicit def widenJArrayDecoder[A](implicit dec: JArrayDecoder[A]): JAnyDecoder[A] = widenDecoder(_.narrow[JArray])
 }
 
 trait DecoderLowLowP {
@@ -304,5 +304,5 @@ trait DecoderLowLowP {
     *
     * Needs to be lower priority than JNumber to avoid ambiguity.
     */
-  implicit def widenJStringDecoder[A](implicit dec: JStringDecoder[A]): JAnyDecoder[A] = widenDecoder(_.asString)
+  implicit def widenJStringDecoder[A](implicit dec: JStringDecoder[A]): JAnyDecoder[A] = widenDecoder(_.narrow[JString])
 }

@@ -14,8 +14,13 @@
 
 package org.scalawag.bateman.json.focus
 
+import cats.syntax.either._
 import org.scalawag.bateman.json._
-import org.scalawag.bateman.json.lens.{JCursorLens, JFocusLens}
+import org.scalawag.bateman.json.JType.Summoner
+
+import scala.annotation.tailrec
+import scala.language.implicitConversions
+import scala.reflect.ClassTag
 
 //======================================================================================================================
 
@@ -25,6 +30,11 @@ import org.scalawag.bateman.json.lens.{JCursorLens, JFocusLens}
   */
 
 sealed trait JFocus[+A <: JAny] {
+
+  /** This focus type with a different value type. For example, on a [[JFieldFocus]][A, P], this is
+    * [[JFieldFocus]][X, P]. This allows [[narrow]] and [[asObject]] etc. to return the specific focus subtype.
+    */
+  type Refocused[+X <: JAny] <: JFocus[X]
 
   /** The JSON value that is in focus. */
   def value: A
@@ -41,56 +51,172 @@ sealed trait JFocus[+A <: JAny] {
     * a value. A root focus does not have a parent and will always return [[scala.None]].
     */
   def parentOption: Option[JFocus[JAny]]
+
+  /** Returns the root focus of the document containing this focus. */
+  def root: JFocus[JAny]
+
+  /** Narrows the value type to a more specific JSON type. Returns the same focus subtype with the narrowed value. */
+  def narrow[B <: JAny: ClassTag: Summoner]: JResult[Refocused[B]]
+
+  def asNull: JResult[Refocused[JNull]] = narrow[JNull]
+  def asArray: JResult[Refocused[JArray]] = narrow[JArray]
+  def asObject: JResult[Refocused[JObject]] = narrow[JObject]
+  def asString: JResult[Refocused[JString]] = narrow[JString]
+  def asNumber: JResult[Refocused[JNumber]] = narrow[JNumber]
+  def asBoolean: JResult[Refocused[JBoolean]] = narrow[JBoolean]
+
+  /** Returns a decoded representation of value in focus. */
+  def decode[B](implicit dec: Decoder[A @scala.annotation.unchecked.uncheckedVariance, B]): JResult[B] = dec.decode(this)
+
+  def navigate(pointer: JPointer): JResult[JFocus[JAny]] = {
+    @tailrec
+    def go(todo: List[JPointer.Token], f: JFocus[JAny]): JResult[JFocus[JAny]] =
+      todo match {
+        case Nil => f.rightNec
+        case JPointer.Index(index) :: tail =>
+          f.narrow[JArray].flatMap(_.item(index)) match {
+            case Right(a) => go(tail, a)
+            case left     => left
+          }
+        case JPointer.Key(key) :: tail =>
+          f.narrow[JObject].flatMap(_.field(key)) match {
+            case Right(a) => go(tail, a)
+            case left     => left
+          }
+      }
+
+    go(pointer.tokens, this)
+  }
+
+  /** Maps the value of this focus without changing the focus structure. */
+  def map[B <: JAny](fn: A => B): JFocus[B] = {
+    val b = fn(value)
+    this match {
+      case _: JRootFocus[_]      => JRootFocus(b)
+      case ff: JFieldFocus[_, _] => JFieldFocus(b, ff.name, ff.index, ff.parent)
+      case ff: JItemFocus[_, _]  => JItemFocus(b, ff.index, ff.parent)
+    }
+  }
+
+  def as[B <: JAny](value: B): JFocus[B] = map(_ => value)
+
+  /** Replicates the exact path of one focus into another root value. */
+  private[json] def replicate(root: JAny): JFocus[JAny] = {
+    @tailrec
+    def getIndices(f: JFocus[_], acc: List[Either[Int, Int]]): List[Either[Int, Int]] =
+      f match {
+        case _: JRootFocus[_]     => acc
+        case x: JFieldFocus[_, _] => getIndices(x.parent, Left(x.index) :: acc)
+        case x: JItemFocus[_, _]  => getIndices(x.parent, Right(x.index) :: acc)
+      }
+
+    val indices = getIndices(this, Nil)
+
+    @tailrec
+    def rebuild(todo: List[Either[Int, Int]], f: JFocus[JAny]): JFocus[JAny] =
+      todo match {
+        case Nil => f
+        case Left(n) :: t =>
+          f.narrow[JObject].map(_.fields.lift(n)) match {
+            case Right(None) =>
+              throw ProgrammerError("object in new document has fewer fields than in the old document!")
+            case Right(Some(child)) =>
+              rebuild(t, child)
+            case _ =>
+              throw ProgrammerError(
+                s"new document does not have an object where one is expected!\n${f.pointer}\n${f.root.value.render}"
+              )
+          }
+        case Right(n) :: t =>
+          f.narrow[JArray].map(_.items.lift(n)) match {
+            case Right(None) =>
+              throw ProgrammerError("array in new document has fewer items than in the old document!")
+            case Right(Some(child)) =>
+              rebuild(t, child)
+            case _ =>
+              throw ProgrammerError("new document does not have an array where one is expected!")
+          }
+      }
+
+    rebuild(indices, root.asRootFocus)
+  }
+
+  /** Like [[replicate]], but uses the provided typed leaf value at the focus position instead of whatever
+    * is in the document.
+    */
+  private[json] def replicateAs[C <: JAny](root: JAny, leafValue: C): JFocus[C] = {
+    @tailrec
+    def getIndices(f: JFocus[_], acc: List[Either[Int, Int]]): List[Either[Int, Int]] =
+      f match {
+        case _: JRootFocus[_]     => acc
+        case x: JFieldFocus[_, _] => getIndices(x.parent, Left(x.index) :: acc)
+        case x: JItemFocus[_, _]  => getIndices(x.parent, Right(x.index) :: acc)
+      }
+
+    val indices = getIndices(this, Nil)
+
+    @tailrec
+    def rebuild(todo: List[Either[Int, Int]], f: JFocus[JAny]): JFocus[C] =
+      todo match {
+        case Nil =>
+          f match {
+            case _: JRootFocus[_]      => JRootFocus(leafValue)
+            case ff: JFieldFocus[_, _] => JFieldFocus(leafValue, ff.name, ff.index, ff.parent)
+            case ff: JItemFocus[_, _]  => JItemFocus(leafValue, ff.index, ff.parent)
+          }
+        case Left(n) :: t =>
+          f.narrow[JObject].map(_.fields.lift(n)) match {
+            case Right(Some(child)) => rebuild(t, child)
+            case Right(None) =>
+              throw ProgrammerError("object in new document has fewer fields than in the old document!")
+            case _ =>
+              throw ProgrammerError(
+                s"new document does not have an object where one is expected!\n${f.pointer}\n${f.root.value.render}"
+              )
+          }
+        case Right(n) :: t =>
+          f.narrow[JArray].map(_.items.lift(n)) match {
+            case Right(Some(child)) => rebuild(t, child)
+            case Right(None) =>
+              throw ProgrammerError("array in new document has fewer items than in the old document!")
+            case _ =>
+              throw ProgrammerError("new document does not have an array where one is expected!")
+          }
+      }
+
+    rebuild(indices, root.asRootFocus)
+  }
 }
 
-object JFocus extends JFocusLowPriority {
+object JFocus {
 
   object Value {
     def unapply(focus: JFocus[JAny]): Option[JAny] = Some(focus.value)
   }
 
-  implicit class RichJFocus[A <: JAny](me: JFocus[A]) {
-    def apply[B <: JAny](op: JFocusLens[A, B]): JResult[JFocus[B]] = op(me)
-    def apply[F[+_], B <: JAny](op: JCursorLens[F, A, B]): JResult[JCursor[F, B]] = op(me)
-
-    /** Navigates to a focus via a lens, then decodes the value there. */
-    def decodeFrom[B](op: JFocusLens[A, JAny])(implicit dec: JAnyDecoder[B]): JResult[B] =
-      op(me).flatMap(_.decode[B])
-
-    /** Navigates to a cursor via a lens, then decodes all values in the cursor. */
-    def decodeFrom[B] = new DecodeFromCursor[A, B](me)
-  }
-
-  /** Helper class to allow `decodeFrom[B](cursorLens)` to infer `F` from the lens while `B` is explicitly provided. */
-  class DecodeFromCursor[A <: JAny, B](me: JFocus[A]) {
-    def apply[F[+_]](op: JCursorLens[F, A, JAny])(implicit dec: JAnyDecoder[B], T: cats.Traverse[F]): JResult[F[B]] = {
-      import cats.syntax.parallel._
-      op(me).flatMap(_.foci.parTraverse(_.decode[B]))
-    }
-  }
+  implicit final def toJFocusOps[A <: JAny](in: JFocus[A]): JFocusOps[A] = new JFocusOps(in)
 
   implicit final def toJFocusJObjectOps[A <: JFocus[JObject]](in: A): JFocusJObjectOps[A] =
     new JFocusJObjectOps(in)
 
   implicit final def toJFocusJArrayOps[A <: JFocus[JArray]](in: A): JFocusJArrayOps[A] =
     new JFocusJArrayOps(in)
-}
-
-/** Low-priority implicits for base ops on JFocus. These apply when the high-priority ops in JFocus companion
-  * can't match (e.g., toJFocusOps needs ValueFinder which doesn't exist for abstract JFocus[JAny]).
-  */
-trait JFocusLowPriority {
-  implicit final def toJFocusBaseOps[A <: JAny](in: JFocus[A]): JFocusWeakOps[A] =
-    new JFocusWeakOps(in)
 
 }
 
 //======================================================================================================================
 
 final case class JRootFocus[+A <: JAny] private[bateman] (value: A) extends JFocus[A] {
+  type Refocused[+X <: JAny] = JRootFocus[X]
   override val pointer: JPointer = JPointer.Root
   override def parentOption: Option[JFocus[JAny]] = None
-  def root: JRootFocus[A] = this
+  override def root: JRootFocus[A] = this
+
+  override def narrow[B <: JAny: ClassTag: Summoner]: JResult[JRootFocus[B]] =
+    value match {
+      case b: B => JRootFocus(b).rightNec
+      case _    => JsonTypeMismatch(this, JType[B]).leftNec
+    }
 }
 
 object JRootFocus {
@@ -102,6 +228,7 @@ object JRootFocus {
 sealed trait JChildFocus[+A <: JAny, +P <: JFocus[JAny]] extends JFocus[A] {
   val parent: P
   override def parentOption: Option[JFocus[JAny]] = Some(parent)
+  override def root: JFocus[JAny] = parent.root
 }
 
 //======================================================================================================================
@@ -112,7 +239,14 @@ final case class JFieldFocus[+A <: JAny, +P <: JFocus[JObject]] private[json] (
     index: Int,
     parent: P
 ) extends JChildFocus[A, P] {
+  type Refocused[+X <: JAny] = JFieldFocus[X, P @scala.annotation.unchecked.uncheckedVariance]
   val pointer: JPointer = parent.pointer.field(name.value)
+
+  override def narrow[B <: JAny: ClassTag: Summoner]: JResult[JFieldFocus[B, P]] =
+    value match {
+      case b: B => JFieldFocus(b, name, index, parent).rightNec
+      case _    => JsonTypeMismatch(this, JType[B]).leftNec
+    }
 
   def previous: JResult[JFieldFocus[JAny, P]] = parent.field(index - 1)
   def next: JResult[JFieldFocus[JAny, P]] = parent.field(index + 1)
@@ -121,9 +255,8 @@ final case class JFieldFocus[+A <: JAny, +P <: JFocus[JObject]] private[json] (
 }
 
 object JFieldFocus {
-  implicit final def toJFieldFocusOps[A <: JAny, P <: JFocus[JObject]](
-      in: JFieldFocus[A, P]
-  ): JFieldFocusOps[A, P] = new JFieldFocusOps(in)
+  implicit final def toJFieldFocusOps[A <: JAny, P <: JFocus[JObject]](in: JFieldFocus[A, P]): JFieldFocusOps[A, P] =
+    new JFieldFocusOps(in)
 }
 
 //======================================================================================================================
@@ -133,7 +266,14 @@ final case class JItemFocus[+A <: JAny, +P <: JFocus[JArray]] private[json] (
     index: Int,
     parent: P
 ) extends JChildFocus[A, P] {
+  type Refocused[+X <: JAny] = JItemFocus[X, P @scala.annotation.unchecked.uncheckedVariance]
   val pointer: JPointer = parent.pointer.item(index)
+
+  override def narrow[B <: JAny: ClassTag: Summoner]: JResult[JItemFocus[B, P]] =
+    value match {
+      case b: B => JItemFocus(b, index, parent).rightNec
+      case _    => JsonTypeMismatch(this, JType[B]).leftNec
+    }
 
   def previous: JResult[JItemFocus[JAny, P]] = parent.item(index - 1)
   def next: JResult[JItemFocus[JAny, P]] = parent.item(index + 1)

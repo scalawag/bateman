@@ -14,85 +14,40 @@
 
 package org.scalawag.bateman.json.focus
 
-import cats.syntax.either._
-import org.scalawag.bateman.json.JType.Summoner
 import org.scalawag.bateman.json._
-
-import scala.reflect.ClassTag
 
 /** Extends [[JFocus]] with methods that can be used when the JSON value in focus is strong (it's parentage is
   * known) and the value is an item within a [[JArray]]. The operations all return strong foci.
   */
 
 class JItemFocusOps[A <: JAny, P <: JFocus[JArray]](me: JItemFocus[A, P]) {
-  def narrow[B <: JAny: ClassTag: Summoner]: JResult[JItemFocus[B, P]] =
-    me.value match {
-      case b: B => JItemFocus(b, me.index, me.parent).rightNec
-      case _    => JsonTypeMismatch(me, JType[B]).leftNec
-    }
-
-  def asNull: JResult[JItemFocus[JNull, P]] = narrow[JNull]
-  def asArray: JResult[JItemFocus[JArray, P]] = narrow[JArray]
-  def asObject: JResult[JItemFocus[JObject, P]] = narrow[JObject]
-  def asString: JResult[JItemFocus[JString, P]] = narrow[JString]
-  def asNumber: JResult[JItemFocus[JNumber, P]] = narrow[JNumber]
-  def asBoolean: JResult[JItemFocus[JBoolean, P]] = narrow[JBoolean]
-
   def delete()(implicit replacer: ValueReplacer.Aux[JArray, P, P]): P =
     replacer(me.parent.value.delete(me.index), me.parent)
 
-  def modify(magnet: JItemFocusOps.ModifyMagnet[A, P]): magnet.Out = magnet(me)
+  def modify[O <: JAny](fn: A => O)(implicit
+      replacer: ValueReplacer.Aux[O, JItemFocus[A, P], JItemFocus[O, P]]
+  ): JItemFocus[O, P] = replacer(fn(me.value), me)
 
-  def root(implicit rootFinder: RootFinder[P]): rootFinder.Root = rootFinder(me.parent)
-}
+  def modify[O <: JAny](fn: A => JResult[O])(implicit
+      d: DummyImplicit,
+      replacer: ValueReplacer.Aux[O, JItemFocus[A, P], JItemFocus[O, P]]
+  ): JResult[JItemFocus[O, P]] = fn(me.value).map(replacer(_, me))
 
-object JItemFocusOps {
-  trait ModifyMagnet[A <: JAny, P <: JFocus[JArray]] {
-    type Out
-    def apply(focus: JItemFocus[A, P]): Out
-  }
+  def modifyFocus[O <: JAny](fn: JItemFocus[A, P] => O)(implicit
+      replacer: ValueReplacer.Aux[O, JItemFocus[A, P], JItemFocus[O, P]]
+  ): JItemFocus[O, P] = replacer(fn(me), me)
 
-  object ModifyMagnet extends JItemFocusModifyMagnetLowPriority {
-    implicit def focusFallible[A <: JAny, P <: JFocus[JArray], O <: JAny](
-        fn: JItemFocus[A, P] => JResult[O]
-    )(implicit
-        replacer: ValueReplacer.Aux[O, JItemFocus[A, P], JItemFocus[O, P]]
-    ): ModifyMagnet[A, P] { type Out = JResult[JItemFocus[O, P]] } =
-      new ModifyMagnet[A, P] {
-        type Out = JResult[JItemFocus[O, P]]
-        def apply(focus: JItemFocus[A, P]): JResult[JItemFocus[O, P]] = fn(focus).map(replacer(_, focus))
-      }
+  def modifyFocus[O <: JAny](fn: JItemFocus[A, P] => JResult[O])(implicit
+      d: DummyImplicit,
+      replacer: ValueReplacer.Aux[O, JItemFocus[A, P], JItemFocus[O, P]]
+  ): JResult[JItemFocus[O, P]] = fn(me).map(replacer(_, me))
 
-    implicit def valueFallible[A <: JAny, P <: JFocus[JArray], O <: JAny](
-        fn: A => JResult[O]
-    )(implicit
-        replacer: ValueReplacer.Aux[O, JItemFocus[A, P], JItemFocus[O, P]]
-    ): ModifyMagnet[A, P] { type Out = JResult[JItemFocus[O, P]] } =
-      new ModifyMagnet[A, P] {
-        type Out = JResult[JItemFocus[O, P]]
-        def apply(focus: JItemFocus[A, P]): JResult[JItemFocus[O, P]] = fn(focus.value).map(replacer(_, focus))
-      }
-  }
+  def replace[O <: JAny](newValue: O)(implicit
+      replacer: ValueReplacer.Aux[O, JItemFocus[A, P], JItemFocus[O, P]]
+  ): JItemFocus[O, P] = replacer(newValue, me)
 
-  trait JItemFocusModifyMagnetLowPriority {
-    implicit def focusPure[A <: JAny, P <: JFocus[JArray], O <: JAny](
-        fn: JItemFocus[A, P] => O
-    )(implicit
-        replacer: ValueReplacer.Aux[O, JItemFocus[A, P], JItemFocus[O, P]]
-    ): ModifyMagnet[A, P] { type Out = JItemFocus[O, P] } =
-      new ModifyMagnet[A, P] {
-        type Out = JItemFocus[O, P]
-        def apply(focus: JItemFocus[A, P]): JItemFocus[O, P] = replacer(fn(focus), focus)
-      }
-
-    implicit def valuePure[A <: JAny, P <: JFocus[JArray], O <: JAny](
-        fn: A => O
-    )(implicit
-        replacer: ValueReplacer.Aux[O, JItemFocus[A, P], JItemFocus[O, P]]
-    ): ModifyMagnet[A, P] { type Out = JItemFocus[O, P] } =
-      new ModifyMagnet[A, P] {
-        type Out = JItemFocus[O, P]
-        def apply(focus: JItemFocus[A, P]): JItemFocus[O, P] = replacer(fn(focus.value), focus)
-      }
-  }
+  def replace[O <: JAny](newValue: JResult[O])(implicit
+      d: DummyImplicit,
+      replacer: ValueReplacer.Aux[O, JItemFocus[A, P], JItemFocus[O, P]]
+  ): JResult[JItemFocus[O, P]] = newValue.map(replacer(_, me))
 }

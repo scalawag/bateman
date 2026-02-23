@@ -98,7 +98,7 @@ object Inclusions {
         .flatMap {
           case Some(f @ JFocus.Value(_: JNull))   => Nil.rightNec
           case Some(f @ JFocus.Value(_: JArray))  => f(* ~> narrowTo[JObject]).map(_.foci)
-          case Some(f @ JFocus.Value(o: JObject)) => f.asObject.map(List(_))
+          case Some(f @ JFocus.Value(o: JObject)) => f.narrow[JObject].map(List(_))
           case Some(f)                            => JsonTypeMismatch(f, JObject, JNull, JArray).leftNec
           case None                               => Nil.rightNec
         }

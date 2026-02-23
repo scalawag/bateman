@@ -36,6 +36,16 @@ class JFocusJArrayOpsTest extends BatemanTestBase {
       ff.map(_.pointer) shouldBe json.value.items.indices.map(json.pointer.item)
       ff.map(_.root) shouldBe json.value.items.map(_ => json.root)
     }
+
+    it("should return foci to all item values (property)") {
+      forAll(genJFocus(genJArray)) { f =>
+        val ff = f.items
+        ff.map(_.value) shouldBe f.value.items
+        ff.map(_.value) shouldBe f.value.items
+        ff.map(_.pointer) shouldBe Stream.from(0).take(f.value.items.length).map(f.pointer.item(_))
+        ff.map(_.root) shouldBe f.value.items.map(_ => f.root)
+      }
+    }
   }
 
   describe("itemOption(Int)") {
@@ -53,6 +63,18 @@ class JFocusJArrayOpsTest extends BatemanTestBase {
     it("should find no item (low)") {
       val f: Option[JItemFocus[JAny, JRootFocus[JArray]]] = json.itemOption(-1)
       f shouldBe None
+    }
+
+    it("should find some item (property)") {
+      forAll(genJFocus(genNonEmptyJArray)) { f =>
+        f.itemOption(0) shouldBe Some(f.items.head)
+      }
+    }
+
+    it("should find no item (property)") {
+      forAll(genJFocus(genEmptyJArray)) { f =>
+        f.itemOption(0) shouldBe None
+      }
     }
   }
 
@@ -73,6 +95,17 @@ class JFocusJArrayOpsTest extends BatemanTestBase {
       f shouldBe MissingIndex(json, -1).leftNec
     }
 
+    it("should find the item by index (property)") {
+      forAll(genJFocus(genNonEmptyJArray)) { f =>
+        f.item(0) shouldBe f.items.head.rightNec
+      }
+    }
+
+    it("should fail on absent item (property)") {
+      forAll(genJFocus(genEmptyJArray)) { f =>
+        f.item(0) shouldBe MissingIndex(f, 0).leftNec
+      }
+    }
   }
 
   describe("append") {
@@ -80,6 +113,15 @@ class JFocusJArrayOpsTest extends BatemanTestBase {
       val out: JRootFocus[JArray] = json.append("new")
       out.value.items shouldBe json.value.append(JString("new")).items
       out.root.value.shouldHaveNoLocations
+    }
+
+    it("should append an item to an array (property)") {
+      forAll(genJFocus(genNonEmptyJArray), genJAny) { (in, value) =>
+        val out = in.append(value)
+        out.value.items shouldBe in.value.insert(in.value.items.length, value).items
+        out.pointer shouldBe in.pointer
+        out.root.value.shouldHaveNoLocations
+      }
     }
   }
 
@@ -89,6 +131,15 @@ class JFocusJArrayOpsTest extends BatemanTestBase {
       out.value.items shouldBe json.value.prepend(JString("new")).items
       out.root.value.shouldHaveNoLocations
     }
+
+    it("should prepend an item to an array (property)") {
+      forAll(genJFocus(genNonEmptyJArray), genJAny) { (in, value) =>
+        val out = in.prepend(value)
+        out.value.items shouldBe in.value.insert(0, value).items
+        out.pointer shouldBe in.pointer
+        out.root.value.shouldHaveNoLocations
+      }
+    }
   }
 
   describe("updated") {
@@ -96,6 +147,15 @@ class JFocusJArrayOpsTest extends BatemanTestBase {
       val out: JRootFocus[JArray] = json.updated(1, "replaced")
       out.value.items shouldBe json.value.updated(1, JString("replaced")).items
       out.root.value.shouldHaveNoLocations
+    }
+
+    it("should update an item at the given index (property)") {
+      forAll(genJFocus(genNonEmptyJArray), genJAny) { (in, value) =>
+        val out = in.updated(0, value)
+        out.value.items shouldBe in.value.updated(0, value).items
+        out.pointer shouldBe in.pointer
+        out.root.value.shouldHaveNoLocations
+      }
     }
   }
 
@@ -105,6 +165,15 @@ class JFocusJArrayOpsTest extends BatemanTestBase {
       out.value.items shouldBe json.value.delete(0).items
       out.root.value.shouldHaveNoLocations
     }
+
+    it("should delete an item at the given index (property)") {
+      forAll(genJFocus(genNonEmptyJArray)) { in =>
+        val out = in.delete(0)
+        out.value.items shouldBe in.value.delete(0).items
+        out.pointer shouldBe in.pointer
+        out.root.value.shouldHaveNoLocations
+      }
+    }
   }
 
   describe("insert") {
@@ -112,6 +181,15 @@ class JFocusJArrayOpsTest extends BatemanTestBase {
       val out: JRootFocus[JArray] = json.insert(1, "inserted")
       out.value.items shouldBe json.value.insert(1, JString("inserted")).items
       out.root.value.shouldHaveNoLocations
+    }
+
+    it("should insert an item at the given index (property)") {
+      forAll(genJFocus(genNonEmptyJArray), genJAny) { (in, value) =>
+        val out = in.insert(0, value)
+        out.value.items shouldBe in.value.insert(0, value).items
+        out.pointer shouldBe in.pointer
+        out.root.value.shouldHaveNoLocations
+      }
     }
   }
 
@@ -121,6 +199,15 @@ class JFocusJArrayOpsTest extends BatemanTestBase {
       val out: JRootFocus[JArray] = json ++ other.value
       out.value.items shouldBe (json.value ++ other.value).items
       out.root.value.shouldHaveNoLocations
+    }
+
+    it("should concatenate two arrays (property)") {
+      forAll(genJFocus(genNonEmptyJArray), genJArray) { (in, other) =>
+        val out = in.++(other)
+        out.value.items shouldBe (in.value ++ other).items
+        out.pointer shouldBe in.pointer
+        out.root.value.shouldHaveNoLocations
+      }
     }
   }
 

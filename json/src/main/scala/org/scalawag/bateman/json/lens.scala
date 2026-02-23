@@ -307,7 +307,7 @@ package object lens {
 
   case class FieldJLens(name: String) extends CreatableJLens[JAny, JAny] {
     override def apply(in: JFocus[JAny]): JResult[JFocus[JAny]] =
-      in.asObject.flatMap(_.field(name))
+      in.narrow[JObject].flatMap(_.field(name))
     def ** : ListJLens[JAny, JAny] = all
     def all: ListJLens[JAny, JAny] = FieldAllJLens(name)
     override lazy val toString: String = s""""$name""""
@@ -330,7 +330,7 @@ package object lens {
   def fields(name: String): ListJLens[JAny, JAny] = FieldAllJLens(name)
 
   case class FieldAllJLens(name: String) extends ListJLens[JAny, JAny] {
-    override def apply(in: JFocus[JAny]): JResult[JCursor[List, JAny]] = in.asObject.map(_.fields(name)).map(JCursor(_))
+    override def apply(in: JFocus[JAny]): JResult[JCursor[List, JAny]] = in.narrow[JObject].map(_.fields(name)).map(JCursor(_))
     override lazy val toString: String = s""""$name".**"""
   }
 
@@ -348,7 +348,7 @@ package object lens {
 
   case class ItemJLens(index: Int) extends IdJLens[JAny, JAny] {
     override def apply(in: JFocus[JAny]): JResult[JFocus[JAny]] =
-      in.asArray.flatMap(_.item(index))
+      in.narrow[JArray].flatMap(_.item(index))
     override lazy val toString: String = index.toString
   }
 
@@ -377,7 +377,7 @@ package object lens {
   val * : ListJLens[JAny, JAny] = items
 
   case object AllItemsJLens extends ListJLens[JAny, JAny] {
-    override def apply(in: JFocus[JAny]): JResult[JCursor[List, JAny]] = in.asArray.map(_.items).map(JCursor(_))
+    override def apply(in: JFocus[JAny]): JResult[JCursor[List, JAny]] = in.narrow[JArray].map(_.items).map(JCursor(_))
     override val toString: String = "*"
   }
 
@@ -404,7 +404,7 @@ package object lens {
   val ** : ListJLens[JAny, JAny] = fields
 
   case object AllFieldsJLens extends ListJLens[JAny, JAny] {
-    override def apply(in: JFocus[JAny]): JResult[JCursor[List, JAny]] = in.asObject.map(_.fields).map(JCursor(_))
+    override def apply(in: JFocus[JAny]): JResult[JCursor[List, JAny]] = in.narrow[JObject].map(_.fields).map(JCursor(_))
     override val toString: String = "**"
   }
 }

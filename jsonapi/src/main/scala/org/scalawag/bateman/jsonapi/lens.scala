@@ -62,7 +62,7 @@ package object lens {
       in.rightNec
 
     case in @ JFocus.Value(_: JObject) =>
-      in.asObject.flatMap { inObject =>
+      in.narrow[JObject].flatMap { inObject =>
         // Decode the focused value as an IncludeKey.
         inObject.decode[Key].flatMap { targetKey =>
           // Find all matching resource objects that match this resource identifier.
@@ -87,5 +87,5 @@ package object lens {
 
   // Defer to the nullable lens as long as the focused value is an object.
   val includedRef: IdJLens[JAny, JObject] =
-    _.asObject.flatMap(nullableIncludedRef).flatMap(_.asObject)
+    f => f.narrow[JObject].flatMap(nullableIncludedRef).flatMap(_.narrow[JObject])
 }
