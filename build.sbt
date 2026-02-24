@@ -20,8 +20,6 @@ val projectBaseName = "bateman"
 ThisBuild / versionScheme := Some("early-semver")
 ThisBuild / sonatypeCredentialHost := "central.sonatype.com"
 
-ThisBuild / organization := "org.scalawag.bateman"
-
 Global / concurrentRestrictions := Tags.limitAll(2) :: Nil
 
 val Versions = new Object {
@@ -90,7 +88,6 @@ val commonSettings = Seq(
     }
   },
 //  addCompilerPlugin("io.tryp" % "splain" % "1.0.1" cross CrossVersion.patch),
-  scalaJSLinkerConfig ~= { _.withBatchMode(true) },
   scalacOptions ++= {
     CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((2, n)) if n <= 12 => List("-Ypartial-unification")
@@ -142,7 +139,7 @@ val json = projectMatrix
     }
   )
   .jvmPlatform(scalaVersions = jvmScalaVersions)
-  .jsPlatform(scalaVersions = jsScalaVersions)
+  .jsPlatform(scalaVersions = jsScalaVersions, scalaJSLinkerConfig ~= { _.withBatchMode(true) })
   .addCoverageAxis(Versions.scala213)
 
 val jsonLiteral = projectMatrix
@@ -169,7 +166,7 @@ val jsonLiteral = projectMatrix
     }
   )
   .jvmPlatform(scalaVersions = jvmScalaVersions)
-  .jsPlatform(scalaVersions = jsScalaVersions)
+  .jsPlatform(scalaVersions = jsScalaVersions, scalaJSLinkerConfig ~= { _.withBatchMode(true) })
   .addCoverageAxis(Versions.scala213)
 
 val jsonGeneric = projectMatrix
@@ -215,7 +212,7 @@ val jsonGeneric = projectMatrix
     libraryDependencies += "com.lihaoyi" %%% "sourcecode" % "0.3.0" % Test
   )
   .jvmPlatform(scalaVersions = jvmScalaVersions)
-  .jsPlatform(scalaVersions = jsScalaVersions)
+  .jsPlatform(scalaVersions = jsScalaVersions, scalaJSLinkerConfig ~= { _.withBatchMode(true) })
   .addCoverageAxis(Versions.scala213)
 
 val jsonapi = projectMatrix
@@ -226,7 +223,7 @@ val jsonapi = projectMatrix
     name := s"$projectBaseName-jsonapi",
   )
   .jvmPlatform(scalaVersions = jvmScalaVersions)
-  .jsPlatform(scalaVersions = jsScalaVersions)
+  .jsPlatform(scalaVersions = jsScalaVersions, scalaJSLinkerConfig ~= { _.withBatchMode(true) })
   .addCoverageAxis(Versions.scala213)
 
 val jsonapiGeneric = projectMatrix
@@ -237,7 +234,7 @@ val jsonapiGeneric = projectMatrix
     name := s"$projectBaseName-jsonapi-generic",
   )
   .jvmPlatform(scalaVersions = jvmScalaVersions)
-  .jsPlatform(scalaVersions = jsScalaVersions)
+  .jsPlatform(scalaVersions = jsScalaVersions, scalaJSLinkerConfig ~= { _.withBatchMode(true) })
   .addCoverageAxis(Versions.scala213)
 
 val circe = projectMatrix
@@ -250,7 +247,7 @@ val circe = projectMatrix
     )
   )
   .jvmPlatform(scalaVersions = jvmScalaVersions)
-  .jsPlatform(scalaVersions = jsScalaVersions)
+  .jsPlatform(scalaVersions = jsScalaVersions, scalaJSLinkerConfig ~= { _.withBatchMode(true) })
   .addCoverageAxis(Versions.scala213)
 
 val enumeratum = projectMatrix
@@ -269,7 +266,7 @@ val enumeratum = projectMatrix
     )
   )
   .jvmPlatform(scalaVersions = jvmScalaVersions)
-  .jsPlatform(scalaVersions = jsScalaVersions)
+  .jsPlatform(scalaVersions = jsScalaVersions, scalaJSLinkerConfig ~= { _.withBatchMode(true) })
   .addCoverageAxis(Versions.scala213)
 
 val root = project

@@ -43,8 +43,6 @@ object ScalawagPublishing extends AutoPlugin {
         else
           localStaging.value
       },
-      ThisBuild / pomIncludeRepository := { _ => false },
-      ThisBuild / publishMavenStyle := true,
       ThisBuild / homepage := Some(url(s"https://github.com/scalawag/${name.value}")),
       ThisBuild / startYear := Some(2021),
       ThisBuild / licenses += "Apache License, Version 2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"),
