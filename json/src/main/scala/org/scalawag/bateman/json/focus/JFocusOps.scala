@@ -107,14 +107,10 @@ class JFocusOps[A <: JAny](me: JFocus[A]) {
             case Right(None) =>
               go(
                 t,
-                (acc.narrow[JObject]: JResult[JFocus[JObject]])
-                  .map { f =>
-                    if (prepend)
-                      f.prepend(h, JObject()).fields.head
-                    else
-                      f.append(h, JObject()).fields.last
-                  }
-                  .getOrElse(???)
+                if (prepend)
+                  oacc.prepend(h, JObject()).fields.head
+                else
+                  oacc.append(h, JObject()).fields.last
               )
 
             case _ => ???
