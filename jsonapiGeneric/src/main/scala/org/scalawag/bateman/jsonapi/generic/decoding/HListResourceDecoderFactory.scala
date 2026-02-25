@@ -64,12 +64,14 @@ object HListResourceDecoderFactory {
           output.rightNec
         else
           // Gather up all of the values present in the input so we can compare that with what's been handled.
+          // Uses ** (fields) for objects and * (items) would be wrong here since attributes, meta, and
+          // relationships are JObjects, not JArrays.
           List(
             input.in(resourceType.?).map(_.toList),
             input.in(id.?).map(_.toList),
-            input.in(meta.? ~> *).map(_.foci),
-            input.in(attributes.? ~> *).map(_.foci),
-            input.in(relationships.? ~> *).map(_.foci),
+            input.in(meta.? ~> **).map(_.foci),
+            input.in(attributes.? ~> **).map(_.foci),
+            input.in(relationships.? ~> **).map(_.foci),
           ).parFlatSequence.flatMap { presentValues =>
             val handled = input.fieldSources.values.toSet
             val unhandled = presentValues.filterNot(handled).map(UnexpectedValue)
