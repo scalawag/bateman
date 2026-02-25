@@ -139,7 +139,7 @@ package object state {
       value: C
   )(implicit encoder: Encoder[C, B]): State[A, B] =
     StateT.apply[JResult, JFocus[A], B] { fa =>
-      fa.writeTo(lens, value).map { fb =>
+      fa.encodeTo(lens, value).map { fb =>
         // reroot this focus into the new document
         val fa2 = fa.replicate(fb.root.value).asInstanceOf[JFocus[A]]
         fa2 -> fb.value

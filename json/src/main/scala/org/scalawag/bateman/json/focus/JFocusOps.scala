@@ -84,68 +84,35 @@ class JFocusOps[A <: JAny](me: JFocus[A]) {
       case _: NarrowJLens[_]             => Nil
     }
 
-  def overwriteTo[B <: JAny, C <: JAny, D: JAnyEncoder](
+  def encodeTo[B <: JAny, C <: JAny, D, E <: JAny](
       lens: CreatableJLens[B, C],
       value: D,
-      prepend: Boolean = false
-  ): JFocus[JAny] = {
-    @tailrec
-    def go(todo: List[String], acc: JFocus[JAny]): JFocus[JAny] =
-      todo match {
-        case Nil    => acc
-        case h :: t =>
-          val oacc: JFocus[JObject] =
-            acc match {
-              case JFocus.Value(o: JObject) => acc.map((_: JAny) => o)
-              case _                        => new JFocusOps(acc).replace(JObject.Empty)
-            }
-
-          oacc.fieldOption(h) match {
-            case Right(Some(fieldValue)) =>
-              go(t, fieldValue)
-
-            case Right(None) =>
-              go(
-                t,
-                if (prepend)
-                  oacc.prepend(h, JObject()).fields.head
-                else
-                  oacc.append(h, JObject()).fields.last
-              )
-
-            case _ => ???
-          }
-      }
-
-    import syntax._
-    val target = go(getCreatableLensFieldNames(lens), me)
-    val newRoot = new JFocusOps(target).replace(value.toJAny).root.value
-    me.replicate(newRoot)
-  }
-
-  def writeTo[B <: JAny, C <: JAny, D, E <: JAny](
-      lens: CreatableJLens[B, C],
-      value: D,
-      prepend: Boolean = false
+      prepend: Boolean = false,
+      overwrite: Boolean = false
   )(implicit enc: Encoder[D, E]): JResult[JFocus[E]] = {
     @tailrec
     def go(todo: List[String], acc: JFocus[JAny]): JResult[JFocus[JAny]] =
       todo match {
         case Nil => acc.rightNec
         case h :: t =>
-          (acc.narrow[JObject]: JResult[JFocus[JObject]]).flatMap(_.fieldOption(h)) match {
+          val oacc: JResult[JFocus[JObject]] =
+            if (overwrite)
+              (acc match {
+                case JFocus.Value(o: JObject) => acc.map((_: JAny) => o)
+                case _                        => new JFocusOps(acc).replace(JObject.Empty)
+              }).rightNec
+            else
+              acc.narrow[JObject]
+
+          oacc.flatMap(_.fieldOption(h)) match {
             case Right(Some(fieldValue)) =>
               go(t, fieldValue)
 
             case Right(None) =>
-              val newAccResult = (acc.narrow[JObject]: JResult[JFocus[JObject]]).map { f =>
-                if (prepend)
-                  f.prepend(h, JObject()).fields.head
-                else
-                  f.append(h, JObject()).fields.last
-              }
-
-              newAccResult match {
+              oacc.map { f =>
+                if (prepend) f.prepend(h, JObject()).fields.head
+                else f.append(h, JObject()).fields.last
+              } match {
                 case Right(newAcc) => go(t, newAcc)
                 case Left(ee)      => ee.asLeft
               }

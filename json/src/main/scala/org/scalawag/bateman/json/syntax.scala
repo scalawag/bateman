@@ -16,7 +16,6 @@ package org.scalawag.bateman.json
 
 object syntax {
   implicit class AnyBatemanOps[A](a: A) {
-    def encodeTo[B](implicit enc: Encoder[A, B]): B = to[B]
     def to[B](implicit enc: Encoder[A, B]): B = enc.encode(a)
     def toJAny[B <: JAny](implicit enc: Encoder[A, B]): B = a.to[B]
   }

@@ -298,34 +298,34 @@ class JFocusJObjectOpsTest extends BatemanTestBase {
     }
   }
 
-  describe("overwriteTo") {
+  describe("encodeTo with overwrite = true") {
     it("should write a value through a lens") {
-      val out: JRootFocus[JObject] = json.overwriteTo("x", "new")
+      val out = json.encodeTo("x", "new", overwrite = true).shouldSucceed
       out.field("x").map(_.value) shouldBe JString("new").rightNec
       out.root.value.shouldHaveNoLocations
     }
 
     it("should overwrite an existing value") {
-      val out: JRootFocus[JObject] = json.overwriteTo("a", "replaced")
+      val out = json.encodeTo("a", "replaced", overwrite = true).shouldSucceed
       out.field("a").map(_.value) shouldBe JString("replaced").rightNec
       out.root.value.shouldHaveNoLocations
     }
 
     it("should create nested structure") {
-      val out: JRootFocus[JObject] = json.overwriteTo("x" ~> "y", "deep")
+      val out = json.encodeTo("x" ~> "y", "deep", overwrite = true).shouldSucceed
       out.field("x").flatMap(_.asObject).flatMap(_.field("y")).map(_.value) shouldBe JString("deep").rightNec
       out.root.value.shouldHaveNoLocations
     }
 
     it("should prepend when prepend = true") {
-      val out: JRootFocus[JObject] = json.overwriteTo("z", "first", prepend = true)
+      val out = json.encodeTo("z", "first", prepend = true, overwrite = true).shouldSucceed
       out.value.fieldList.head.name.value shouldBe "z"
       out.root.value.shouldHaveNoLocations
     }
 
     it("should write a new field through a lens (property)") {
       forAll(genJFocus(genNonEmptyJObject), genJAny) { (in, value) =>
-        val out = in.overwriteTo(field("__new__"), value)
+        val out = in.encodeTo(field("__new__"), value, overwrite = true).shouldSucceed
         out.field("__new__").map(_.value) shouldBe value.stripLocation.rightNec
         out.pointer shouldBe in.pointer
         out.root.value.shouldHaveNoLocations
@@ -335,30 +335,36 @@ class JFocusJObjectOpsTest extends BatemanTestBase {
     it("should overwrite an existing field (property)") {
       forAll(genJFocus(genNonEmptyJObject), genJAny) { (in, value) =>
         val name = in.value.fieldList.head.name.value
-        val out = in.overwriteTo(field(name), value)
+        val out = in.encodeTo(field(name), value, overwrite = true).shouldSucceed
         out.field(name).map(_.value) shouldBe value.stripLocation.rightNec
         out.pointer shouldBe in.pointer
         out.root.value.shouldHaveNoLocations
       }
     }
+
+    it("should replace a non-object intermediate") {
+      val out = json.encodeTo("a" ~> "nested", "forced", overwrite = true).shouldSucceed
+      out.field("a").flatMap(_.asObject).flatMap(_.field("nested")).map(_.value) shouldBe JString("forced").rightNec
+      out.root.value.shouldHaveNoLocations
+    }
   }
 
-  describe("writeTo") {
+  describe("encodeTo") {
     it("should write a value through a lens") {
-      val out: JResult[JRootFocus[JObject]] = json.writeTo("x", "new")
+      val out: JResult[JRootFocus[JObject]] = json.encodeTo("x", "new")
       out.map(_.field("x").map(_.value)) shouldBe JString("new").rightNec.rightNec
       out.map(_.root.value.shouldHaveNoLocations)
     }
 
     it("should write to a nested path") {
-      val out: JResult[JRootFocus[JObject]] = json.writeTo("a" ~> "b" ~> "d", "new")
+      val out: JResult[JRootFocus[JObject]] = json.encodeTo("a" ~> "b" ~> "d", "new")
       out.map(_.field("a").flatMap(_.asObject).flatMap(_.field("b")).flatMap(_.asObject).flatMap(_.field("d")).map(_.value)) shouldBe JString("new").rightNec.rightNec
       out.map(_.root.value.shouldHaveNoLocations)
     }
 
     it("should write a new field through a lens (property)") {
       forAll(genJFocus(genNonEmptyJObject), genJAny) { (in, value) =>
-        val out = in.writeTo("__new__", value)
+        val out = in.encodeTo("__new__", value)
         out.map(_.field("__new__").map(_.value)) shouldBe value.stripLocation.rightNec.rightNec
         out.map(_.pointer) shouldBe in.pointer.rightNec
         out.map(_.root.value.shouldHaveNoLocations)

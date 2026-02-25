@@ -74,42 +74,42 @@ The `++` extension method appends all fields from another object.
 
 #### Write to a lens path
 
-The `writeTo` extension method navigates a lens path from the focused
+The `encodeTo` extension method navigates a lens path from the focused
 object, creating intermediate objects as needed, and writes the encoded
 value at the target location.
 
 ```scala mdoc:bateman:right:jany
-in.writeTo("d" ~> "e", "deep").map(_.value)
+in.encodeTo("d" ~> "e", "deep").map(_.value)
 ```
 
 If the path passes through a non-object value, an error is returned.
 
 ```scala mdoc:bateman:left:errors
-in.writeTo("a" ~> "nested", "fail")
+in.encodeTo("a" ~> "nested", "fail")
 ```
 
 #### Overwrite to a lens path
 
-The `overwriteTo` extension method is similar to `writeTo`, but never
-fails when a field is missing along the path. It creates intermediate
-empty objects as needed. Compare this to `writeTo`, which would fail
-because field `"d"` does not exist.
+Passing `overwrite = true` to `encodeTo` makes it never fail when a field
+is missing along the path. It creates intermediate empty objects as
+needed. Compare this to the default `encodeTo`, which would fail because
+field `"d"` does not exist.
 
-```scala mdoc:bateman:jany
-in.overwriteTo("d" ~> "e", "deep").value
+```scala mdoc:bateman:right:jany
+in.encodeTo("d" ~> "e", "deep", overwrite = true).map(_.value)
 ```
 
 It also overwrites an existing field value. Here, `"a"` already has the
-value `1`, but `overwriteTo` replaces it with the new value.
+value `1`, but `overwrite = true` replaces it with the new value.
 
-```scala mdoc:bateman:jany
-in.overwriteTo("a", "replaced").value
+```scala mdoc:bateman:right:jany
+in.encodeTo("a", "replaced", overwrite = true).map(_.value)
 ```
 
 It even replaces non-object intermediates. Here, `"a"` has the value `1`,
-but `overwriteTo` replaces it with an object so it can continue navigating
-to create the nested field.
+but `overwrite = true` replaces it with an object so it can continue
+navigating to create the nested field.
 
-```scala mdoc:bateman:jany
-in.overwriteTo("a" ~> "nested", "forced").value
+```scala mdoc:bateman:right:jany
+in.encodeTo("a" ~> "nested", "forced", overwrite = true).map(_.value)
 ```

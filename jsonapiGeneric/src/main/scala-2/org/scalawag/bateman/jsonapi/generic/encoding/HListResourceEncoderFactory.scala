@@ -393,7 +393,7 @@ object HListResourceEncoderFactory {
                             // No ID, add a lid that we can use to refer to the included object.
                             val lid = params.lidGenerator()
                             val ri = JObject("type" -> rt.toJAny, "lid" -> lid.toJAny)
-                            ri -> encodedHead.copy(root = f.asObject.map(_.overwriteTo("lid", lid)).getOrThrow.value)
+                            ri -> encodedHead.copy(root = f.asObject.flatMap(_.encodeTo("lid", lid, overwrite = true)).getOrThrow.value)
                         }
                       }
                       .map(_.unzip)

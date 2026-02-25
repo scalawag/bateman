@@ -14,7 +14,7 @@
 
 package org.scalawag.bateman.json.generic
 
-import org.scalawag.bateman.json.{JAny, JObject, ProgrammerError}
+import org.scalawag.bateman.json.{JAny, JObject, ProgrammerError, RichJResult}
 import org.scalawag.bateman.json.lens.{CreatableJLens, CreatableJLensOps}
 import org.scalawag.bateman.json.generic.Discriminators.Discriminator
 
@@ -49,6 +49,6 @@ final case class TraitDeriverParams[F[_]](
         """.trim.stripMargin)
       case _ =>
     }
-    discriminators.asRootFocus.overwriteTo(discriminatorLens, value).value
+    discriminators.asRootFocus.encodeTo(discriminatorLens, value, overwrite = true).getOrThrow.value
   }
 }

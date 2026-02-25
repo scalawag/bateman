@@ -265,16 +265,16 @@ class JFocusOpsTest extends BatemanTestBase {
     }
   }
 
-  describe("writeTo") {
+  describe("encodeTo") {
     it("should write a new field") {
       val obj: JFocus[JAny] = parseAs[JObject]("""{"a": 1}""")
-      val result = obj.writeTo("b", "new").shouldSucceed
+      val result = obj.encodeTo("b", "new").shouldSucceed
       result.value shouldBe JString("new")
     }
 
     it("should write with prepend = true") {
       val obj: JFocus[JAny] = parseAs[JObject]("""{"a": 1}""")
-      val result = obj.writeTo("b" ~> "c", "deep", prepend = true).shouldSucceed
+      val result = obj.encodeTo("b" ~> "c", "deep", prepend = true).shouldSucceed
       result.value shouldBe JString("deep")
       // Verify "b" was prepended
       val root = result.root.value.asInstanceOf[JObject]
@@ -283,7 +283,7 @@ class JFocusOpsTest extends BatemanTestBase {
 
     it("should fail when navigating through a non-object") {
       val obj: JFocus[JAny] = parseAs[JObject]("""{"a": 1}""")
-      val result = obj.writeTo("a" ~> "b", "value")
+      val result = obj.encodeTo("a" ~> "b", "value")
       val err = result.shouldFail
       err.head shouldBe a[JsonTypeMismatch]
     }

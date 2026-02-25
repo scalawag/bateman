@@ -224,7 +224,7 @@ class LensTest extends BatemanTestBase {
     }
 
     it("should add meta to existing document") {
-      val out = json.writeTo(data ~> meta("quux"), "froboz").shouldSucceed.root
+      val out = json.encodeTo(data ~> meta("quux"), "froboz").shouldSucceed.root
       out(data ~> meta("quux")).map(_.value).shouldSucceed shouldBe "froboz".toJAny
     }
   }

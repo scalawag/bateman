@@ -48,6 +48,6 @@ import org.scalawag.bateman.jsonapi.lens._
 import org.scalawag.bateman.json.focus._
 
 jany.asRootFocus(data ~> 1)
-  .map(_.overwriteTo(meta("archived"), true.toJAny))
+  .flatMap(_.encodeTo(meta("archived"), true.toJAny, overwrite = true))
   .map(_.root.value)
 ```

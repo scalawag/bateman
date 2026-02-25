@@ -106,25 +106,14 @@ class JFocusJObjectOps[A <: JFocus[JObject]](me: A) {
   def delete(index: Int)(implicit replacer: ValueReplacer.Aux[JObject, A, A]): A =
     replacer(me.value.delete(index), me)
 
-  def overwriteTo[B <: JAny, C <: JAny, D: JAnyEncoder](
+  def encodeTo[B <: JAny, C <: JAny, D, E <: JAny](
       lens: CreatableJLens[B, C],
       value: D,
-      prepend: Boolean = false
-  )(implicit replacer: ValueReplacer.Aux[JObject, A, A]): A = {
-    val result = new JFocusOps(JRootFocus(me.value)).overwriteTo(lens, value, prepend)
-    result.root.value match {
-      case o: JObject => replacer(o, me)
-      case other => throw new IllegalStateException(s"expected JObject but got ${other.jType}")
-    }
-  }
-
-  def writeTo[B <: JAny, C <: JAny, D, E <: JAny](
-      lens: CreatableJLens[B, C],
-      value: D,
-      prepend: Boolean = false
+      prepend: Boolean = false,
+      overwrite: Boolean = false
   )(implicit enc: Encoder[D, E], replacer: ValueReplacer.Aux[JObject, A, A]): JResult[A] =
     new JFocusOps(JRootFocus(me.value))
-      .writeTo(lens, value, prepend)
+      .encodeTo(lens, value, prepend, overwrite)
       .map(fb => fb.root.value match {
         case o: JObject => replacer(o, me)
         case other => throw new IllegalStateException(s"expected JObject but got ${other.jType}")

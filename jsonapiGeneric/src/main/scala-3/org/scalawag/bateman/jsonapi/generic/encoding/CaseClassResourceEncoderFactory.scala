@@ -444,7 +444,7 @@ object CaseClassResourceEncoderFactory:
         case (rt, None) =>
           val lid = params.lidGenerator()
           val ri = JObject("type" -> rt.toJAny, "lid" -> lid.toJAny)
-          val updatedRoot = f.asObject.map(_.overwriteTo("lid", lid)).getOrThrow.value
+          val updatedRoot = f.asObject.flatMap(_.encodeTo("lid", lid, overwrite = true)).getOrThrow.value
           ri -> encoded.copy(root = updatedRoot)
       }
 
