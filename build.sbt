@@ -18,20 +18,20 @@ import CoverageAxis.ProjectMatrixOps
 val projectBaseName = "bateman"
 
 ThisBuild / versionScheme := Some("early-semver")
-ThisBuild / organization := "org.scalawag.bateman"
+ThisBuild / sonatypeCredentialHost := "central.sonatype.com"
 
 Global / concurrentRestrictions := Tags.limitAll(2) :: Nil
 
 val Versions = new Object {
-  val cats = "2.9.0"
-  val circe = "0.14.4"
-  val enumeratum = "1.7.2"
-  val scalatest = "3.2.15"
-  val scalamock = "5.2.0"
-  val shapeless = "2.3.10"
-  val scalacheck = "1.17.0"
-  val scala212 = "2.12.17"
-  val scala213 = "2.13.10"
+  val cats = "2.13.0"
+  val circe = "0.14.14"
+  val enumeratum = "1.9.1"
+  val scalatest = "3.2.19"
+  val scalamock = "7.4.0"
+  val shapeless = "2.3.13"
+  val scalacheck = "1.18.1"
+  val scala212 = "2.12.19"
+  val scala213 = "2.13.17"
   val scala3 = "3.2.1"
 }
 
@@ -45,7 +45,7 @@ val commonSettings = Seq(
     CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((2, n)) =>
         Seq(
-          compilerPlugin("org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full),
+          compilerPlugin("org.typelevel" % "kind-projector" % "0.13.4" cross CrossVersion.full),
           compilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
         )
       case _ => Nil
@@ -73,29 +73,6 @@ val commonSettings = Seq(
     "org.scalacheck" %%% "scalacheck" % Versions.scalacheck,
     "org.scalamock" %%% "scalamock" % Versions.scalamock,
   ).map(_ % Test),
-  publishMavenStyle := true,
-  Test / publishArtifact := false,
-  publishTo := {
-    val nexus = "https://oss.sonatype.org/"
-    if (version.value.trim.endsWith("SNAPSHOT"))
-      Some("snapshots" at nexus + "content/repositories/snapshots")
-    else
-      Some("releases" at nexus + "service/local/staging/deploy/maven2")
-  },
-  pomIncludeRepository := { _ => false },
-  homepage := Some(url("http://github.com/scalawag/bateman")),
-  startYear := Some(2021),
-  licenses += "Apache License, Version 2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"),
-  scmInfo := Some(ScmInfo(url("http://github.com/scalawag/bateman"), "scm:git:git://github.com/scalawag/bateman.git")),
-  developers := List(
-    Developer("justinp", "Justin Patterson", "justin@scalawag.org", url("https://github.com/justinp"))
-  ),
-  credentials += Credentials(
-    "GnuPG Key ID",
-    "gpg",
-    "439444E02ED9335F91C538455283F6A358FB8629",
-    "ignored"
-  ),
   // Make it so that sbt-git-flux can see the older releases.
   ThisBuild / gitFluxLegacyTagMapper := {
     case s if s.startsWith("release/") && FluxReleaseTag(s.replaceFirst("/", "-")).isDefined =>
