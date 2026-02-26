@@ -62,20 +62,32 @@ object HListResourceDecoderFactory {
 
         if (params.config.allowUnknownFields)
           output.rightNec
-        else
-          // Gather up all of the values present in the input so we can compare that with what's been handled.
-          List(
-            input.in(resourceType.?).map(_.toList),
-            input.in(id.?).map(_.toList),
-            input.in(meta.? ~> *).map(_.foci),
-            input.in(attributes.? ~> *).map(_.foci),
-            input.in(relationships.? ~> *).map(_.foci),
-          ).parFlatSequence.flatMap { presentValues =>
-            val handled = input.fieldSources.values.toSet
-            val unhandled = presentValues.filterNot(handled).map(UnexpectedValue)
-            rightIfEmpty(unhandled, output)
+        else {
+          // The set of all fields that have been "consumed" by handlers.
+          val consumed = input.fieldSources.values.toSet
+
+          // These are fields that may appear in the top-level of the resource object that are not problems.
+          val topLevelWhiteList = Set("type", "meta", "links", "attributes", "relationships")
+
+          // Top-level fields that are not whitelisted, not discriminator fields, and not consumed.
+          val unknownTopLevelFoci = input.in.value.fieldList.map(_.name.value).zip(input.in.fields).collect {
+            case (name, focus)
+                if !topLevelWhiteList.contains(name) &&
+                  !input.discriminatorFields.contains(focus) &&
+                  !consumed.contains(focus) =>
+              focus
           }
 
+          List(
+            input.in(meta.? ~> **).map(_.foci),
+            input.in(attributes.? ~> **).map(_.foci),
+            input.in(relationships.? ~> **).map(_.foci),
+          ).parFlatSequence.flatMap { containerValues =>
+            // Fields within known JSON:API container objects that have not been consumed.
+            val unconsumedInContainers = containerValues.filterNot(consumed)
+            rightIfEmpty((unknownTopLevelFoci ++ unconsumedInContainers).map(UnexpectedValue(_)), output)
+          }
+        }
     }
 
   implicit def forTypeHCons[H, T <: HList, DT <: HList, AT <: HList](implicit
