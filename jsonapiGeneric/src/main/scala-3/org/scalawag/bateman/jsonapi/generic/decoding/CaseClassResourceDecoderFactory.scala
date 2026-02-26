@@ -188,7 +188,31 @@ object CaseClassResourceDecoderFactory:
               (acc, fieldResult).parMapN { (list, value) => list :+ value }
             }
 
-            combinedResult.map { values =>
+            val unknownFieldCheck: JResult[Unit] =
+              if config.allowUnknownFields then
+                ().rightNec
+              else
+                val consumed = fieldSources.values.toSet
+
+                val topLevelWhiteList = Set("type", "meta", "links", "attributes", "relationships")
+                val unknownTopLevelFoci = jobjFocus.value.fieldList.map(_.name.value).zip(jobjFocus.fields)
+                  .filter { (name, focus) =>
+                    !topLevelWhiteList.contains(name) &&
+                      !discriminatorFieldFocuses.contains(focus) &&
+                      !consumed.contains(focus)
+                  }
+                  .map(_(1))
+
+                List(
+                  jobjFocus(japiLens.meta.? ~> **).map(_.foci),
+                  jobjFocus(japiLens.attributes.? ~> **).map(_.foci),
+                  jobjFocus(japiLens.relationships.? ~> **).map(_.foci),
+                ).parFlatSequence.flatMap { containerValues =>
+                  val unconsumedInContainers = containerValues.filterNot(consumed)
+                  rightIfEmpty((unknownTopLevelFoci ++ unconsumedInContainers).map(UnexpectedValue(_)), ())
+                }
+
+            (combinedResult, unknownFieldCheck).parMapN { (values, _) =>
               val tuple = Tuple.fromArray(values.toArray)
               m.fromTuple(tuple.asInstanceOf[m.MirroredElemTypes])
             }.leftMap(_.distinct)
