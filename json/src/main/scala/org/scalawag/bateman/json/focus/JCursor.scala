@@ -44,7 +44,7 @@ object JCursor {
           .foldr(Eval.now((None: Option[JAny], List.empty[B]))) { (f, accEval) =>
             val (lastRoot, bVals) = accEval.value
             // First time through, we just use the focus. From then on, we replicate the path in the last root.
-            val replicated = lastRoot.map(r => f.replicateAs(r, f.value)).getOrElse(f)
+            val replicated = lastRoot.map(r => f.replicate(r).as(f.value)).getOrElse(f)
             val mod = replicated.replace(fn(replicated))
             Eval.now((Some(mod.root.value), mod.value :: bVals))
           }
@@ -54,9 +54,9 @@ object JCursor {
       newRootOpt match {
         case Some(r) =>
           val bIter = bValues.iterator
-          JCursor(me.foci.map(f => f.replicateAs(r, bIter.next())))
+          JCursor(me.foci.map(f => f.replicate(r).as(bIter.next())))
         case None =>
-          JCursor(me.foci.map(f => f.replicateAs(f.root.value, fn(f))))
+          JCursor(me.foci.map(f => f.replicate(f.root.value).as(fn(f))))
       }
     }
 

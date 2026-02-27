@@ -140,52 +140,6 @@ sealed trait JFocus[+A <: JAny] {
 
     rebuild(indices, root.asRootFocus)
   }
-
-  /** Like [[replicate]], but uses the provided typed leaf value at the focus position instead of whatever
-    * is in the document.
-    */
-  private[json] def replicateAs[C <: JAny](root: JAny, leafValue: C): JFocus[C] = {
-    @tailrec
-    def getIndices(f: JFocus[_], acc: List[Either[Int, Int]]): List[Either[Int, Int]] =
-      f match {
-        case _: JRootFocus[_]     => acc
-        case x: JFieldFocus[_, _] => getIndices(x.parent, Left(x.index) :: acc)
-        case x: JItemFocus[_, _]  => getIndices(x.parent, Right(x.index) :: acc)
-      }
-
-    val indices = getIndices(this, Nil)
-
-    @tailrec
-    def rebuild(todo: List[Either[Int, Int]], f: JFocus[JAny]): JFocus[C] =
-      todo match {
-        case Nil =>
-          f match {
-            case _: JRootFocus[_]      => JRootFocus(leafValue)
-            case ff: JFieldFocus[_, _] => JFieldFocus(leafValue, ff.name, ff.index, ff.parent)
-            case ff: JItemFocus[_, _]  => JItemFocus(leafValue, ff.index, ff.parent)
-          }
-        case Left(n) :: t =>
-          f.narrow[JObject].map(_.fields.lift(n)) match {
-            case Right(Some(child)) => rebuild(t, child)
-            case Right(None) =>
-              throw ProgrammerError("object in new document has fewer fields than in the old document!")
-            case _ =>
-              throw ProgrammerError(
-                s"new document does not have an object where one is expected!\n${f.pointer}\n${f.root.value.render}"
-              )
-          }
-        case Right(n) :: t =>
-          f.narrow[JArray].map(_.items.lift(n)) match {
-            case Right(Some(child)) => rebuild(t, child)
-            case Right(None) =>
-              throw ProgrammerError("array in new document has fewer items than in the old document!")
-            case _ =>
-              throw ProgrammerError("new document does not have an array where one is expected!")
-          }
-      }
-
-    rebuild(indices, root.asRootFocus)
-  }
 }
 
 object JFocus {
