@@ -98,8 +98,6 @@ sealed trait JFocus[+A <: JAny] {
     }
   }
 
-  def as[B <: JAny](value: B): JFocus[B] = map(_ => value)
-
   /** Replicates the exact path of one focus into another root value. */
   private[json] def replicate(root: JAny): JFocus[JAny] = {
     @tailrec

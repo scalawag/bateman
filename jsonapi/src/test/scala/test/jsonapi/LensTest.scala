@@ -106,7 +106,7 @@ class LensTest extends BatemanTestBase {
 
     it("should decode id") {
       implicit val dec: Decoder[JString, Int] = (in: JFocus[JString]) =>
-        Decoder.jstringToJNumber.decode(in).flatMap(num => Decoder.jnumberToIntDecoder.decode(in.as(num)))
+        Decoder.jstringToJNumber.decode(in).flatMap(num => Decoder.jnumberToIntDecoder.decode(in.map(_ => num)))
       json(data ~> id).flatMap(_.decode[Int]).shouldSucceed shouldBe 23
     }
   }

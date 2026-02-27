@@ -61,7 +61,7 @@ class JFocusOps[A <: JAny](me: JFocus[A]) {
           rebuildValues(ff.parent.value.updated(ff.index, value), ff.parent)
       }
 
-    me.replicate(rebuildValues(stripped, me)).as(stripped)
+    me.replicate(rebuildValues(stripped, me)).map(_ => stripped)
   }
 
   /** Returns a copy of the document with the value in focus deleted. The new focus is the parent of the

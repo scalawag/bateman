@@ -101,10 +101,10 @@ class JFocusTest extends BatemanTestBase {
     }
   }
 
-  describe("as") {
+  describe("map with constant") {
     it("should replace the value while preserving focus structure") {
       val f: JFocus[JAny] = JString("hello").asRootFocus
-      val result: JFocus[JNumber] = f.as(JNumber(42))
+      val result: JFocus[JNumber] = f.map(_ => JNumber(42))
       result.value.toBigDecimal shouldBe BigDecimal(42)
       result.pointer shouldBe f.pointer
     }
@@ -112,7 +112,7 @@ class JFocusTest extends BatemanTestBase {
     it("should work on a field focus") {
       val obj = parseAs[JObject]("""{"a": "hello"}""")
       val f: JFocus[JAny] = obj.field("a").shouldSucceed
-      val result = f.as(JNumber(42))
+      val result = f.map(_ => JNumber(42))
       result.value.toBigDecimal shouldBe BigDecimal(42)
       result.pointer shouldBe f.pointer
     }
