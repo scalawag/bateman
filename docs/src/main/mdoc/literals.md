@@ -27,6 +27,12 @@ expects a JSON array.
 jsona"[1,2,3,true,null]"
 ```
 
+@@@ note
+In Scala 3, you can just use the `json` literal and it will statically 
+return the appropriate type for the JSON it contains. `jsona` is only 
+provided for compatibility in code that is cross-compiled with Scala 2. 
+@@@
+
 If you want to create something other than an object or array, just use the 
 constructor for the appropriate type.
 

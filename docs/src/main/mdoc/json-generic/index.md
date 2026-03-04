@@ -5,7 +5,7 @@
 * [X](source.md)
 @@@
 
-# Generic Support
+# JSON Generic
 
 For many domains, the best data model is an ADT (or set of ADTs) representing
 the domain. For this reason, bateman includes derivation of codecs for case 

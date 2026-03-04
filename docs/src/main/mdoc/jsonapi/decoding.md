@@ -92,7 +92,7 @@ input(data ~> relationship("manager") ~> data ~> includedRef ~> attribute("addre
 ```
 
 You'll probably normally use case classes to represent your domain model and
-use derived codecs (TODO link) to extract most of the data from your
+use @ref:[derived codecs](../jsonapi-generic/decoding.md) to extract most of the data from your
 JSON:API documents. Occasionally, though, when you just want to extract a
 specific piece of metadata (that's not part of your model) or extract a
 single ID from deep within the document (without having to decode everything),

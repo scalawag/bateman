@@ -2,6 +2,7 @@
 * [X](json/index.md)
 * [X](json-generic/index.md)
 * [X](jsonapi/index.md)
+* [X](jsonapi-generic/index.md)
 * [X](literals.md)
 * [X](enumeratum.md)
 @@@
@@ -42,7 +43,7 @@ libraries.
 ## Philosophy
 
 The overall strategy in bateman to support leniency up to the point 
-at which failure is inevitable. This is in contrast to the style where a 
+at which failure is inevitable. This is in contrast to a style where a 
 validation pass is performed up front (e.g., when a JSON text enters the 
 system) and then all code within the system assumes everything is in order. 
 This up-front style doesn't really lend itself to multi-pass decoding (where 
@@ -50,36 +51,34 @@ different aspects of the text are reinterpreted and used for different
 purposes) and can make it hard to maintain the original context for precise 
 error reporting.
 
-The bateman (lenient) approach is to pass a representation of the original 
-text around within your system and let each component extract what it needs. 
-Failures only occur when a component tries to extract something and doesn't 
-find what it expects.
+The bateman approach is to pass a representation of the original text around,
+without any up-front semantic validation, within your system and let each 
+component extract what it needs when it needs it. Failures only occur when a 
+component tries to _extract_ data and doesn't find what it expects.
 
-that, after parsing a JSON text into its 
-in-memory representation, you don't really do any up-front validation. You 
-extract information from documents using the @ref:[ADT](json/model.md),
+You can extract information from documents using 
+@ref:[focus methods](json/focus/index.md),
 @ref:[lens operations](json/lens/index.md) or
-state tranformations (TODO). It helps 
-you to build decoders easily from case classes that represent what you're 
-expecting to find in a given text. For JSON:API, this may mean that you grab 
+@ref:[state API](json/state.md). It can also automatically help 
+you to build decoders from case classes that represent what you're 
+expecting to find in a given text.
+
+For JSON:API, this may mean that you grab 
 the expected resources with a derived case class decoder but then make 
 another query against the document to fetch the metadata that's not part of 
-your model. Since this is all don't at query-time, it means that you can 
-have multiple consumers regarding the JSON text in different ways and those 
-consumers only see a failure if what they're trying to achieve can't be 
-fulfilled.
-
-An example:
-
-> resource object v. resource identifier
+your model using lenses. Since this is all done just-in-time, it means that 
+you can have multiple consumers interpreting the JSON text in different ways 
+and those consumers only trigger a failure if what they're trying to achieve 
+can't be fulfilled.
 
 ## Getting Started
 
-bateman is published to Maven Central and cross-built for Scala 2.12 and
-2.13, so you can just add the following to your `sbt` build:
+bateman is published to Maven Central and cross-built for Scala 2.12, 2.13 and
+3 and also supports both the JVM and ScalaJS. You can just add the following 
+to your `sbt` build:
 
 ```scala
-def bateman(artifact: String) = "org.scalawag.bateman" %% s"bateman-$artifact" % "0.1.3"
+def bateman(artifact: String) = "org.scalawag.bateman" %% s"bateman-$artifact" % revision
 
 libraryDependencies ++= Seq(
   bateman("json"),            // core JSON functionality
@@ -96,27 +95,37 @@ libraryDependencies ++= Seq(
 
 Things that you can do with bateman:
 
- * @ref:[parse a JSON text](json/parsing.md) into its 
+ * @ref:[parse a JSON text](json/parsing.md) into its
    @ref:[in-memory representation](json/model.md)
- * @ref:[serialize a JSON value](json/serializing.md) to a JSON text 
- * @ref:[focus on a particular value](json/focus/index.md) within the JAny
+ * @ref:[serialize a JSON value](json/serializing.md) to a JSON text
+ * @ref:[focus on a particular value](json/focus/index.md) within a JAny
  * @ref:[use lenses](json/lens/index.md) to create complex traversals
  * @ref:[decode the focused value](json/focus/operations/any/decode.md) to a 
    domain-specific type
+    * compose @ref:[basic lenses](json/lens/basic/index.md) like
+      @ref:[field](json/lens/basic/field.md),
+      @ref:[item](json/lens/basic/item.md), and
+      @ref:[narrow](json/lens/basic/narrow.md)
+    * use lenses with different @ref:[cardinalities](json/lens/cardinality.md)
+      to match zero, one, or many values
+ * @ref:[use the state API](json/state.md) to compose navigation and
+   editing steps in for-comprehensions
  * @ref:[write a custom decoder](json/decoder.md) to decode JSON to your 
    own types
- * encode a supported value to JSON
-    * encode an unsupported value to JSON using a custom encoder
-    * automatically derive a JSON object encoder from a case class
- * @ref:[automatically derive](json-generic/index.md) a codec from a case class
- * programmatically create a JAny in your source code
- * transform a JAny by @ref:[deleting](json/focus/operations/deep/delete.md)
-   or @ref:[modifying](json/focus/operations/any/modify.md) the focus
- * add custom semantic validation to a (custom) decoder
- * validate JSON literals at compile time, including templates
+ * @ref:[encode](json/encoder.md) a supported value to JSON
+     * write a @ref:[custom encoder](json/encoder.md) for your own types
+     * @ref:[automatically derive](json-generic/index.md) an encoder from a
+       case class
+ * @ref:[automatically derive](json-generic/index.md) a codec from a case
+   class, with @ref:[configurable](json-generic/config/index.md) field name
+   mapping, default values, and unknown field handling
+ * @ref:[use validated JSON literals](literals.md) at compile time, with
+   interpolation
+ * transform a JAny by @ref:[deleting](json/focus/operations/deep/delete.md),
+   @ref:[replacing](json/focus/operations/any/replace.md), or
+   @ref:[modifying](json/focus/operations/any/modify.md) the focused value
  * JSON:API
-   * extract values from the focus as part of a JSON:API-compliant document
-   * automatically derive a JSON:API resource decoder from a case class
-   * programmatically create a JAny representing a JSON:API document 
-   * automatically derive a JSON:API resource encoder from a case class
-   * provide API clients the ability to specify field sets and include paths 
+     * @ref:[decode](jsonapi/decoding.md) JSON:API documents into domain types
+     * @ref:[encode](jsonapi/encoding.md) domain types into JSON:API documents
+     * @ref:[automatically derive](json-generic/index.md) JSON:API resource
+       codecs from case classes 

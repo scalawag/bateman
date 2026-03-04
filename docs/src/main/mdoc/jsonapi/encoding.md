@@ -41,13 +41,15 @@ manipulate the JSON after you've already created a JSON:API document. You
 might want to do this to add a touch of metadata that's not present in your 
 domain model, for example.
 
-TODO: use encoder here.
-
 ```scala mdoc:bateman:right:jany
 import org.scalawag.bateman.jsonapi.lens._
 import org.scalawag.bateman.json.focus._
 
 jany.asRootFocus(data ~> 1)
-  .flatMap(_.encodeTo(meta("archived"), true.toJAny, overwrite = true))
+  .flatMap(_.encodeTo(meta("archived"), true, overwrite = true))
   .map(_.root.value)
 ```
+
+For a more automatic approach, you can
+@ref:[derive encoders](../jsonapi-generic/encoding.md) from annotated case
+classes using the `bateman-jsonapi-generic` module.

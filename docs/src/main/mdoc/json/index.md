@@ -3,6 +3,7 @@
 * [X](parsing.md)
 * [X](focus/index.md)
 * [X](lens/index.md)
+* [X](state.md)
 * [X](decoder.md)
 * [X](serializing.md)
 * [X](encoder.md)
