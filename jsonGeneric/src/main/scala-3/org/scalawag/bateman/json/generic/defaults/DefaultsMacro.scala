@@ -30,6 +30,16 @@ object DefaultsMacro:
     else
       val companion = Ref(sym.companionModule)
 
+      // Extract type arguments for generic case classes (e.g., Attribute[LabeledKey] -> [LabeledKey])
+      val typeArgs = tpe match
+        case AppliedType(_, args) => args
+        case _ => Nil
+
+      // Check if the type is defined inside a trait/class (cake pattern).
+      // In that case, default methods may reference the outer `this` which
+      // can cause compiler errors when inlined into a different context.
+      val isInnerClass = sym.owner.isClassDef && !sym.owner.flags.is(Flags.Module)
+
       val params = sym.primaryConstructor.paramSymss.flatten
 
       val defaultExprs = params.zipWithIndex.map { case (param, i) =>
@@ -40,8 +50,22 @@ object DefaultsMacro:
           '{ None }
         else
           val methodSymbol = defaultMethodSymbols.head
-          val defaultValue = companion.select(methodSymbol).asExprOf[Any]
-          '{ Some($defaultValue) }
+          val selected = companion.select(methodSymbol)
+          // Apply type arguments if the default method is polymorphic (generic case class)
+          val applied = if typeArgs.nonEmpty && methodSymbol.paramSymss.headOption.exists(_.exists(_.isTypeParam)) then
+            selected.appliedToTypes(typeArgs)
+          else
+            selected
+          try
+            val defaultValue = applied.asExprOf[Any]
+            '{ Some($defaultValue) }
+          catch
+            case _: Exception if isInnerClass =>
+              report.errorAndAbort(
+                s"Case class ${sym.name} is defined inside a trait or class, which prevents extraction of default " +
+                s"parameter values. Move it to a top-level or object scope, or remove its default parameter values."
+              )
+            case _: Exception => '{ None }
       }
 
       val tuple = Expr.ofTupleFromSeq(defaultExprs)
