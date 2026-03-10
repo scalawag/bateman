@@ -119,7 +119,7 @@ final case class DataDocument(
 }
 
 object DataDocument {
-  implicit val batemanEncoder: JObjectEncoder[DataDocument] = deriveEncoderForCaseClass[DataDocument]
+  implicit val batemanEncoder: JObjectEncoder[DataDocument] = deriveEncoderForCaseClass[DataDocument]()
 }
 
 /** A JSON:API document that contains [[https://jsonapi.org/format/#document-top-level errors]].
@@ -155,7 +155,7 @@ final case class ErrorDocument(
 }
 
 object ErrorDocument {
-  implicit val batemanEncoder: JObjectEncoder[ErrorDocument] = deriveEncoderForCaseClass[ErrorDocument]
+  implicit val batemanEncoder: JObjectEncoder[ErrorDocument] = deriveEncoderForCaseClass[ErrorDocument]()
 }
 
 /** A JSON:API document that contains at least [[https://jsonapi.org/format/#document-top-level metadata]].
@@ -211,7 +211,7 @@ object MetadataDocument {
     }
 
   implicit val batemanEncoder: JObjectEncoder[MetadataDocument] =
-    deriveEncoderForCaseClass[MetadataDocument]
+    deriveEncoderForCaseClass[MetadataDocument]()
 }
 
 final case class Jsonapi(
@@ -221,7 +221,7 @@ final case class Jsonapi(
 
 object Jsonapi {
   implicit val batemanEncoder: JObjectEncoder[Jsonapi] =
-    deriveEncoderForCaseClass[Jsonapi]
+    deriveEncoderForCaseClass[Jsonapi]()
 }
 
 sealed trait ErrorSource
@@ -231,19 +231,19 @@ object ErrorSource {
   final case class Pointer(pointer: String) extends ErrorSource
 
   object Pointer {
-    implicit val batemanEncoder: JObjectEncoder[Pointer] = deriveEncoderForCaseClass[Pointer]
+    implicit val batemanEncoder: JObjectEncoder[Pointer] = deriveEncoderForCaseClass[Pointer]()
   }
 
   final case class Parameter(parameter: String) extends ErrorSource
 
   object Parameter {
-    implicit val batemanEncoder: JObjectEncoder[Parameter] = deriveEncoderForCaseClass[Parameter]
+    implicit val batemanEncoder: JObjectEncoder[Parameter] = deriveEncoderForCaseClass[Parameter]()
   }
 
   final case class Header(header: String) extends ErrorSource
 
   object Header {
-    implicit val batemanEncoder: JObjectEncoder[Header] = deriveEncoderForCaseClass[Header]
+    implicit val batemanEncoder: JObjectEncoder[Header] = deriveEncoderForCaseClass[Header]()
   }
 
   implicit val batemanEncoder: JObjectEncoder[ErrorSource] = new JObjectEncoder[ErrorSource] {
@@ -280,7 +280,7 @@ final case class Error(
 
 object Error {
   implicit val batemanEncoder: JObjectEncoder[Error] =
-    deriveEncoderForCaseClass[Error]
+    deriveEncoderForCaseClass[Error]()
 }
 
 sealed trait Resource {
@@ -393,7 +393,7 @@ final case class Relationship(
 
 object Relationship {
   implicit val batemanEncoder: JObjectEncoder[Relationship] =
-    deriveEncoderForCaseClass[Relationship]
+    deriveEncoderForCaseClass[Relationship]()
 
   def apply[A: JObjectEncoder](data: A): Relationship = new Relationship(Some(data.toJAny))
   def apply[A: JObjectEncoder](data: Nullable[A]): Relationship = new Relationship(Some(data.toJAny))
@@ -441,5 +441,5 @@ object RichLink {
     }
 
   implicit val batemanEncoder: JObjectEncoder[RichLink] =
-    deriveEncoderForCaseClass[RichLink]
+    deriveEncoderForCaseClass[RichLink]()
 }

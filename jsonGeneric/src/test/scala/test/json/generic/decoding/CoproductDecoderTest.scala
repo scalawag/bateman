@@ -43,8 +43,8 @@ import test.json.generic.decoding.CoproductDecoderTest._
 
 class CoproductDecoderTest extends DecoderTestBase {
   describe("default config") {
-    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]
-    implicit val zdec: JObjectDecoder[Z] = deriveDecoderForCaseClass[Z]
+    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]()
+    implicit val zdec: JObjectDecoder[Z] = deriveDecoderForCaseClass[Z]()
     implicit val xdec: JObjectDecoder[X] = deriveDecoderForTrait[X]()
 
     it("should decode abstractly") {
@@ -64,8 +64,8 @@ class CoproductDecoderTest extends DecoderTestBase {
 
   describe("with case transformation") {
     implicit val config: Config = Config(classNameMapping = PascalCase to SnakeCase)
-    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]
-    implicit val zdec: JObjectDecoder[Z] = deriveDecoderForCaseClass[Z]
+    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]()
+    implicit val zdec: JObjectDecoder[Z] = deriveDecoderForCaseClass[Z]()
     implicit val xdec: JObjectDecoder[X] = deriveDecoderForTrait[X]()
 
     it("should decode abstractly") {
@@ -74,8 +74,8 @@ class CoproductDecoderTest extends DecoderTestBase {
   }
 
   describe("with custom discriminator name") {
-    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]
-    implicit val zdec: JObjectDecoder[Z] = deriveDecoderForCaseClass[Z]
+    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]()
+    implicit val zdec: JObjectDecoder[Z] = deriveDecoderForCaseClass[Z]()
     implicit val xdec: JObjectDecoder[X] = deriveDecoderForTrait[X]("ilk")
 
     it("should decode abstractly") {
@@ -84,9 +84,9 @@ class CoproductDecoderTest extends DecoderTestBase {
   }
 
   describe("with custom discriminator mapping") {
-    implicit val bdec: JObjectDecoder[Bogus] = deriveDecoderForCaseClass[Bogus]
-    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]
-    implicit val zdec: JObjectDecoder[Z] = deriveDecoderForCaseClass[Z]
+    implicit val bdec: JObjectDecoder[Bogus] = deriveDecoderForCaseClass[Bogus]()
+    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]()
+    implicit val zdec: JObjectDecoder[Z] = deriveDecoderForCaseClass[Z]()
     implicit val xdec: JObjectDecoder[X] = deriveDecoderForTrait[X](discriminator =
       CustomDiscriminator(
         forType[Y].apply[JObjectDecoder, Int](1),
@@ -157,8 +157,8 @@ class CoproductDecoderTest extends DecoderTestBase {
   }
 
   it("should detect duplicate discriminator values") {
-    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]
-    implicit val zdec: JObjectDecoder[Z] = deriveDecoderForCaseClass[Z]
+    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]()
+    implicit val zdec: JObjectDecoder[Z] = deriveDecoderForCaseClass[Z]()
 
     val ex = intercept[DiscriminatorCollision] {
       deriveDecoderForTrait[X](discriminator =
@@ -173,8 +173,8 @@ class CoproductDecoderTest extends DecoderTestBase {
   }
 
   it("should detect missing discriminator mappings") {
-    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]
-    implicit val zdec: JObjectDecoder[Z] = deriveDecoderForCaseClass[Z]
+    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]()
+    implicit val zdec: JObjectDecoder[Z] = deriveDecoderForCaseClass[Z]()
 
     val ex = intercept[MissingDiscriminatorMapping[_]] {
       deriveDecoderForTrait[X](discriminator =
@@ -188,8 +188,8 @@ class CoproductDecoderTest extends DecoderTestBase {
   }
 
   it("should detect duplicate discriminator mappings") {
-    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]
-    implicit val zdec: JObjectDecoder[Z] = deriveDecoderForCaseClass[Z]
+    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]()
+    implicit val zdec: JObjectDecoder[Z] = deriveDecoderForCaseClass[Z]()
 
     val ex = intercept[MultipleDiscriminatorMappings[_]] {
       deriveDecoderForTrait[X](discriminator =

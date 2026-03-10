@@ -35,7 +35,7 @@ trait AutoDerivers extends AutoCodecDerivers:
       encoderFactory: CaseClassEncoderFactory[A],
       config: Config = Config.default
   ): JObjectEncoder[A] =
-    semiauto.deriveEncoderForCaseClass[A]
+    semiauto.deriveEncoderForCaseClass[A]()
 
   implicit inline def autoDeriveDecoderForTrait[A](implicit
       m: Mirror.SumOf[A],
@@ -49,7 +49,7 @@ trait AutoDerivers extends AutoCodecDerivers:
       decoderFactory: CaseClassDecoderFactory[A],
       config: Config = Config.default
   ): JObjectDecoder[A] =
-    semiauto.deriveDecoderForCaseClass[A]
+    semiauto.deriveDecoderForCaseClass[A]()
 
 trait AutoCodecDerivers:
   implicit inline def autoDeriveCodec[A](implicit

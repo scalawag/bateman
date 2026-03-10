@@ -8,7 +8,7 @@ of the concrete codec's case class.
 ```scala mdoc:bateman:jany
 import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.syntax._
-import org.scalawag.bateman.json.generic.semiauto.unchecked._
+import org.scalawag.bateman.json.generic.semiauto._
 
 sealed trait Pet
 

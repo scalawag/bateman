@@ -59,9 +59,9 @@ class MultipleDiscriminatorsTest extends BatemanTestBase {
     import org.scalawag.bateman.json.generic.semiauto._
     val now = Instant.now()
 
-    implicit val startedEncoder: JObjectEncoder[Started] = deriveEncoderForCaseClass[Started]
-    implicit val completedEncoder: JObjectEncoder[Completed] = deriveEncoderForCaseClass[Completed]
-    implicit val failedEncoder: JObjectEncoder[Failed] = deriveEncoderForCaseClass[Failed]
+    implicit val startedEncoder: JObjectEncoder[Started] = deriveEncoderForCaseClass[Started]()
+    implicit val completedEncoder: JObjectEncoder[Completed] = deriveEncoderForCaseClass[Completed]()
+    implicit val failedEncoder: JObjectEncoder[Failed] = deriveEncoderForCaseClass[Failed]()
     implicit val terminatedEncoder: JObjectEncoder[Terminated] = deriveEncoderForTrait[Terminated]()
     implicit val eventEncoder: JObjectEncoder[Event] = deriveEncoderForTrait[Event]()
 
@@ -97,9 +97,9 @@ class MultipleDiscriminatorsTest extends BatemanTestBase {
     )
     val now = Instant.now()
 
-    implicit val startedEncoder: JObjectEncoder[Started] = deriveEncoderForCaseClass[Started]
-    implicit val completedEncoder: JObjectEncoder[Completed] = deriveEncoderForCaseClass[Completed]
-    implicit val failedEncoder: JObjectEncoder[Failed] = deriveEncoderForCaseClass[Failed]
+    implicit val startedEncoder: JObjectEncoder[Started] = deriveEncoderForCaseClass[Started]()
+    implicit val completedEncoder: JObjectEncoder[Completed] = deriveEncoderForCaseClass[Completed]()
+    implicit val failedEncoder: JObjectEncoder[Failed] = deriveEncoderForCaseClass[Failed]()
     implicit val terminatedEncoder: JObjectEncoder[Terminated] = deriveEncoderForTrait[Terminated]()
     implicit val eventEncoder: JObjectEncoder[Event] = deriveEncoderForTrait[Event]()
 
@@ -133,9 +133,9 @@ class MultipleDiscriminatorsTest extends BatemanTestBase {
 
     implicit val config: Config = Config(classNameMapping = PascalCase to SnakeCase)
 
-    implicit val startedEncoder: JObjectEncoder[Started] = deriveEncoderForCaseClass[Started]
-    implicit val completedEncoder: JObjectEncoder[Completed] = deriveEncoderForCaseClass[Completed]
-    implicit val failedEncoder: JObjectEncoder[Failed] = deriveEncoderForCaseClass[Failed]
+    implicit val startedEncoder: JObjectEncoder[Started] = deriveEncoderForCaseClass[Started]()
+    implicit val completedEncoder: JObjectEncoder[Completed] = deriveEncoderForCaseClass[Completed]()
+    implicit val failedEncoder: JObjectEncoder[Failed] = deriveEncoderForCaseClass[Failed]()
 
     import org.scalawag.bateman.json.generic.Discriminators._
 
@@ -225,9 +225,9 @@ class MultipleDiscriminatorsTest extends BatemanTestBase {
       allowUnknownFields = false
     )
 
-    implicit val startedDecoder: JObjectDecoder[Started] = deriveDecoderForCaseClass[Started]
-    implicit val completedDecoder: JObjectDecoder[Completed] = deriveDecoderForCaseClass[Completed]
-    implicit val failedDecoder: JObjectDecoder[Failed] = deriveDecoderForCaseClass[Failed]
+    implicit val startedDecoder: JObjectDecoder[Started] = deriveDecoderForCaseClass[Started]()
+    implicit val completedDecoder: JObjectDecoder[Completed] = deriveDecoderForCaseClass[Completed]()
+    implicit val failedDecoder: JObjectDecoder[Failed] = deriveDecoderForCaseClass[Failed]()
 
     import org.scalawag.bateman.json.generic.Discriminators._
 
@@ -326,9 +326,9 @@ class MultipleDiscriminatorsTest extends BatemanTestBase {
       classNameMapping = PascalCase to SnakeCase
     )
 
-    implicit val startedCodec: JObjectCodec[Started] = deriveCodecForCaseClass[Started]
-    implicit val completedCodec: JObjectCodec[Completed] = deriveCodecForCaseClass[Completed]
-    implicit val failedCodec: JObjectCodec[Failed] = deriveCodecForCaseClass[Failed]
+    implicit val startedCodec: JObjectCodec[Started] = deriveCodecForCaseClass[Started]()
+    implicit val completedCodec: JObjectCodec[Completed] = deriveCodecForCaseClass[Completed]()
+    implicit val failedCodec: JObjectCodec[Failed] = deriveCodecForCaseClass[Failed]()
 
     import org.scalawag.bateman.json.generic.Discriminators._
 

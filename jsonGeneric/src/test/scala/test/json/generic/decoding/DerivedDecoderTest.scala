@@ -41,7 +41,7 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"a": 7, "b": "XXX", "c": true}""".asRootFocus
 
-    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
+    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]()
     val da = JObjectDecoder[X].decode(json)
     da shouldBe X(7, "XXX", true).rightNec
   }
@@ -51,7 +51,7 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"a": 7, "b": "XXX", "c": true}""".asRootFocus
 
-    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
+    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]()
 
     val da = JObjectDecoder[X].decode(json)
     da shouldBe X(7, "XXX", true).rightNec
@@ -62,7 +62,7 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"a": "7", "b": "XXX", "c": true}""".asRootFocus
 
-    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
+    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]()
 
     val da = JObjectDecoder[X].decode(json)
     da shouldBe JsonTypeMismatch(json.fields.head, JNumber).leftNec
@@ -73,7 +73,7 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"b": "XXX", "c": true}""".asRootFocus
 
-    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
+    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]()
 
     val da = JObjectDecoder[X].decode(json)
     da shouldBe MissingField(json, "a").leftNec
@@ -84,7 +84,7 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"a": 7}""".asRootFocus
 
-    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
+    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]()
 
     val da = JObjectDecoder[X].decode(json)
     da shouldBe X(7, "jack", false).rightNec
@@ -95,7 +95,7 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"a": 7, "b": "XXX"}""".asRootFocus
 
-    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
+    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]()
 
     val da = JObjectDecoder[X].decode(json)
     da shouldBe X(7, "XXX", false).rightNec
@@ -107,7 +107,7 @@ class DerivedDecoderTest extends BatemanTestBase {
     val json = json"""{"a": 7, "c": true}""".asRootFocus
 
     implicit val config: Config = Config(useDefaultsForMissingFields = false)
-    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
+    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]()
     val da = JObjectDecoder[X].decode(json)
     da shouldBe MissingField(json, "b").leftNec
   }
@@ -117,7 +117,7 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"a": 7, "b": "XXX", "c": true, "d": {}}""".asRootFocus
 
-    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
+    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]()
 
     val da = JObjectDecoder[X].decode(json)
     da shouldBe X(7, "XXX", true).rightNec
@@ -129,7 +129,7 @@ class DerivedDecoderTest extends BatemanTestBase {
     val json = json"""{"a": 7, "b": "XXX", "d": 5.67}""".asRootFocus
 
     implicit val config: Config = Config(allowUnknownFields = false)
-    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
+    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]()
     val da = JObjectDecoder[X].decode(json)
     da shouldBe UnexpectedValue(json.field("d").shouldSucceed).leftNec
   }
@@ -140,7 +140,7 @@ class DerivedDecoderTest extends BatemanTestBase {
     val json = json"""{"longer_name": "7", "d": 5.67}""".asRootFocus
 
     implicit val config: Config = Config(allowUnknownFields = false, fieldNameMapping = CamelCase to SnakeCase)
-    implicit val dec: JObjectDecoder[YNamedClass] = deriveDecoderForCaseClass[YNamedClass]
+    implicit val dec: JObjectDecoder[YNamedClass] = deriveDecoderForCaseClass[YNamedClass]()
     val da = JObjectDecoder[YNamedClass].decode(json)
     da shouldBe UnexpectedValue(json.field("d").shouldSucceed).leftNec
   }
@@ -150,8 +150,8 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"a": 7}""".asRootFocus
 
-    implicit val xdec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
-    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]
+    implicit val xdec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]()
+    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]()
     implicit val dec: JObjectDecoder[Z] = deriveDecoderForTrait[Z]()
     val da = JObjectDecoder[Z].decode(json)
     da shouldBe MissingField(json, "type").leftNec
@@ -162,8 +162,8 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"type": "X", "a": 7}""".asRootFocus
 
-    implicit val xdec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
-    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]
+    implicit val xdec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]()
+    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]()
     implicit val dec: JObjectDecoder[Z] = deriveDecoderForTrait[Z]()
 
     val da = JObjectDecoder[Z].decode(json)
@@ -175,8 +175,8 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"type": "XX", "a": 7}""".asRootFocus
 
-    implicit val xdec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
-    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]
+    implicit val xdec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]()
+    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]()
     implicit val dec: JObjectDecoder[Z] = deriveDecoderForTrait[Z](discriminator =
       CustomDiscriminator(
         forType[X].apply[JObjectDecoder, String]("XX"),
@@ -192,8 +192,8 @@ class DerivedDecoderTest extends BatemanTestBase {
 
     val json = json"""{"type": "X"}""".asRootFocus
 
-    implicit val xdec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
-    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]
+    implicit val xdec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]()
+    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]()
     implicit val dec: JObjectDecoder[Z] = deriveDecoderForTrait[Z]()
 
     val da = JObjectDecoder[Z].decode(json)
@@ -207,7 +207,7 @@ class DerivedDecoderTest extends BatemanTestBase {
     val json = json"""{"longer_name": "XXX"}""".asRootFocus
 
     implicit val config: Config = Config(fieldNameMapping = CaseTransformation(CamelCase, SnakeCase))
-    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
+    implicit val dec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]()
     val da = JObjectDecoder[X].decode(json)
     da shouldBe X("XXX").rightNec
   }
@@ -218,8 +218,8 @@ class DerivedDecoderTest extends BatemanTestBase {
     val json = json"""{"type": "z_named_class"}""".asRootFocus
 
     implicit val config: Config = Config(classNameMapping = PascalCase to SnakeCase)
-    implicit val ydec: JObjectDecoder[YNamedClass] = deriveDecoderForCaseClass[YNamedClass]
-    implicit val zdec: JObjectDecoder[ZNamedClass] = deriveDecoderForCaseClass[ZNamedClass]
+    implicit val ydec: JObjectDecoder[YNamedClass] = deriveDecoderForCaseClass[YNamedClass]()
+    implicit val zdec: JObjectDecoder[ZNamedClass] = deriveDecoderForCaseClass[ZNamedClass]()
     implicit val dec: JObjectDecoder[XNamedClass] = deriveDecoderForTrait[XNamedClass]()
     val da = JObjectDecoder[XNamedClass].decode(json)
     da.shouldSucceed shouldBe ZNamedClass()
@@ -231,8 +231,8 @@ class DerivedDecoderTest extends BatemanTestBase {
     val json = json"""{"type": "x_named_class"}""".asRootFocus
 
     implicit val config: Config = Config(classNameMapping = CaseTransformation(PascalCase, SnakeCase))
-    implicit val ydec: JObjectDecoder[YNamedClass] = deriveDecoderForCaseClass[YNamedClass]
-    implicit val zdec: JObjectDecoder[ZNamedClass] = deriveDecoderForCaseClass[ZNamedClass]
+    implicit val ydec: JObjectDecoder[YNamedClass] = deriveDecoderForCaseClass[YNamedClass]()
+    implicit val zdec: JObjectDecoder[ZNamedClass] = deriveDecoderForCaseClass[ZNamedClass]()
     implicit val dec: JObjectDecoder[XNamedClass] = deriveDecoderForTrait[XNamedClass]()
     json.decode[XNamedClass] shouldBe InvalidDiscriminator(
       json.field("type").shouldSucceed,
@@ -246,7 +246,7 @@ class DerivedDecoderTest extends BatemanTestBase {
 
       val json = json"""{"b": 31}""".asRootFocus
 
-      val dec: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+      val dec: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
       val decoded = dec.decode(json)
       decoded.shouldSucceed shouldBe MyClass(
         31,
@@ -259,7 +259,7 @@ class DerivedDecoderTest extends BatemanTestBase {
 
       val json = json"""{"b": 31}""".asRootFocus
 
-      val dec: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+      val dec: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
       val decoded = dec.decode(json)
       decoded.shouldSucceed shouldBe MyClass(
         31,
@@ -271,8 +271,8 @@ class DerivedDecoderTest extends BatemanTestBase {
   it("should ignore discriminator collisions on decoding") {
     import test.json.generic.decoding.DerivedDecoderTest.DiscriminatorCollision._
 
-    implicit val xdec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]
-    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]
+    implicit val xdec: JObjectDecoder[X] = deriveDecoderForCaseClass[X]()
+    implicit val ydec: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]()
     implicit val dec: JObjectDecoder[Z] = deriveDecoderForTrait[Z]()
 
     json"""{"type": "Y","a": 8, "b": 12 }""".asRootFocus.decode[Z].shouldSucceed shouldBe Y(8, 12, "Y")
@@ -285,8 +285,8 @@ class DerivedDecoderTest extends BatemanTestBase {
 
       val json = json"""{"type": "x", "a": 31}""".asRootFocus
 
-      implicit val ydec: JObjectDecoder[Y.Inner] = deriveDecoderForCaseClass[Y.Inner]
-      implicit val zdec: JObjectDecoder[Z.Inner] = deriveDecoderForCaseClass[Z.Inner]
+      implicit val ydec: JObjectDecoder[Y.Inner] = deriveDecoderForCaseClass[Y.Inner]()
+      implicit val zdec: JObjectDecoder[Z.Inner] = deriveDecoderForCaseClass[Z.Inner]()
       val ex = intercept[ProgrammerError] {
         deriveDecoderForTrait[X.Inner]()
       }
@@ -298,8 +298,8 @@ class DerivedDecoderTest extends BatemanTestBase {
 
       val json = json"""{"class": "z", "a": 31}""".asRootFocus
 
-      implicit val ydec: JObjectDecoder[Y.Inner] = deriveDecoderForCaseClass[Y.Inner]
-      implicit val zdec: JObjectDecoder[Z.Inner] = deriveDecoderForCaseClass[Z.Inner]
+      implicit val ydec: JObjectDecoder[Y.Inner] = deriveDecoderForCaseClass[Y.Inner]()
+      implicit val zdec: JObjectDecoder[Z.Inner] = deriveDecoderForCaseClass[Z.Inner]()
       implicit val xdec: JObjectDecoder[X.Inner] = deriveDecoderForTrait[X.Inner](
         "class",
         CustomDiscriminator(

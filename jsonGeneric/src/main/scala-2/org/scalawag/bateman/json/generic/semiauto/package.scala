@@ -50,8 +50,4 @@ package object semiauto {
       decoderFactory: Lazy[CaseClassDecoderFactory[A]],
       defaultConfig: Config = Config.default
   ): JObjectCodec[A] = d()
-
-  // Kept for backward compatibility with existing imports of `semiauto._`
-  @deprecated("Just use the semiauto package without unchecked. There is no longer a checked version.")
-  val unchecked: this.type = this
 }

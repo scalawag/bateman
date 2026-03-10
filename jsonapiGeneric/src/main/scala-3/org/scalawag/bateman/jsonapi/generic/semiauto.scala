@@ -27,13 +27,11 @@ import org.scalawag.bateman.jsonapi.generic.encoding.LidGenerator
 import org.scalawag.bateman.jsonapi.generic.encoding.LidGenerator.UUIDLidGenerator
 import org.scalawag.bateman.jsonapi.generic.encoding.TraitResourceEncoderFactory
 
+import scala.compiletime.summonFrom
 import scala.deriving.Mirror
 import scala.reflect.ClassTag
 
 object semiauto:
-  // Kept for backward compatibility with existing imports of `semiauto._`
-  val unchecked: semiauto.type = semiauto
-
   class TraitResourceEncoderDeriver[A]:
     inline def apply(
         discriminatorLens: CreatableJLens[JObject, JAny] = "type",
@@ -145,6 +143,24 @@ object semiauto:
         new CaseClassResourceEncoderDeriver[A].apply(resourceTypeOverride, config),
         new CaseClassResourceDecoderDeriver[A].apply(resourceTypeOverride, config),
       )
+
+  transparent inline def deriveResourceEncoder[A] =
+    summonFrom {
+      case _: Mirror.ProductOf[A] => new CaseClassResourceEncoderDeriver[A]
+      case _: Mirror.SumOf[A] => new TraitResourceEncoderDeriver[A]
+    }
+
+  transparent inline def deriveResourceDecoder[A] =
+    summonFrom {
+      case _: Mirror.ProductOf[A] => new CaseClassResourceDecoderDeriver[A]
+      case _: Mirror.SumOf[A] => new TraitResourceDecoderDeriver[A]
+    }
+
+  transparent inline def deriveResourceCodec[A] =
+    summonFrom {
+      case _: Mirror.ProductOf[A] => new CaseClassResourceCodecDeriver[A]
+      case _: Mirror.SumOf[A] => new TraitResourceCodecDeriver[A]
+    }
 
   def deriveResourceEncoderForTrait[A]: TraitResourceEncoderDeriver[A] =
     new TraitResourceEncoderDeriver[A]

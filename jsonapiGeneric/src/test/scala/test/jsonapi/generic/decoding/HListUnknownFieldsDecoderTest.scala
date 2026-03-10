@@ -19,7 +19,7 @@ import org.scalawag.bateman.json.generic.Config
 import org.scalawag.bateman.json.literal._
 import org.scalawag.bateman.json.lens.{focus, _}
 import org.scalawag.bateman.jsonapi.generic.Annotations._
-import org.scalawag.bateman.jsonapi.generic.semiauto.unchecked._
+import org.scalawag.bateman.jsonapi.generic.semiauto._
 import org.scalawag.bateman.jsonapi.lens._
 import HListUnknownFieldsDecoderTest._
 

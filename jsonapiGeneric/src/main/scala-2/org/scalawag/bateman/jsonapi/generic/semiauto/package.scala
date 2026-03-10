@@ -33,7 +33,4 @@ package object semiauto extends Derivers {
 
   def deriveResourceCodecForCaseClass[A]: CaseClassResourceCodecDeriver[A] =
     new CaseClassResourceCodecDeriver[A]
-
-  // Kept for backward compatibility with existing imports of `semiauto._`
-  val unchecked: this.type = this
 }

@@ -37,7 +37,7 @@ object JSourceUseCasesTest {
   ) extends X
 
   object Y {
-    implicit val decoder: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]
+    implicit val decoder: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]()
   }
 
   final case class Z(
@@ -47,13 +47,13 @@ object JSourceUseCasesTest {
   ) extends X
 
   object Z {
-    implicit val decoder: JObjectDecoder[Z] = deriveDecoderForCaseClass[Z]
+    implicit val decoder: JObjectDecoder[Z] = deriveDecoderForCaseClass[Z]()
   }
 
   final case class XX(x: X, @Source src: Option[JSource] = None)
 
   object XX {
-    implicit val decoder: JObjectDecoder[XX] = deriveDecoderForCaseClass[XX]
+    implicit val decoder: JObjectDecoder[XX] = deriveDecoderForCaseClass[XX]()
   }
 }
 
@@ -146,7 +146,7 @@ class JSourceUseCasesTest extends BatemanTestBase {
     """)
 
     implicit val config: Config = Config.default.copy(fieldNameMapping = _.toUpperCase)
-    implicit val decoder: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]
+    implicit val decoder: JObjectDecoder[Y] = deriveDecoderForCaseClass[Y]()
     JObjectDecoder[Y].decode(json).shouldSucceed.src shouldBe
       Some(
         JSource(

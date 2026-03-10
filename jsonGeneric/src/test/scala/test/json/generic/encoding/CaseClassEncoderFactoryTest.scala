@@ -26,7 +26,7 @@ class CaseClassEncoderFactoryTest extends AnyFunSpec {
 
   describe("CaseClassEncoderFactory") {
     it("should encode a simple case class") {
-      implicit val encoder: JObjectEncoder[Simple] = deriveEncoderForCaseClass[Simple]
+      implicit val encoder: JObjectEncoder[Simple] = deriveEncoderForCaseClass[Simple]()
       val obj = Simple("Alice", 25)
       val encoded = encoder.encode(obj)
       assert(encoded == JObject("name" -> JString("Alice"), "age" -> JNumber(25)))
@@ -34,7 +34,7 @@ class CaseClassEncoderFactoryTest extends AnyFunSpec {
 
     it("should handle default values") {
       implicit val config: Config = Config(encodeDefaultValues = false)
-      implicit val encoder: JObjectEncoder[WithDefaults] = deriveEncoderForCaseClass[WithDefaults]
+      implicit val encoder: JObjectEncoder[WithDefaults] = deriveEncoderForCaseClass[WithDefaults]()
       val obj = WithDefaults()
       val encoded = encoder.encode(obj)
       // With encodeDefaultValues = false, default values should be omitted
@@ -43,14 +43,14 @@ class CaseClassEncoderFactoryTest extends AnyFunSpec {
 
     it("should encode default values when configured") {
       implicit val config: Config = Config(encodeDefaultValues = true)
-      implicit val encoder: JObjectEncoder[WithDefaults] = deriveEncoderForCaseClass[WithDefaults]
+      implicit val encoder: JObjectEncoder[WithDefaults] = deriveEncoderForCaseClass[WithDefaults]()
       val obj = WithDefaults()
       val encoded = encoder.encode(obj)
       assert(encoded == JObject("name" -> JString("John"), "age" -> JNumber(30)))
     }
 
     it("should handle Option fields") {
-      implicit val encoder: JObjectEncoder[WithOption] = deriveEncoderForCaseClass[WithOption]
+      implicit val encoder: JObjectEncoder[WithOption] = deriveEncoderForCaseClass[WithOption]()
       val obj1 = WithOption("Alice", Some("Ali"))
       val encoded1 = encoder.encode(obj1)
       assert(encoded1 == JObject("name" -> JString("Alice"), "nickname" -> JString("Ali")))

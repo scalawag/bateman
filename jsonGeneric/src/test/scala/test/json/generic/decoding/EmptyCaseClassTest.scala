@@ -38,26 +38,26 @@ class EmptyCaseClassTest extends BatemanTestBase {
     val fa = f.field("a").shouldSucceed
 
     it("should decode empty object") {
-      implicit val decoder: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+      implicit val decoder: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
       JObject.Empty.asRootFocus.decode[MyClass].shouldSucceed shouldBe MyClass()
     }
 
     it("should ignore extra field") {
-      implicit val decoder: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+      implicit val decoder: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
 
       f.decode[MyClass].shouldSucceed shouldBe MyClass()
     }
 
     it("should fail with extra field") {
       implicit val config: Config = Config(allowUnknownFields = false)
-      implicit val decoder: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+      implicit val decoder: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
 
       f.decode[MyClass].shouldFailSingle shouldBe UnexpectedValue(fa)
     }
 
     it("should allow extra field if it's a discriminator") {
       implicit val config: Config = Config(allowUnknownFields = false)
-      val decoder: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+      val decoder: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
 
       decoder.decode(f, Set(fa)).shouldSucceed shouldBe MyClass()
     }

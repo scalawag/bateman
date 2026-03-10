@@ -24,19 +24,19 @@ import org.scalawag.bateman.json.literal._
 object SourceFieldDecoderTest {
   object MySourceField {
     case class MyClass(@Source a: JSource, b: Int)
-    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
   }
   object MyOptionSourceField {
     case class MyClass(@Source a: Option[JSource], b: Int)
-    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
   }
   object MySourceFieldWithDefault {
     case class MyClass(@Source a: JSource = JSource(JObject("c" -> JNull).asRootFocus), b: Int = 42)
-    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
   }
   object MyOptionSourceFieldWithDefault {
     case class MyClass(@Source a: Option[JSource] = Some(JSource(JObject("c" -> JNull).asRootFocus)), b: Int = 77)
-    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
   }
 }
 
@@ -94,7 +94,7 @@ class SourceFieldDecoderTest extends DecoderTestBase {
   it("source field map should use Scala names, not JSON names") {
     import SourceFieldDecoderTest.MySourceField.MyClass
     implicit val config: Config = Config(fieldNameMapping = CaseTransformation(CamelCase, PascalCase))
-    implicit val decoder: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+    implicit val decoder: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
 
     inside(json"""{"B": 747}""".asRootFocus.decode[MyClass].shouldSucceed) {
       case MyClass(src, 747) =>
@@ -105,7 +105,7 @@ class SourceFieldDecoderTest extends DecoderTestBase {
   it("source field should not count towards strict usage check") {
     import SourceFieldDecoderTest.MySourceField.MyClass
     implicit val config: Config = Config(allowUnknownFields = false)
-    implicit val decoder: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+    implicit val decoder: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
 
     val f = json"""{"a": null, "b": 747}""".asRootFocus
     val fa = f.field("a").shouldSucceed

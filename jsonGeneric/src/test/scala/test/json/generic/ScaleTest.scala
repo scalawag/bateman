@@ -68,7 +68,7 @@ class ScaleTest extends BatemanTestBase {
       }
     """)
 
-    implicit val dec: JObjectDecoder[MyBigClass] = deriveDecoderForCaseClass[MyBigClass]
+    implicit val dec: JObjectDecoder[MyBigClass] = deriveDecoderForCaseClass[MyBigClass]()
     JAnyDecoder[MyBigClass].decode(json) shouldBe MyBigClass(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
       18, 19, 20, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20).rightNec
   }
@@ -81,7 +81,7 @@ class ScaleTest extends BatemanTestBase {
       }
     """)
 
-    implicit val dec: JObjectDecoder[MyBigOptionClass] = deriveDecoderForCaseClass[MyBigOptionClass]
+    implicit val dec: JObjectDecoder[MyBigOptionClass] = deriveDecoderForCaseClass[MyBigOptionClass]()
     JAnyDecoder[MyBigOptionClass].decode(json) shouldBe MyBigOptionClass(f37 = Some(17)).rightNec
   }
 
@@ -89,26 +89,26 @@ class ScaleTest extends BatemanTestBase {
     import ScaleTest._
     import org.scalawag.bateman.json.generic.semiauto._
 
-    implicit val dec01: JObjectDecoder[MyClass01] = deriveDecoderForCaseClass[MyClass01]
-    implicit val dec02: JObjectDecoder[MyClass02] = deriveDecoderForCaseClass[MyClass02]
-    implicit val dec03: JObjectDecoder[MyClass03] = deriveDecoderForCaseClass[MyClass03]
-    implicit val dec04: JObjectDecoder[MyClass04] = deriveDecoderForCaseClass[MyClass04]
-    implicit val dec05: JObjectDecoder[MyClass05] = deriveDecoderForCaseClass[MyClass05]
-    implicit val dec06: JObjectDecoder[MyClass06] = deriveDecoderForCaseClass[MyClass06]
-    implicit val dec07: JObjectDecoder[MyClass07] = deriveDecoderForCaseClass[MyClass07]
-    implicit val dec08: JObjectDecoder[MyClass08] = deriveDecoderForCaseClass[MyClass08]
-    implicit val dec09: JObjectDecoder[MyClass09] = deriveDecoderForCaseClass[MyClass09]
-    implicit val dec10: JObjectDecoder[MyClass10] = deriveDecoderForCaseClass[MyClass10]
-    implicit val dec11: JObjectDecoder[MyClass11] = deriveDecoderForCaseClass[MyClass11]
-    implicit val dec12: JObjectDecoder[MyClass12] = deriveDecoderForCaseClass[MyClass12]
-    implicit val dec13: JObjectDecoder[MyClass13] = deriveDecoderForCaseClass[MyClass13]
-    implicit val dec14: JObjectDecoder[MyClass14] = deriveDecoderForCaseClass[MyClass14]
-    implicit val dec15: JObjectDecoder[MyClass15] = deriveDecoderForCaseClass[MyClass15]
-    implicit val dec16: JObjectDecoder[MyClass16] = deriveDecoderForCaseClass[MyClass16]
-    implicit val dec17: JObjectDecoder[MyClass17] = deriveDecoderForCaseClass[MyClass17]
-    implicit val dec18: JObjectDecoder[MyClass18] = deriveDecoderForCaseClass[MyClass18]
-    implicit val dec19: JObjectDecoder[MyClass19] = deriveDecoderForCaseClass[MyClass19]
-    implicit val dec20: JObjectDecoder[MyClass20] = deriveDecoderForCaseClass[MyClass20]
+    implicit val dec01: JObjectDecoder[MyClass01] = deriveDecoderForCaseClass[MyClass01]()
+    implicit val dec02: JObjectDecoder[MyClass02] = deriveDecoderForCaseClass[MyClass02]()
+    implicit val dec03: JObjectDecoder[MyClass03] = deriveDecoderForCaseClass[MyClass03]()
+    implicit val dec04: JObjectDecoder[MyClass04] = deriveDecoderForCaseClass[MyClass04]()
+    implicit val dec05: JObjectDecoder[MyClass05] = deriveDecoderForCaseClass[MyClass05]()
+    implicit val dec06: JObjectDecoder[MyClass06] = deriveDecoderForCaseClass[MyClass06]()
+    implicit val dec07: JObjectDecoder[MyClass07] = deriveDecoderForCaseClass[MyClass07]()
+    implicit val dec08: JObjectDecoder[MyClass08] = deriveDecoderForCaseClass[MyClass08]()
+    implicit val dec09: JObjectDecoder[MyClass09] = deriveDecoderForCaseClass[MyClass09]()
+    implicit val dec10: JObjectDecoder[MyClass10] = deriveDecoderForCaseClass[MyClass10]()
+    implicit val dec11: JObjectDecoder[MyClass11] = deriveDecoderForCaseClass[MyClass11]()
+    implicit val dec12: JObjectDecoder[MyClass12] = deriveDecoderForCaseClass[MyClass12]()
+    implicit val dec13: JObjectDecoder[MyClass13] = deriveDecoderForCaseClass[MyClass13]()
+    implicit val dec14: JObjectDecoder[MyClass14] = deriveDecoderForCaseClass[MyClass14]()
+    implicit val dec15: JObjectDecoder[MyClass15] = deriveDecoderForCaseClass[MyClass15]()
+    implicit val dec16: JObjectDecoder[MyClass16] = deriveDecoderForCaseClass[MyClass16]()
+    implicit val dec17: JObjectDecoder[MyClass17] = deriveDecoderForCaseClass[MyClass17]()
+    implicit val dec18: JObjectDecoder[MyClass18] = deriveDecoderForCaseClass[MyClass18]()
+    implicit val dec19: JObjectDecoder[MyClass19] = deriveDecoderForCaseClass[MyClass19]()
+    implicit val dec20: JObjectDecoder[MyClass20] = deriveDecoderForCaseClass[MyClass20]()
     implicit val traitDec: JObjectDecoder[MyBigTrait] = deriveDecoderForTrait[MyBigTrait]()
 
     JAnyDecoder[MyBigTrait].decode(parse("""{"type":"MyClass20","id":"ID"}""")) shouldBe MyClass20("ID").rightNec

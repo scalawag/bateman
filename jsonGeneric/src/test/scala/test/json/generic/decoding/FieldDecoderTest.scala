@@ -24,35 +24,35 @@ import org.scalawag.bateman.json.{JNumber, _}
 object FieldDecoderTest {
   object MyBareField {
     case class MyClass(a: Int)
-    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
   }
   object MyOptionField {
     case class MyClass(a: Option[Int])
-    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
   }
   object MyNullableField {
     case class MyClass(a: Nullable[Int])
-    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
   }
   object MyOptionNullableField {
     case class MyClass(a: Option[Nullable[Int]])
-    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
   }
   object MyBareFieldWithDefault {
     case class MyClass(a: Int = 417)
-    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
   }
   object MyOptionFieldWithDefault {
     case class MyClass(a: Option[Int] = Some(7))
-    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
   }
   object MyNullableFieldWithDefault {
     case class MyClass(a: Nullable[Int] = NotNull(7))
-    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
   }
   object MyOptionNullableFieldWithDefault {
     case class MyClass(a: Option[Nullable[Int]] = Some(NotNull(7)))
-    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+    implicit val decoderForMyClass: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
   }
 }
 
@@ -146,7 +146,7 @@ class FieldDecoderTest extends DecoderTestBase {
   it("should heed the configuration for field names") {
     import FieldDecoderTest.MyBareField.MyClass
     implicit val config: Config = Config(fieldNameMapping = CaseTransformation(CamelCase, PascalCase))
-    implicit val decoder: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]
+    implicit val decoder: JObjectDecoder[MyClass] = deriveDecoderForCaseClass[MyClass]()
 
     json"""{"A": -13437}""".asRootFocus.decode[MyClass].shouldSucceed shouldBe MyClass(-13437)
   }

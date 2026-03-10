@@ -42,18 +42,18 @@ class OptionTest extends BatemanTestBase with DataDrivenTestUtils {
 //
 //  val jsonNullA = jsonNull.fields.getOrElse(fail)("a").value.asNull.getOrElse(fail)
 
-  implicit val aenc: JObjectEncoder[A] = deriveEncoderForCaseClass[A]
-  implicit val benc: JObjectEncoder[B] = deriveEncoderForCaseClass[B]
-  implicit val cenc: JObjectEncoder[C] = deriveEncoderForCaseClass[C]
-  implicit val denc: JObjectEncoder[D] = deriveEncoderForCaseClass[D]
-  implicit val eenc: JObjectEncoder[E] = deriveEncoderForCaseClass[E]
-  implicit val fenc: JObjectEncoder[F] = deriveEncoderForCaseClass[F]
-  implicit val genc: JObjectEncoder[G] = deriveEncoderForCaseClass[G]
-  implicit val henc: JObjectEncoder[H] = deriveEncoderForCaseClass[H]
-  implicit val ienc: JObjectEncoder[I] = deriveEncoderForCaseClass[I]
-  implicit val jenc: JObjectEncoder[J] = deriveEncoderForCaseClass[J]
-  implicit val kenc: JObjectEncoder[K] = deriveEncoderForCaseClass[K]
-  implicit val lenc: JObjectEncoder[L] = deriveEncoderForCaseClass[L]
+  implicit val aenc: JObjectEncoder[A] = deriveEncoderForCaseClass[A]()
+  implicit val benc: JObjectEncoder[B] = deriveEncoderForCaseClass[B]()
+  implicit val cenc: JObjectEncoder[C] = deriveEncoderForCaseClass[C]()
+  implicit val denc: JObjectEncoder[D] = deriveEncoderForCaseClass[D]()
+  implicit val eenc: JObjectEncoder[E] = deriveEncoderForCaseClass[E]()
+  implicit val fenc: JObjectEncoder[F] = deriveEncoderForCaseClass[F]()
+  implicit val genc: JObjectEncoder[G] = deriveEncoderForCaseClass[G]()
+  implicit val henc: JObjectEncoder[H] = deriveEncoderForCaseClass[H]()
+  implicit val ienc: JObjectEncoder[I] = deriveEncoderForCaseClass[I]()
+  implicit val jenc: JObjectEncoder[J] = deriveEncoderForCaseClass[J]()
+  implicit val kenc: JObjectEncoder[K] = deriveEncoderForCaseClass[K]()
+  implicit val lenc: JObjectEncoder[L] = deriveEncoderForCaseClass[L]()
 
   val cases: Iterable[DataDrivenTestCase[(Any, String)]] = {
     Iterable(

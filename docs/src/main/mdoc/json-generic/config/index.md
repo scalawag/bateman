@@ -24,7 +24,7 @@ import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.syntax._
 import org.scalawag.bateman.json.generic._
 import org.scalawag.bateman.json.generic.naming._
-import org.scalawag.bateman.json.generic.semiauto.unchecked._
+import org.scalawag.bateman.json.generic.semiauto._
 
 case class Computer(operatingSystem: String)
 

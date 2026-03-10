@@ -39,7 +39,7 @@ import org.scalawag.bateman.json.syntax._
 final case class MyNullable(a: Nullable[Int])
 
 object MyNullable {
-  import org.scalawag.bateman.json.generic.semiauto.unchecked._
+  import org.scalawag.bateman.json.generic.semiauto._
   implicit val codec: JObjectCodec[MyNullable] = deriveCodecForCaseClass()
 }
 
@@ -81,7 +81,7 @@ page simultaneously (e.g., an `Option[Nullable[Int]]` field).
 final case class MyOptional(a: Option[Int])
 
 object MyOptional {
-  import org.scalawag.bateman.json.generic.semiauto.unchecked._
+  import org.scalawag.bateman.json.generic.semiauto._
   implicit val codec: JObjectCodec[MyOptional] = deriveCodecForCaseClass()
 }
 
@@ -125,7 +125,7 @@ excluded, even if they have been explicitly set in Scala.
 final case class MyDefault(a: Int = 0)
 
 object MyDefault {
-  import org.scalawag.bateman.json.generic.semiauto.unchecked._
+  import org.scalawag.bateman.json.generic.semiauto._
   implicit val codec: JObjectCodec[MyDefault] = deriveCodecForCaseClass()
 }
 
@@ -167,7 +167,7 @@ This is particularly useful in patch-style documents.
 final case class MyOptNul(a: Option[Nullable[Int]])
 
 object MyOptNul {
-  import org.scalawag.bateman.json.generic.semiauto.unchecked._
+  import org.scalawag.bateman.json.generic.semiauto._
   implicit val codec: JObjectCodec[MyOptNul] = deriveCodecForCaseClass()
 }
 

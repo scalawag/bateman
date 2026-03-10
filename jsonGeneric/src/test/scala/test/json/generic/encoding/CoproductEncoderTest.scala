@@ -47,8 +47,8 @@ import test.json.generic.encoding.CoproductEncoderTest._
 
 class CoproductEncoderTest extends BatemanTestBase {
   describe("default config") {
-    implicit val yenc: JObjectEncoder[Y] = deriveEncoderForCaseClass[Y]
-    implicit val zenc: JObjectEncoder[Z] = deriveEncoderForCaseClass[Z]
+    implicit val yenc: JObjectEncoder[Y] = deriveEncoderForCaseClass[Y]()
+    implicit val zenc: JObjectEncoder[Z] = deriveEncoderForCaseClass[Z]()
     implicit val xenc: JObjectEncoder[X] = deriveEncoderForTrait[X]()
 
     it("should encode abstractly") {
@@ -58,8 +58,8 @@ class CoproductEncoderTest extends BatemanTestBase {
 
   describe("with case transformation") {
     implicit val config: Config = Config(classNameMapping = PascalCase to SnakeCase)
-    implicit val yenc: JObjectEncoder[Y] = deriveEncoderForCaseClass[Y]
-    implicit val zenc: JObjectEncoder[Z] = deriveEncoderForCaseClass[Z]
+    implicit val yenc: JObjectEncoder[Y] = deriveEncoderForCaseClass[Y]()
+    implicit val zenc: JObjectEncoder[Z] = deriveEncoderForCaseClass[Z]()
     implicit val xenc: JObjectEncoder[X] = deriveEncoderForTrait[X]()
 
     it("should encode abstractly") {
@@ -68,8 +68,8 @@ class CoproductEncoderTest extends BatemanTestBase {
   }
 
   describe("with custom discriminator name") {
-    implicit val yenc: JObjectEncoder[Y] = deriveEncoderForCaseClass[Y]
-    implicit val zenc: JObjectEncoder[Z] = deriveEncoderForCaseClass[Z]
+    implicit val yenc: JObjectEncoder[Y] = deriveEncoderForCaseClass[Y]()
+    implicit val zenc: JObjectEncoder[Z] = deriveEncoderForCaseClass[Z]()
     implicit val xenc: JObjectEncoder[X] = deriveEncoderForTrait[X]("ilk")
 
     it("should encode abstractly") {
@@ -78,9 +78,9 @@ class CoproductEncoderTest extends BatemanTestBase {
   }
 
   describe("with custom discriminator mapping") {
-    implicit val benc: JObjectEncoder[Bogus] = deriveEncoderForCaseClass[Bogus]
-    implicit val yenc: JObjectEncoder[Y] = deriveEncoderForCaseClass[Y]
-    implicit val zenc: JObjectEncoder[Z] = deriveEncoderForCaseClass[Z]
+    implicit val benc: JObjectEncoder[Bogus] = deriveEncoderForCaseClass[Bogus]()
+    implicit val yenc: JObjectEncoder[Y] = deriveEncoderForCaseClass[Y]()
+    implicit val zenc: JObjectEncoder[Z] = deriveEncoderForCaseClass[Z]()
     implicit val xenc: JObjectEncoder[X] = deriveEncoderForTrait[X](discriminator =
       CustomDiscriminator(
         forType[Y].apply[JObjectEncoder, Int](1),
@@ -133,8 +133,8 @@ class CoproductEncoderTest extends BatemanTestBase {
   }
 
   it("should detect duplicate discriminator values") {
-    implicit val yenc: JObjectEncoder[Y] = deriveEncoderForCaseClass[Y]
-    implicit val zenc: JObjectEncoder[Z] = deriveEncoderForCaseClass[Z]
+    implicit val yenc: JObjectEncoder[Y] = deriveEncoderForCaseClass[Y]()
+    implicit val zenc: JObjectEncoder[Z] = deriveEncoderForCaseClass[Z]()
 
     val ex = intercept[DiscriminatorCollision] {
       deriveEncoderForTrait[X](discriminator =
@@ -149,8 +149,8 @@ class CoproductEncoderTest extends BatemanTestBase {
   }
 
   it("should detect missing discriminator mappings") {
-    implicit val yenc: JObjectEncoder[Y] = deriveEncoderForCaseClass[Y]
-    implicit val zenc: JObjectEncoder[Z] = deriveEncoderForCaseClass[Z]
+    implicit val yenc: JObjectEncoder[Y] = deriveEncoderForCaseClass[Y]()
+    implicit val zenc: JObjectEncoder[Z] = deriveEncoderForCaseClass[Z]()
 
     val ex = intercept[MissingDiscriminatorMapping[_]] {
       deriveEncoderForTrait[X](discriminator =
@@ -164,8 +164,8 @@ class CoproductEncoderTest extends BatemanTestBase {
   }
 
   it("should detect duplicate discriminator mappings") {
-    implicit val yenc: JObjectEncoder[Y] = deriveEncoderForCaseClass[Y]
-    implicit val zenc: JObjectEncoder[Z] = deriveEncoderForCaseClass[Z]
+    implicit val yenc: JObjectEncoder[Y] = deriveEncoderForCaseClass[Y]()
+    implicit val zenc: JObjectEncoder[Z] = deriveEncoderForCaseClass[Z]()
 
     val ex = intercept[MultipleDiscriminatorMappings[_]] {
       deriveEncoderForTrait[X](discriminator =
@@ -182,7 +182,7 @@ class CoproductEncoderTest extends BatemanTestBase {
   }
 
   it("should throw on discriminator field collisions") {
-    implicit val aenc: JObjectEncoder[CollideA] = deriveEncoderForCaseClass[CollideA]
+    implicit val aenc: JObjectEncoder[CollideA] = deriveEncoderForCaseClass[CollideA]()
     implicit val enc: JObjectEncoder[Collide] = deriveEncoderForTrait[Collide]("foo")
 
     intercept[ProgrammerError] {
@@ -191,7 +191,7 @@ class CoproductEncoderTest extends BatemanTestBase {
   }
 
   it("should ignore benign collisions") {
-    implicit val aenc: JObjectEncoder[CollideA] = deriveEncoderForCaseClass[CollideA]
+    implicit val aenc: JObjectEncoder[CollideA] = deriveEncoderForCaseClass[CollideA]()
     implicit val enc: JObjectEncoder[Collide] = deriveEncoderForTrait[Collide]("foo")
 
     (CollideA("CollideA"): Collide).toJAny shouldBe json"""{"foo": "CollideA"}""".stripLocation
@@ -199,7 +199,7 @@ class CoproductEncoderTest extends BatemanTestBase {
 
   it("should throw on focus discriminators") {
     implicit val config: Config = Config.default
-    implicit val aenc: JObjectEncoder[CollideA] = deriveEncoderForCaseClass[CollideA]
+    implicit val aenc: JObjectEncoder[CollideA] = deriveEncoderForCaseClass[CollideA]()
 
     intercept[ProgrammerError] {
       implicit val enc: JObjectEncoder[Collide] = deriveEncoderForTrait[Collide](lens.focus)

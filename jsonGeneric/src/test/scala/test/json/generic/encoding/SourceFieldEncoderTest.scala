@@ -25,19 +25,19 @@ import test.json.BatemanTestBase
 object SourceFieldEncoderTest {
   object MySourceField {
     case class MyClass(@Source a: JSource, b: Int)
-    implicit val encoderForMyClass: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]
+    implicit val encoderForMyClass: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]()
   }
   object MyOptionSourceField {
     case class MyClass(@Source a: Option[JSource], b: Int)
-    implicit val encoderForMyClass: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]
+    implicit val encoderForMyClass: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]()
   }
   object MySourceFieldWithDefault {
     case class MyClass(@Source a: JSource = JSource(JObject("c" -> JNull).asRootFocus), b: Int = 42)
-    implicit val encoderForMyClass: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]
+    implicit val encoderForMyClass: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]()
   }
   object MyOptionSourceFieldWithDefault {
     case class MyClass(@Source a: Option[JSource] = Some(JSource(JObject("c" -> JNull).asRootFocus)), b: Int = 77)
-    implicit val encoderForMyClass: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]
+    implicit val encoderForMyClass: JObjectEncoder[MyClass] = deriveEncoderForCaseClass[MyClass]()
   }
 }
 

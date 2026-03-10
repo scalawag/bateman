@@ -60,7 +60,7 @@ of your companion classes, you have (almost) complete control.
 case class Rectangle(width: Int, height: Int, x: Int, y: Int, color: String)
 
 object Rectangle {
-  import org.scalawag.bateman.json.generic.semiauto.unchecked._
+  import org.scalawag.bateman.json.generic.semiauto._
   implicit val encoder: JObjectEncoder[Rectangle] = deriveEncoderForCaseClass()
 }
 

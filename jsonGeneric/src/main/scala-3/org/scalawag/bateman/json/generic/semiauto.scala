@@ -19,79 +19,86 @@ import org.scalawag.bateman.json.generic.Discriminators.{Discriminator, SimpleCl
 import org.scalawag.bateman.json.generic.decoding.{CaseClassDecoderFactory, TraitDecoderFactory}
 import org.scalawag.bateman.json.generic.encoding.{CaseClassEncoderFactory, TraitEncoderFactory}
 import org.scalawag.bateman.json.lens.{CreatableJLens, stringToLens}
+import scala.compiletime.summonFrom
 import scala.deriving.Mirror
 import scala.reflect.ClassTag
 
 object semiauto:
 
-  // Unified derivers: case class versions (with defaults)
+  // Case class deriver classes
 
-  inline def deriveEncoder[A](using m: Mirror.ProductOf[A], config: Config = Config.default): JObjectEncoder[A] =
-    val factory = summon[CaseClassEncoderFactory[A]]
-    factory(config)
+  class CaseClassEncoderDeriver[A]:
+    inline def apply()(using m: Mirror.ProductOf[A], config: Config = Config.default): JObjectEncoder[A] =
+      val factory = summon[CaseClassEncoderFactory[A]]
+      factory(config)
 
-  inline def deriveDecoder[A](using m: Mirror.ProductOf[A], config: Config = Config.default): JObjectDecoder[A] =
-    val factory = summon[CaseClassDecoderFactory[A]]
-    factory(config)
+  class CaseClassDecoderDeriver[A]:
+    inline def apply()(using m: Mirror.ProductOf[A], config: Config = Config.default): JObjectDecoder[A] =
+      val factory = summon[CaseClassDecoderFactory[A]]
+      factory(config)
 
-  inline def deriveCodec[A](using m: Mirror.ProductOf[A], config: Config = Config.default): JObjectCodec[A] =
-    new JObjectCodec(deriveEncoder[A], deriveDecoder[A])
+  class CaseClassCodecDeriver[A]:
+    inline def apply()(using m: Mirror.ProductOf[A], config: Config = Config.default): JObjectCodec[A] =
+      new JObjectCodec(
+        new CaseClassEncoderDeriver[A].apply(),
+        new CaseClassDecoderDeriver[A].apply()
+      )
 
-  // Unified derivers: trait versions (no defaults, to avoid overloading restriction)
+  // Trait deriver classes
 
-  inline def deriveEncoder[A](
-      discriminatorLens: CreatableJLens[JObject, JAny],
-      discriminator: Discriminator[JObjectEncoder]
-  )(using m: Mirror.SumOf[A], config: Config): JObjectEncoder[A] =
-    val factory = summon[TraitEncoderFactory[A]]
-    factory(TraitDeriverParams(config, discriminatorLens, discriminator))
+  class TraitEncoderDeriver[A]:
+    inline def apply(
+        discriminatorLens: CreatableJLens[JObject, JAny] = "type",
+        discriminator: Discriminator[JObjectEncoder] = SimpleClassNameDiscriminator[JObjectEncoder]
+    )(using m: Mirror.SumOf[A], config: Config = Config.default): JObjectEncoder[A] =
+      val factory = summon[TraitEncoderFactory[A]]
+      factory(TraitDeriverParams(config, discriminatorLens, discriminator))
 
-  inline def deriveDecoder[A](
-      discriminatorLens: CreatableJLens[JObject, JAny],
-      discriminator: Discriminator[JObjectDecoder]
-  )(using m: Mirror.SumOf[A], config: Config): JObjectDecoder[A] =
-    val factory = summon[TraitDecoderFactory[A]]
-    factory(TraitDeriverParams(config, discriminatorLens, discriminator))
+  class TraitDecoderDeriver[A]:
+    inline def apply(
+        discriminatorLens: CreatableJLens[JObject, JAny] = "type",
+        discriminator: Discriminator[JObjectDecoder] = SimpleClassNameDiscriminator[JObjectDecoder]
+    )(using m: Mirror.SumOf[A], config: Config = Config.default): JObjectDecoder[A] =
+      val factory = summon[TraitDecoderFactory[A]]
+      factory(TraitDeriverParams(config, discriminatorLens, discriminator))
 
-  inline def deriveCodec[A](
-      discriminatorLens: CreatableJLens[JObject, JAny],
-      discriminator: Discriminator[JObjectCodec]
-  )(using m: Mirror.SumOf[A], config: Config): JObjectCodec[A] =
-    new JObjectCodec(
-      deriveEncoder[A](discriminatorLens, codecToEncoderDiscriminator(discriminator)),
-      deriveDecoder[A](discriminatorLens, codecToDecoderDiscriminator(discriminator))
-    )
+  class TraitCodecDeriver[A]:
+    inline def apply(
+        discriminatorLens: CreatableJLens[JObject, JAny] = "type",
+        discriminator: Discriminator[JObjectCodec] = SimpleClassNameDiscriminator[JObjectCodec]
+    )(using m: Mirror.SumOf[A], config: Config = Config.default): JObjectCodec[A] =
+      new JObjectCodec(
+        new TraitEncoderDeriver[A].apply(discriminatorLens, codecToEncoderDiscriminator(discriminator)),
+        new TraitDecoderDeriver[A].apply(discriminatorLens, codecToDecoderDiscriminator(discriminator))
+      )
 
-  // Convenience aliases: case class
+  // Entry points
 
-  inline def deriveEncoderForCaseClass[A](using m: Mirror.ProductOf[A], config: Config = Config.default): JObjectEncoder[A] =
-    deriveEncoder[A]
+  transparent inline def deriveEncoder[A] =
+    summonFrom {
+      case _: Mirror.ProductOf[A] => new CaseClassEncoderDeriver[A]
+      case _: Mirror.SumOf[A] => new TraitEncoderDeriver[A]
+    }
 
-  inline def deriveDecoderForCaseClass[A](using m: Mirror.ProductOf[A], config: Config = Config.default): JObjectDecoder[A] =
-    deriveDecoder[A]
+  transparent inline def deriveDecoder[A] =
+    summonFrom {
+      case _: Mirror.ProductOf[A] => new CaseClassDecoderDeriver[A]
+      case _: Mirror.SumOf[A] => new TraitDecoderDeriver[A]
+    }
 
-  inline def deriveCodecForCaseClass[A](using m: Mirror.ProductOf[A], config: Config = Config.default): JObjectCodec[A] =
-    new JObjectCodec(deriveEncoder[A], deriveDecoder[A])
+  transparent inline def deriveCodec[A] =
+    summonFrom {
+      case _: Mirror.ProductOf[A] => new CaseClassCodecDeriver[A]
+      case _: Mirror.SumOf[A] => new TraitCodecDeriver[A]
+    }
 
-  // Convenience aliases: trait (with defaults)
+  def deriveEncoderForCaseClass[A]: CaseClassEncoderDeriver[A] = new CaseClassEncoderDeriver[A]
+  def deriveDecoderForCaseClass[A]: CaseClassDecoderDeriver[A] = new CaseClassDecoderDeriver[A]
+  def deriveCodecForCaseClass[A]: CaseClassCodecDeriver[A] = new CaseClassCodecDeriver[A]
 
-  inline def deriveEncoderForTrait[A](
-      discriminatorLens: CreatableJLens[JObject, JAny] = "type",
-      discriminator: Discriminator[JObjectEncoder] = SimpleClassNameDiscriminator[JObjectEncoder]
-  )(using m: Mirror.SumOf[A], config: Config = Config.default): JObjectEncoder[A] =
-    deriveEncoder[A](discriminatorLens, discriminator)
-
-  inline def deriveDecoderForTrait[A](
-      discriminatorLens: CreatableJLens[JObject, JAny] = "type",
-      discriminator: Discriminator[JObjectDecoder] = SimpleClassNameDiscriminator[JObjectDecoder]
-  )(using m: Mirror.SumOf[A], config: Config = Config.default): JObjectDecoder[A] =
-    deriveDecoder[A](discriminatorLens, discriminator)
-
-  inline def deriveCodecForTrait[A](
-      discriminatorLens: CreatableJLens[JObject, JAny] = "type",
-      discriminator: Discriminator[JObjectCodec] = SimpleClassNameDiscriminator[JObjectCodec]
-  )(using m: Mirror.SumOf[A], config: Config = Config.default): JObjectCodec[A] =
-    deriveCodec[A](discriminatorLens, discriminator)
+  def deriveEncoderForTrait[A]: TraitEncoderDeriver[A] = new TraitEncoderDeriver[A]
+  def deriveDecoderForTrait[A]: TraitDecoderDeriver[A] = new TraitDecoderDeriver[A]
+  def deriveCodecForTrait[A]: TraitCodecDeriver[A] = new TraitCodecDeriver[A]
 
   private def codecToEncoderDiscriminator(in: Discriminator[JObjectCodec]): Discriminator[JObjectEncoder] =
     new Discriminator[JObjectEncoder]:
@@ -108,39 +115,3 @@ object semiauto:
         given JObjectCodec[B] = new JObjectCodec(null, default)
         val d = in[B]
         d.copy(explicit = d.explicit.map(_.decoder))
-
-  // Kept for backward compatibility with existing imports of `semiauto._`.
-  // Cannot delegate to top-level methods because `inline` methods cannot reference their enclosing package by name.
-  @deprecated("Just use the semiauto package without unchecked. There is no longer a checked version.")
-  object unchecked:
-    inline def deriveEncoder[A](using m: Mirror.ProductOf[A], config: Config = Config.default): JObjectEncoder[A] =
-      val factory = summon[CaseClassEncoderFactory[A]]
-      factory(config)
-    inline def deriveDecoder[A](using m: Mirror.ProductOf[A], config: Config = Config.default): JObjectDecoder[A] =
-      val factory = summon[CaseClassDecoderFactory[A]]
-      factory(config)
-    inline def deriveCodec[A](using m: Mirror.ProductOf[A], config: Config = Config.default): JObjectCodec[A] =
-      new JObjectCodec(deriveEncoder[A], deriveDecoder[A])
-    inline def deriveEncoder[A](discriminatorLens: CreatableJLens[JObject, JAny], discriminator: Discriminator[JObjectEncoder])(using m: Mirror.SumOf[A], config: Config): JObjectEncoder[A] =
-      val factory = summon[TraitEncoderFactory[A]]
-      factory(TraitDeriverParams(config, discriminatorLens, discriminator))
-    inline def deriveDecoder[A](discriminatorLens: CreatableJLens[JObject, JAny], discriminator: Discriminator[JObjectDecoder])(using m: Mirror.SumOf[A], config: Config): JObjectDecoder[A] =
-      val factory = summon[TraitDecoderFactory[A]]
-      factory(TraitDeriverParams(config, discriminatorLens, discriminator))
-    inline def deriveCodec[A](discriminatorLens: CreatableJLens[JObject, JAny], discriminator: Discriminator[JObjectCodec])(using m: Mirror.SumOf[A], config: Config): JObjectCodec[A] =
-      new JObjectCodec(
-        deriveEncoder[A](discriminatorLens, codecToEncoderDiscriminator(discriminator)),
-        deriveDecoder[A](discriminatorLens, codecToDecoderDiscriminator(discriminator))
-      )
-    inline def deriveEncoderForCaseClass[A](using m: Mirror.ProductOf[A], config: Config = Config.default): JObjectEncoder[A] =
-      deriveEncoder[A]
-    inline def deriveDecoderForCaseClass[A](using m: Mirror.ProductOf[A], config: Config = Config.default): JObjectDecoder[A] =
-      deriveDecoder[A]
-    inline def deriveCodecForCaseClass[A](using m: Mirror.ProductOf[A], config: Config = Config.default): JObjectCodec[A] =
-      new JObjectCodec(deriveEncoder[A], deriveDecoder[A])
-    inline def deriveEncoderForTrait[A](discriminatorLens: CreatableJLens[JObject, JAny] = "type", discriminator: Discriminator[JObjectEncoder] = SimpleClassNameDiscriminator[JObjectEncoder])(using m: Mirror.SumOf[A], config: Config = Config.default): JObjectEncoder[A] =
-      deriveEncoder[A](discriminatorLens, discriminator)
-    inline def deriveDecoderForTrait[A](discriminatorLens: CreatableJLens[JObject, JAny] = "type", discriminator: Discriminator[JObjectDecoder] = SimpleClassNameDiscriminator[JObjectDecoder])(using m: Mirror.SumOf[A], config: Config = Config.default): JObjectDecoder[A] =
-      deriveDecoder[A](discriminatorLens, discriminator)
-    inline def deriveCodecForTrait[A](discriminatorLens: CreatableJLens[JObject, JAny] = "type", discriminator: Discriminator[JObjectCodec] = SimpleClassNameDiscriminator[JObjectCodec])(using m: Mirror.SumOf[A], config: Config = Config.default): JObjectCodec[A] =
-      deriveCodec[A](discriminatorLens, discriminator)
