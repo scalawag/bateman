@@ -75,3 +75,15 @@ itself is not necessarily unambiguous in the presence of duplicate field names.
 
 ![dual data structure](structure.svg)
 
+## Cursors
+
+A `JCursor[F, A]` represents a collection of foci into a single JSON
+document. It is the return type of `Option` and `List`
+@ref:[lenses](../lens/index.md) -- where `F` is the container shape
+(`Option` or `List`) and `A` is the JSON type at each focus. Access the
+underlying foci through the `foci` member.
+
+Because all foci in a cursor share the same root document, the cursor
+can coordinate bulk operations: `modify` applies a function to every focus
+and threads the changes through a single coherent result, `delete` removes
+all focused values at once, and `decode` decodes each focus in parallel.

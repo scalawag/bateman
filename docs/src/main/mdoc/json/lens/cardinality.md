@@ -1,25 +1,26 @@
 # Cardinality
 
-TODO: This is out of date. It needs to be rewritten to reflect the changes
-in lenses that don't produce cursors anymore.
-
-Each lens has a cardinality, which determines how many foci are produced 
-when this lens is applied to a focus. It also determines the cardinality of 
+Each lens has a cardinality, which determines how many foci are produced
+when this lens is applied to a focus. It also determines the cardinality of
 any lenses created through composition with the lens.
 
- * `List` - returns zero or more foci for each input focus
- * `Option` - returns zero or one focus for each input focus
- * `Id` - returns exactly one focus for each input focus
- * `Creatable` - special case of Id that also supports insertion/writing
+ * `Creatable` - returns exactly one focus; also supports insertion/writing
+ * `Id` - returns exactly one focus
+ * `Option` - returns zero or one focus
+ * `List` - returns zero or more foci
+
+`Creatable` and `Id` lenses return a `JFocus` directly (wrapped in
+`JResult`). `Option` and `List` lenses return a `JCursor`, which wraps the
+foci in the corresponding container (`Option` or `List`).
 
 ## Composition
 
-When you compose two lenses, their cardinalities determine the cardinality 
-of the resulting lens. Generally speaking, there's an ordering of precedence 
-from `List` > `Option` > `Id` > `Creatable`. The resulting lens has the higher 
+When you compose two lenses, their cardinalities determine the cardinality
+of the resulting lens. Generally speaking, there's an ordering of precedence
+from `List` > `Option` > `Id` > `Creatable`. The resulting lens has the higher
 precedence of the two input lenses.
 
-Here's a table, though, if you like a exhaustive explanation.
+Here's an exhaustive table.
 
 | left \ right | Creatable | Id     | Option | List |
 |--------------|-----------|--------|--------|------|
@@ -29,21 +30,21 @@ Here's a table, though, if you like a exhaustive explanation.
 | List         | List      | List   | List   | List |
 
 @@@ note
-Composed lenses flatten everything. If you want to do a query that 
-_doesn't_ flatten everything (e.g., that returns a list of lists of foci), 
+Composed lenses flatten everything. If you want to do a query that
+_doesn't_ flatten everything (e.g., that returns a list of lists of foci),
 don't use the lenses. Just use the calls directly on the focus.
 @@@
 
 ## Creatable Lenses
 
-Creatable lenses are a special case of Id lenses. A creatable lens returns 
-exactly one focus for each input focus, just like a Id lens. However, it 
+Creatable lenses are a special case of Id lenses. A creatable lens returns
+exactly one focus for each input focus, just like an Id lens. However, it
 can also be used to insert a JSON value relative to the current focus. The
-only creatable lens are the ones that refer to a specific field of an object.
+only creatable lenses are the ones that refer to a specific field of an object.
 
 ## Making Option Lenses
 
-You can make any `Id` or `Creatable` lens into an `Option` lens by adding 
+You can make any `Id` or `Creatable` lens into an `Option` lens by adding
 the `?` modifier to it.
 
 ```scala mdoc:bateman:right:cursor:none
@@ -55,35 +56,33 @@ val f = json"""
     "a": 17
   }
 """.asRootFocus
-  
+
 val l = focus ~> "b" ~> 0 ~> "a"
 f(l.?)
 ```
 
-Note that the deep lens is what has been made optional. That allows it to 
-fail anywhere along the path. That's different behavior that you would get 
-if you only made the last lens optional. That would imply an error if 
+Note that the deep lens is what has been made optional. That allows it to
+fail anywhere along the path. That's different behavior that you would get
+if you only made the last lens optional. That would imply an error if
 anything were missing _prior_ to the optional lens in the traversal.
 
 ```scala mdoc:bateman:left:errors
 f(focus ~> "b" ~> 0 ~> "a".?)
 ```
 
-`List` lenses already allow for the empty result, so 
+`List` lenses already allow for the empty result, so
 there's no need to make them optional.
 
 # Using List Lenses
 
-While `Id` lenses return an `Id[JFocus[JAny]]` and `Option` lenses return an
-`Option[JFocus[JAny]]`, `List` do not return a `List[JFocus[JAny]]`. `List` 
-lenses return something entirely different. They return a `JFoci` from 
-which you can get a list of foci, but they exist because you can also do 
-more with them. Since you can both read and write using a focus, this 
-special return type allows you to modify multiple foci within the same 
-document with one call.
+`Id` and `Creatable` lenses return a `JFocus` directly, and `Option` lenses
+return a `JCursor[Option, ...]`. `List` lenses also return a `JCursor`, but
+the cursor exists because you can do more with it than just read the foci.
+Since you can both read and write using a focus, the cursor allows you to
+modify multiple foci within the same document with one call.
 
-Due to this additional wrapper, to get the list of foci from a list lens' 
-return value, access the `foci` member on it.
+To get the list of foci from a list lens' return value, access the `foci`
+member on the cursor.
 
 ```scala mdoc:bateman:right:list:focus
 import org.scalawag.bateman.json._
@@ -111,7 +110,7 @@ val dLens = focus ~> ** ~> "d".?
 json(dLens).map(_.foci)
 ```
 
-You can also call one of the write methods on `JFoci`, such as `delete`, which 
+You can also call one of the write methods on `JCursor`, such as `delete`, which
 will allow you to delete all the focused values at once, giving you a new
 document reflecting all the changes.
 
