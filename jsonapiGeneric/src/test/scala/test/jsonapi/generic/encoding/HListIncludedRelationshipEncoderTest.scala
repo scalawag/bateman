@@ -67,7 +67,9 @@ class HListIncludedRelationshipEncoderTest extends HListEncoderTestBase {
   describe("exhaustive combinations") {
     import org.scalawag.bateman.jsonapi.generic.auto._
 
-    implicit class EncodedJObjectOps(enc: JObject) {
+    implicit class EncodedDocumentOps(doc: Document) {
+      private val enc: JObject = doc.toJObject
+
       def relationshipsShouldBeAbsent: Assertion =
         enc.asRootFocus(data ~> relationships.?).shouldSucceed.foci shouldBe None
 
@@ -599,7 +601,7 @@ class HListIncludedRelationshipEncoderTest extends HListEncoderTestBase {
 
     def encodeTest[A: ResourceEncoder](a: A, expected: JObject)(implicit position: Position): Unit =
       it(s"should encode $a properly") {
-        a.toDocument.render shouldBe expected.render
+        a.toDocument.toJObject.render shouldBe expected.render
       }
 
     encodeTest(
@@ -782,7 +784,7 @@ class HListIncludedRelationshipEncoderTest extends HListEncoderTestBase {
     import org.scalawag.bateman.jsonapi.generic.auto._
 
     def testCase[A: ResourceEncoder](a: A, fieldsSpec: FieldsSpec, expected: JObject): Unit =
-      a.toDocument(IncludeSpec.Opportunistically, fieldsSpec).shouldSucceed.render shouldBe expected.render
+      a.toDocument(IncludeSpec.Opportunistically, fieldsSpec).shouldSucceed.toJObject.render shouldBe expected.render
 
     it("should include relationship field when told to explicitly") {
       testCase(

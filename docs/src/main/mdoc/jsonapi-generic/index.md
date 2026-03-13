@@ -30,7 +30,7 @@ import org.scalawag.bateman.jsonapi.syntax._
 
 case class Book(@Id id: String, @Attribute title: String, @Attribute pages: Int)
 
-Book("1", "The Great Gatsby", 180).toDocument
+Book("1", "The Great Gatsby", 180).toDocument.toJObject
 ```
 
 The `@Id` annotation marks the resource identifier, and `@Attribute` marks

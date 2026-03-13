@@ -20,7 +20,7 @@ import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.syntax._
 import org.scalawag.bateman.json.literal._
 import org.scalawag.bateman.jsonapi.syntax._
-import org.scalawag.bateman.jsonapi.encoding.{EncodeResult, FieldsSpec, IncludeSpec, Inclusions, ResourceEncoder}
+import org.scalawag.bateman.jsonapi.encoding.{Document, EncodeResult, FieldsSpec, IncludeSpec, Inclusions, ResourceEncoder}
 import test.json.BatemanTestBase
 import test.jsonapi.encoding.SyntaxTest._
 
@@ -136,7 +136,7 @@ class SyntaxTest extends BatemanTestBase with MockFactory {
         )
         .once()
 
-      instance.toDocument(includeSpec, fieldsSpec).map(_.render) shouldBe json"""
+      instance.toDocument(includeSpec, fieldsSpec).map(_.toJObject.render) shouldBe json"""
         {
           "data": {
             "id": "A"

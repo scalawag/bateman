@@ -64,7 +64,7 @@ class HListRelationshipEncoderTest extends HListEncoderTestBase {
 
     def encodeTest[A: ResourceEncoder](a: A, expected: JObject)(implicit position: Position): Unit =
       it(s"should encode $a properly") {
-        a.toDocument.render shouldBe expected.render
+        a.toDocument.toJObject.render shouldBe expected.render
       }
 
     encodeTest(
@@ -837,7 +837,7 @@ class HListRelationshipEncoderTest extends HListEncoderTestBase {
     import org.scalawag.bateman.jsonapi.generic.auto._
 
     def testCase[A: ResourceEncoder](a: A, fieldsSpec: FieldsSpec, expected: JObject): Unit =
-      a.toDocument(IncludeSpec.Never, fieldsSpec).shouldSucceed.render shouldBe expected.render
+      a.toDocument(IncludeSpec.Never, fieldsSpec).shouldSucceed.toJObject.render shouldBe expected.render
 
     it("should include relationship field when told to explicitly") {
       testCase(

@@ -15,10 +15,10 @@
 package org.scalawag.bateman
 
 import org.scalawag.bateman.json._
-import org.scalawag.bateman.jsonapi.encoding.{Link, Relationship, ResourceObject}
+import org.scalawag.bateman.jsonapi.encoding.{Link, Relationship}
 
 package object jsonapi {
-  type Included = Seq[ResourceObject]
+  type Included = Seq[JObject]
   type Meta = Seq[(String, JAny)]
   type Links = Seq[(String, Link)]
   type Errors = Seq[encoding.Error]

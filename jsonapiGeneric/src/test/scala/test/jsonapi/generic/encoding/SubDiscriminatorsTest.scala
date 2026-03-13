@@ -88,20 +88,20 @@ class SubDiscriminatorsTest extends BatemanTestBase {
   private val dataMetaStatus = data ~> meta("status") ~> narrowTo[JString]
 
   it("should encode Started") {
-    val doc = (Started("A", Instant.parse("2025-01-01T00:00:00Z")): State).toDocument
+    val doc = (Started("A", Instant.parse("2025-01-01T00:00:00Z")): State).toDocument.toJObject
     doc.asRootFocus(dataType).shouldSucceed.value.value shouldBe "cash_flow"
     doc.asRootFocus(dataMetaStatus).shouldSucceed.value.value shouldBe "started"
   }
 
   it("should encode Completed") {
     // The inner discriminator ("completed") overwrites the outer ("terminated") since both use the same lens path.
-    val doc = (Completed("B", Instant.parse("2025-01-01T00:00:00Z"), 4.5f): State).toDocument
+    val doc = (Completed("B", Instant.parse("2025-01-01T00:00:00Z"), 4.5f): State).toDocument.toJObject
     doc.asRootFocus(dataType).shouldSucceed.value.value shouldBe "cash_flow"
     doc.asRootFocus(dataMetaStatus).shouldSucceed.value.value shouldBe "completed"
   }
 
   it("should encode Failed") {
-    val doc = (Failed("C", Instant.parse("2025-01-01T00:00:00Z"), 34, "Things went south."): State).toDocument
+    val doc = (Failed("C", Instant.parse("2025-01-01T00:00:00Z"), 34, "Things went south."): State).toDocument.toJObject
     doc.asRootFocus(dataType).shouldSucceed.value.value shouldBe "cash_flow"
     doc.asRootFocus(dataMetaStatus).shouldSucceed.value.value shouldBe "failed"
   }

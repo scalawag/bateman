@@ -16,7 +16,6 @@ package org.scalawag.bateman.jsonapi.encoding
 
 import org.scalawag.bateman.json.{JObject, JObjectEncoder, ProgrammerError}
 import org.scalawag.bateman.jsonapi.encoding.ResourceEncoder.Encoded
-import org.scalawag.bateman.json.syntax._
 
 trait ResourceEncoder[In] extends JObjectEncoder[In] {
   def encodeResource(
@@ -61,6 +60,10 @@ object ResourceEncoder {
 
   case class Encoded(root: JObject, inclusions: Inclusions = Inclusions.empty) extends EncodedLike {
     def map(fn: JObject => JObject): Encoded = copy(root = fn(root))
-    def toDocument: JObject = JObject("data" -> root, "included" -> inclusions.objects.toList.toJAny)
+    val included = inclusions.objects.toList match {
+      case Nil => None
+      case objs => Some(objs)
+    }
+    def toDocument: Document = DataDocument(data = root, included = included)
   }
 }

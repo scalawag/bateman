@@ -15,7 +15,6 @@
 package test.jsonapi.generic.encoding
 
 import cats.syntax.either._
-import org.scalactic.source.Position
 import org.scalatest.Assertion
 import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.generic.Config
@@ -66,7 +65,9 @@ class HListIncludedRelationshipWithLidEncoderTest extends HListEncoderTestBase {
   describe("exhaustive combinations") {
     import org.scalawag.bateman.jsonapi.generic.auto._
 
-    implicit class EncodedJObjectOps(enc: JObject) {
+    implicit class EncodedDocumentOps(doc: Document) {
+      private val enc: JObject = doc.toJObject
+
       def relationshipsShouldBeAbsent: Assertion =
         enc.asRootFocus(data ~> relationships.?).shouldSucceed.foci shouldBe None
 
@@ -528,7 +529,7 @@ class HListIncludedRelationshipWithLidEncoderTest extends HListEncoderTestBase {
       implicit val config = Config(classNameMapping = CaseTransformation(PascalCase, SnakeCase))
       import org.scalawag.bateman.jsonapi.generic.auto._
 
-      val enc = MyLongFieldName(MyRef(2)).toDocument
+      val enc = MyLongFieldName(MyRef(2)).toDocument.toJObject
 
       enc.asRootFocus(data ~> resourceType).map(_.value).shouldSucceed.value shouldBe "my_long_field_name"
     }
@@ -537,7 +538,7 @@ class HListIncludedRelationshipWithLidEncoderTest extends HListEncoderTestBase {
       implicit val config = Config(fieldNameMapping = CaseTransformation(PascalCase, SnakeCase))
       import org.scalawag.bateman.jsonapi.generic.auto._
 
-      val enc = MyLongFieldName(MyRef(2)).toDocument
+      val enc = MyLongFieldName(MyRef(2)).toDocument.toJObject
 
       enc
         .asRootFocus(
@@ -557,6 +558,7 @@ class HListIncludedRelationshipWithLidEncoderTest extends HListEncoderTestBase {
       val enc = MyTwoFields(MyRef(1), MyRef(2))
         .toDocument(IncludeSpec.Opportunistically, FieldsSpec(Map("MyTwoFields" -> Explicit("a"))))
         .shouldSucceed
+        .toJObject
 
       enc
         .asRootFocus(data ~> relationship("a") ~> data ~> includedRef ~> attribute("b") ~> narrowTo[JNumber])
@@ -575,6 +577,7 @@ class HListIncludedRelationshipWithLidEncoderTest extends HListEncoderTestBase {
     it("should include relationship fields when told to implicitly") {
       val enc = MyTwoFields(MyRef(1), MyRef(2))
         .toDocument(IncludeSpec.Opportunistically, FieldsSpec.All)
+        .toJObject
 
       enc
         .asRootFocus(data ~> relationship("a") ~> data ~> includedRef ~> attribute("b") ~> narrowTo[JNumber])
@@ -592,7 +595,7 @@ class HListIncludedRelationshipWithLidEncoderTest extends HListEncoderTestBase {
     }
 
     it("should exclude relationship fields when told to implicitly") {
-      val enc = MyTwoFields(MyRef(1), MyRef(2)).toDocument(IncludeSpec.Opportunistically, FieldsSpec.None)
+      val enc = MyTwoFields(MyRef(1), MyRef(2)).toDocument(IncludeSpec.Opportunistically, FieldsSpec.None).toJObject
 
       enc.asRootFocus(data ~> relationships.?).shouldSucceed.foci shouldBe None
       enc.asRootFocus(included.?).shouldSucceed.foci shouldBe None
@@ -602,6 +605,7 @@ class HListIncludedRelationshipWithLidEncoderTest extends HListEncoderTestBase {
       val enc = MyTwoFieldsDefault(Null, MyRef(2))
         .toDocument(IncludeSpec.Opportunistically, FieldsSpec(Map("MyTwoFieldsDefault" -> Explicit("a"))))
         .shouldSucceed
+        .toJObject
 
       enc.asRootFocus(data ~> relationship("a") ~> data).shouldSucceed.value shouldBe JNull
       enc.asRootFocus(data ~> relationship("b").?).shouldSucceed.foci shouldBe None

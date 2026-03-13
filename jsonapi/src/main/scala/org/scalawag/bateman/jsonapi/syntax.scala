@@ -14,9 +14,8 @@
 
 package org.scalawag.bateman.jsonapi
 
-import org.scalawag.bateman.json.{JObject, noneIfEmpty}
-import org.scalawag.bateman.json.syntax._
 import org.scalawag.bateman.jsonapi.encoding.{
+  Document,
   EncodeResult,
   FieldsSpec,
   IncludeSpec,
@@ -26,27 +25,17 @@ import org.scalawag.bateman.jsonapi.encoding.{
 
 object syntax {
   implicit class AnyBatemanJsonApiOps[A](a: A) {
-    def toDocument(implicit enc: ResourceEncoder[A]): JObject = toDocument()
+    def toDocument(implicit enc: ResourceEncoder[A]): Document = toDocument()
 
     def toDocument(
         includeSpec: InfallibleIncludeSpec = IncludeSpec.Opportunistically,
         fieldsSpec: FieldsSpec.Infallible = FieldsSpec.All
-    )(implicit enc: ResourceEncoder[A]): JObject = {
-      val encoded = enc.encodeInfallibly(a, includeSpec, fieldsSpec)
-      JObject.flatten(
-        Some("data" -> encoded.root),
-        noneIfEmpty(encoded.inclusions.objects).map("included" -> _.toList.toJAny)
-      )
-    }
+    )(implicit enc: ResourceEncoder[A]): Document =
+      enc.encodeInfallibly(a, includeSpec, fieldsSpec).toDocument
 
     def toDocument(includeSpec: IncludeSpec, fieldsSpec: FieldsSpec)(implicit
         enc: ResourceEncoder[A]
-    ): EncodeResult[JObject] =
-      enc.encodeResource(a, includeSpec, fieldsSpec).map { encoded =>
-        JObject.flatten(
-          Some("data" -> encoded.root),
-          noneIfEmpty(encoded.inclusions.objects).map("included" -> _.toList.toJAny)
-        )
-      }
+    ): EncodeResult[Document] =
+      enc.encodeResource(a, includeSpec, fieldsSpec).map(_.toDocument)
   }
 }

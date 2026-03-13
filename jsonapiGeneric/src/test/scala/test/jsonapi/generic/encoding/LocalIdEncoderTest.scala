@@ -32,7 +32,7 @@ object LocalIdEncoderTest {
 
 class LocalIdEncoderTest extends BatemanTestBase {
   it("should generate a local ID using default generator") {
-    val out = MyReferrer(MyReferent(77)).toDocument
+    val out = MyReferrer(MyReferent(77)).toDocument.toJObject
     import org.scalawag.bateman.json.lens._
     import org.scalawag.bateman.jsonapi.lens._
     out.asRootFocus(data ~> relationship("rel") ~> data ~> lid).flatMap(_.decode[UUID]).shouldSucceed
@@ -44,7 +44,7 @@ class LocalIdEncoderTest extends BatemanTestBase {
       override def apply(): String = next.incrementAndGet().toString
     }
 
-    val out = MyReferrer(MyReferent(77)).toDocument
+    val out = MyReferrer(MyReferent(77)).toDocument.toJObject
     import org.scalawag.bateman.json.lens._
     import org.scalawag.bateman.jsonapi.lens._
     out.asRootFocus(data ~> relationship("rel") ~> data ~> lid).flatMap(_.decode[String]).shouldSucceed.toInt shouldBe 1

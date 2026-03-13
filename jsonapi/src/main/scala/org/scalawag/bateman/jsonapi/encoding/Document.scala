@@ -55,6 +55,9 @@ sealed trait Document {
 
   /** Replaces the document's `jsonapi` value with the one specified. */
   def withJsonapi(jsonapi: Jsonapi): Self
+
+  /** Encodes this document to a [[JObject]]. */
+  def toJObject: JObject = Document.batemanEncoder.encode(this)
 }
 
 case object Document {
@@ -115,7 +118,7 @@ final case class DataDocument(
 
   /** Adds the specified resource objects to the included array of this document. */
   def withIncluded(resources: ResourceObject*): DataDocument =
-    this.copy(included = Some(this.included.getOrElse(Nil) ++ resources))
+    this.copy(included = Some(this.included.getOrElse(Nil) ++ resources.map(JObjectEncoder[ResourceObject].encode(_))))
 }
 
 object DataDocument {

@@ -23,7 +23,7 @@ import org.scalawag.bateman.jsonapi.generic.auto._
 
 case class Widget(@Id id: String, @Attribute color: String, @Attribute weight: Int)
 
-Widget("42", "blue", 150).toDocument
+Widget("42", "blue", 150).toDocument.toJObject
 ```
 
 The resource type defaults to the simple class name (`Widget`). Fields at
@@ -52,7 +52,7 @@ object Gadget {
     deriveResourceEncoderForCaseClass[Gadget]()
 }
 
-Gadget("7", "gizmo", 3).toDocument
+Gadget("7", "gizmo", 3).toDocument.toJObject
 ```
 
 ### Overriding the Resource Type
@@ -71,7 +71,7 @@ case class ServerNode(@Id id: String, @Attribute hostname: String)
 implicit val encoder: ResourceEncoder[ServerNode] =
   deriveResourceEncoderForCaseClass[ServerNode](resourceTypeOverride = "nodes")
 
-ServerNode("1", "web-01").toDocument
+ServerNode("1", "web-01").toDocument.toJObject
 ```
 
 ```scala mdoc:reset:silent
@@ -95,7 +95,7 @@ case class UserProfile(@Id id: String, @Attribute firstName: String, @Attribute 
 
 implicit val config: Config = Config(fieldNameMapping = CamelCase to SnakeCase)
 
-UserProfile("1", "Jane", "Doe").toDocument
+UserProfile("1", "Jane", "Doe").toDocument.toJObject
 ```
 
 ```scala mdoc:reset:silent
@@ -119,7 +119,7 @@ case class BlogPost(@Id id: String, @Attribute title: String)
 
 implicit val config: Config = Config(classNameMapping = PascalCase to KebabCase)
 
-BlogPost("1", "Hello World").toDocument
+BlogPost("1", "Hello World").toDocument.toJObject
 ```
 
 ```scala mdoc:reset:silent
@@ -141,7 +141,7 @@ import org.scalawag.bateman.jsonapi.generic.auto._
 case class Author(@Id id: String, @Attribute name: String)
 case class Post(@Id id: String, @Attribute title: String, @IncludedRelationship author: Author)
 
-Post("1", "On Monads", Author("42", "Phil")).toDocument
+Post("1", "On Monads", Author("42", "Phil")).toDocument.toJObject
 ```
 
 Resources without an `@Id` field (or with an absent optional ID) are
@@ -177,7 +177,7 @@ object Rect {
 }
 implicit val shapeEncoder: ResourceEncoder[Shape] = deriveResourceEncoderForTrait[Shape]()
 
-(Circle("1", 5): Shape).toDocument
+(Circle("1", 5): Shape).toDocument.toJObject
 ```
 
 Since JSON:API resources already have a `type` field, it naturally serves

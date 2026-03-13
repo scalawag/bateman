@@ -25,7 +25,7 @@ import test.json.BatemanTestBase
 trait HListEncoderTestBase extends BatemanTestBase {
   implicit class RichResourceEncodable[A: ResourceEncoder](a: A) {
     def shouldEncodeTo(json: JObject)(implicit position: Position): Unit =
-      a.toDocument.render shouldBe json.render
+      a.toDocument.toJObject.render shouldBe json.render
   }
 
   implicit class EncodeResultOps[A](r: EncodeResult[A]) {

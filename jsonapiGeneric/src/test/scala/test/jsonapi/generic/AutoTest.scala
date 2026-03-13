@@ -35,7 +35,7 @@ object AutoTest {
 
 class AutoTest extends BatemanTestBase {
   it("should work by default") {
-    val enc = MyClass("A", 8, MyRef(10)).toDocument.asRootFocus
+    val enc = MyClass("A", 8, MyRef(10)).toDocument.toJObject.asRootFocus
     enc(data ~> relationships).shouldSucceed.value.fieldList.map(_.name.value) shouldBe List("myRef")
     enc(data ~> attributes.?).shouldSucceed.foci shouldBe None
     UUID.fromString(enc(included ~> 0 ~> lid).shouldSucceed.value.value) // should not throw
@@ -43,7 +43,7 @@ class AutoTest extends BatemanTestBase {
 
   it("should use field name config") {
     implicit val cfg: Config = Config(fieldNameMapping = CamelCase to SnakeCase)
-    val enc = MyClass("A", 8, MyRef(10)).toDocument.asRootFocus
+    val enc = MyClass("A", 8, MyRef(10)).toDocument.toJObject.asRootFocus
     enc(data ~> resourceType).shouldSucceed.value.value shouldBe "MyClass"
     enc(data ~> relationships).shouldSucceed.value.fieldList.map(_.name.value) shouldBe List("my_ref")
     enc(included ~> 0 ~> resourceType).shouldSucceed.value.value shouldBe "MyRef"
@@ -52,7 +52,7 @@ class AutoTest extends BatemanTestBase {
 
   it("should use class name config") {
     implicit val cfg: Config = Config(classNameMapping = PascalCase to KebabCase)
-    val enc = MyClass("A", 8, MyRef(10)).toDocument.asRootFocus
+    val enc = MyClass("A", 8, MyRef(10)).toDocument.toJObject.asRootFocus
     enc(data ~> resourceType).shouldSucceed.value.value shouldBe "my-class"
     enc(data ~> relationships).shouldSucceed.value.fieldList.map(_.name.value) shouldBe List("myRef")
     enc(included ~> 0 ~> resourceType).shouldSucceed.value.value shouldBe "my-ref"
@@ -61,14 +61,14 @@ class AutoTest extends BatemanTestBase {
 
   it("should encode default values") {
     implicit val cfg: Config = Config(encodeDefaultValues = true)
-    val enc = MyClass("A", 8, MyRef(10)).toDocument.asRootFocus
+    val enc = MyClass("A", 8, MyRef(10)).toDocument.toJObject.asRootFocus
     enc(data ~> attribute("a") ~> narrowTo[JNumber]).shouldSucceed.value.value shouldBe "8"
   }
 
   it("should use the LID generator") {
     implicit val lidgen: LidGenerator = () => "xxx"
 
-    val enc = MyClass("A", 8, MyRef(10)).toDocument.asRootFocus
+    val enc = MyClass("A", 8, MyRef(10)).toDocument.toJObject.asRootFocus
     enc(data ~> relationship("myRef") ~> data ~> lid).shouldSucceed.value.value shouldBe "xxx"
     enc(included ~> 0 ~> lid).shouldSucceed.value.value shouldBe "xxx"
   }

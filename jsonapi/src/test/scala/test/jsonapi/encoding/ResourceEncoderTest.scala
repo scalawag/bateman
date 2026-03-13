@@ -178,15 +178,19 @@ class ResourceEncoderTest extends BatemanTestBase {
     it("should produce document with data and included via toDocument") {
       val incObj = json"""{"type": "other", "id": "2"}"""
       val encoded = Encoded(simpleRoot, Inclusions(incObj))
-      val doc = encoded.toDocument
-      doc.fieldList.map(_.name.value) should contain("data")
-      doc.fieldList.map(_.name.value) should contain("included")
+      inside(encoded.toDocument) {
+        case doc: DataDocument =>
+          doc.data shouldBe simpleRoot
+          doc.included shouldBe defined
+      }
     }
 
-    it("should produce empty included array when no inclusions") {
+    it("should produce document without included when no inclusions") {
       val encoded = Encoded(simpleRoot, Inclusions.empty)
-      val doc = encoded.toDocument
-      doc.fieldList.map(_.name.value) should contain("included")
+      inside(encoded.toDocument) {
+        case doc: DataDocument =>
+          doc.included shouldBe empty
+      }
     }
   }
 }
