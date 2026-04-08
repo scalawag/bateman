@@ -20,7 +20,7 @@ import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.syntax._
 import org.scalawag.bateman.json.literal._
 import org.scalawag.bateman.jsonapi.syntax._
-import org.scalawag.bateman.jsonapi.encoding.{Document, EncodeResult, FieldsSpec, IncludeSpec, Inclusions, ResourceEncoder}
+import org.scalawag.bateman.jsonapi.encoding.{Document, EncodeResult, FieldsSpec, IncludeSpec, Inclusions, ResourceEncoder, ResourceObject}
 import test.json.BatemanTestBase
 import test.jsonapi.encoding.SyntaxTest._
 
@@ -35,6 +35,7 @@ object SyntaxTest {
     ResourceEncoder
       .Encoded(
         JObject("id" -> "A".toJAny),
+        ResourceObject("", Some("A")),
       )
       .asRight
 }
@@ -49,6 +50,7 @@ class SyntaxTest extends BatemanTestBase with MockFactory {
           ResourceEncoder
             .Encoded(
               JObject("id" -> "A".toJAny),
+              ResourceObject("", Some("A")),
             )
             .asRight
         )
@@ -72,9 +74,10 @@ class SyntaxTest extends BatemanTestBase with MockFactory {
           ResourceEncoder
             .Encoded(
               JObject("type" -> "T".toJAny, "id" -> "A".toJAny),
+              ResourceObject("T", Some("A")),
               Inclusions(
-                JObject("type" -> "T".toJAny, "id" -> "B".toJAny),
-                JObject("type" -> "T".toJAny, "id" -> "C".toJAny),
+                ResourceObject("T", Some("B")),
+                ResourceObject("T", Some("C")),
               )
             )
             .asRight
@@ -104,6 +107,7 @@ class SyntaxTest extends BatemanTestBase with MockFactory {
           ResourceEncoder
             .Encoded(
               JObject("id" -> "A".toJAny),
+              ResourceObject("", Some("A")),
             )
             .asRight
         )
@@ -131,6 +135,7 @@ class SyntaxTest extends BatemanTestBase with MockFactory {
           ResourceEncoder
             .Encoded(
               JObject("id" -> "A".toJAny),
+              ResourceObject("", Some("A")),
             )
             .asRight
         )

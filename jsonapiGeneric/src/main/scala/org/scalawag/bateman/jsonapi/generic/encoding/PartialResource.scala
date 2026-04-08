@@ -16,8 +16,9 @@ package org.scalawag.bateman.jsonapi.generic.encoding
 
 import cats.syntax.semigroup._
 import org.scalawag.bateman.json.{JAny, JObject, rightIfEmpty}
-import org.scalawag.bateman.jsonapi.encoding.{EncodeError, EncodeResult, Inclusions}
+import org.scalawag.bateman.jsonapi.encoding.{EncodeError, EncodeResult, Inclusions, Relationship, ResourceObject}
 import org.scalawag.bateman.json.syntax._
+import org.scalawag.bateman.json.generic.encoding.DiscriminatorMerge
 import org.scalawag.bateman.jsonapi.encoding.ResourceEncoder.Encoded
 
 /** When we generate an encoder for a ResourceLike, we need a place to store the fields the encoding _before_ we've
@@ -38,7 +39,8 @@ final case class PartialResource(
     attributes: List[(String, JAny)] = Nil,
     relationships: List[(String, JAny)] = Nil,
     inclusions: Inclusions = Inclusions.empty,
-    errors: Set[EncodeError] = Set.empty
+    errors: Set[EncodeError] = Set.empty,
+    discriminators: JObject = JObject.Empty
 ) {
   def addAttribute(name: String, value: JAny): PartialResource =
     this.copy(attributes = (name -> value) :: this.attributes)
@@ -49,11 +51,17 @@ final case class PartialResource(
     this.copy(relationships = (name -> value) :: this.relationships)
   def addRelationship(name: String, relationship: Option[JAny]): PartialResource =
     relationship.map(addRelationship(name, _)).getOrElse(this)
-  def addInclusions(inclusions: Iterable[JObject]): PartialResource = {
-    this.copy(inclusions = inclusions.foldLeft(this.inclusions)(_ + _))
+  def addInclusions(encodeds: Iterable[Encoded]): PartialResource = {
+    val newInclusions = encodeds.foldLeft(this.inclusions) { (inc, enc) =>
+      (inc + enc.resourceObject) combine enc.inclusions
+    }
+    this.copy(inclusions = newInclusions)
   }
   def addInclusions(inclusions: Inclusions): PartialResource =
     this.copy(inclusions = this.inclusions combine inclusions)
+
+  def withDiscriminators(disc: JObject): PartialResource =
+    this.copy(discriminators = disc)
 
   def addError(error: EncodeError): PartialResource =
     this.copy(errors = this.errors + error)
@@ -64,8 +72,8 @@ final case class PartialResource(
       case Left(ee) => this.copy(errors = errors ++ ee.iterator)
     }
 
-  def toRootObject: JObject =
-    JObject.flatten(
+  def toRootObject: JObject = {
+    val base = JObject.flatten(
       Some("type" -> resourceType.toJAny),
       if (id.isEmpty) None else Some("id" -> id.get.toJAny),
       if (lid.isEmpty) None else Some("lid" -> lid.get.toJAny),
@@ -73,6 +81,47 @@ final case class PartialResource(
       if (relationships.isEmpty) None else Some("relationships" -> JObject(relationships: _*)),
       if (metas.isEmpty) None else Some("meta" -> JObject(metas: _*)),
     )
+    if (discriminators.fieldList.nonEmpty)
+      DiscriminatorMerge.mergeDiscriminators(discriminators, base)
+    else
+      base
+  }
 
-  def toEncoded: EncodeResult[Encoded] = rightIfEmpty(errors, Encoded(toRootObject, inclusions))
+  def toResourceObject: ResourceObject = {
+    // Extract additional meta fields from discriminators (e.g., meta("status") discriminator path)
+    val discMetas: List[(String, JAny)] = discriminators.fieldList.toList.flatMap { f =>
+      f.name.value match {
+        case "meta" => f.value match {
+          case obj: JObject => obj.fieldList.map(mf => mf.name.value -> mf.value).toList
+          case _ => Nil
+        }
+        case _ => Nil
+      }
+    }
+    val allMetas = discMetas ::: metas
+
+    // Convert relationship JAny values (JObject with "data" field) to Relationship objects
+    val rels: List[(String, Relationship)] = relationships.map { case (name, value) =>
+      val rel = value match {
+        case obj: JObject =>
+          val dataField = obj.fieldList.find(_.name.value == "data").map(_.value)
+          new Relationship(data = dataField)
+        case other =>
+          new Relationship(data = Some(other))
+      }
+      name -> rel
+    }
+
+    ResourceObject(
+      resourceType = resourceType,
+      id = id.orElse(lid),
+      localId = lid.isDefined,
+      attributes = if (attributes.isEmpty) None else Some(attributes),
+      relationships = if (rels.isEmpty) None else Some(rels),
+      meta = if (allMetas.isEmpty) None else Some(allMetas),
+      links = None
+    )
+  }
+
+  def toEncoded: EncodeResult[Encoded] = rightIfEmpty(errors, Encoded(toRootObject, toResourceObject, inclusions))
 }

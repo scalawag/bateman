@@ -34,7 +34,7 @@ trait ResourceEncoder[In] extends JObjectEncoder[In] {
     val penc = encodeResource(in, includeSpec, fieldsSpec, discriminators).getOrElse(
       throw ProgrammerError("An encoding operation with infallible parameters shouldn't fail!")
     )
-    Encoded(penc.root, penc.inclusions)
+    penc
   }
 
   def encodeMinimally(in: In, discriminators: JObject = JObject.Empty): JObject =
@@ -55,11 +55,11 @@ object ResourceEncoder {
 
   trait EncodedLike {
     val root: JObject
+    val resourceObject: ResourceObject
     val inclusions: Inclusions
   }
 
-  case class Encoded(root: JObject, inclusions: Inclusions = Inclusions.empty) extends EncodedLike {
-    def map(fn: JObject => JObject): Encoded = copy(root = fn(root))
+  case class Encoded(root: JObject, resourceObject: ResourceObject, inclusions: Inclusions = Inclusions.empty) extends EncodedLike {
     val included = inclusions.objects.toList match {
       case Nil => None
       case objs => Some(objs)

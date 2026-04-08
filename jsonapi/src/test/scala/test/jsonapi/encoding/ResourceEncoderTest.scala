@@ -36,7 +36,8 @@ object ResourceEncoderTest {
     }
 
   val simpleRoot: JObject = json"""{"type": "test", "id": "1", "attributes": {"name": "hello"}}"""
-  val simpleEncoded: Encoded = Encoded(simpleRoot)
+  val simpleResourceObject: ResourceObject = ResourceObject("test", "1").withAttribute("name", "hello".toJAny)
+  val simpleEncoded: Encoded = Encoded(simpleRoot, simpleResourceObject)
 }
 
 class ResourceEncoderTest extends BatemanTestBase {
@@ -96,8 +97,7 @@ class ResourceEncoderTest extends BatemanTestBase {
     }
 
     it("should return only the root JObject") {
-      val incObj = json"""{"type": "other", "id": "2"}"""
-      val encoded = Encoded(simpleRoot, Inclusions(incObj))
+      val encoded = Encoded(simpleRoot, simpleResourceObject, Inclusions(ResourceObject("other", "2")))
       implicit val enc: ResourceEncoder[TestResource] = makeEncoder(encoded.asRight)
       val result = enc.encodeMinimally(TestResource("1", "hello"))
       result shouldBe simpleRoot
@@ -161,23 +161,8 @@ class ResourceEncoderTest extends BatemanTestBase {
 
   describe("Encoded") {
 
-    it("should transform root via map") {
-      val encoded = Encoded(simpleRoot)
-      val mapped = encoded.map(_ => JObject("transformed" -> true.toJAny))
-      mapped.root.fieldList.head.name.value shouldBe "transformed"
-    }
-
-    it("should preserve inclusions in map") {
-      val incObj = json"""{"type": "other", "id": "2"}"""
-      val inclusions = Inclusions(incObj)
-      val encoded = Encoded(simpleRoot, inclusions)
-      val mapped = encoded.map(identity)
-      mapped.inclusions.objects.toList should have size 1
-    }
-
     it("should produce document with data and included via toDocument") {
-      val incObj = json"""{"type": "other", "id": "2"}"""
-      val encoded = Encoded(simpleRoot, Inclusions(incObj))
+      val encoded = Encoded(simpleRoot, simpleResourceObject, Inclusions(ResourceObject("other", "2")))
       inside(encoded.toDocument) {
         case doc: DataDocument =>
           doc.data shouldBe simpleRoot
@@ -186,7 +171,7 @@ class ResourceEncoderTest extends BatemanTestBase {
     }
 
     it("should produce document without included when no inclusions") {
-      val encoded = Encoded(simpleRoot, Inclusions.empty)
+      val encoded = Encoded(simpleRoot, simpleResourceObject, Inclusions.empty)
       inside(encoded.toDocument) {
         case doc: DataDocument =>
           doc.included shouldBe empty

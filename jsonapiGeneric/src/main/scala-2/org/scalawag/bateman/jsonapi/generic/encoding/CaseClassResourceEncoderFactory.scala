@@ -16,7 +16,6 @@ package org.scalawag.bateman.jsonapi.generic.encoding
 
 import org.scalawag.bateman.json.JObject
 import org.scalawag.bateman.json.generic.{CaseClassInfo, MemberLabels}
-import org.scalawag.bateman.json.generic.encoding.DiscriminatorMerge
 import org.scalawag.bateman.jsonapi.encoding.ResourceEncoder
 import org.scalawag.bateman.jsonapi.generic.encoding.HListResourceEncoderFactory.{Input, Params}
 import shapeless.{AllAnnotations, Default, Generic, HList}
@@ -42,11 +41,11 @@ object CaseClassResourceEncoderFactory {
 
       (in, includeSpec, fieldsSpec, discriminators) => {
         val input = Input(generic.to(in), paramResourceType, includeSpec, fieldsSpec)
-        val result = genericEncoder.encode(input, JObject.Empty).toEncoded
-        if (discriminators.fieldList.nonEmpty)
-          result.map(_.map(root => DiscriminatorMerge.mergeDiscriminators(discriminators, root)))
-        else
-          result
+        val partial = genericEncoder.encode(input, JObject.Empty)
+        val partialWithDisc =
+          if (discriminators.fieldList.nonEmpty) partial.withDiscriminators(discriminators)
+          else partial
+        partialWithDisc.toEncoded
       }
     }
 }

@@ -17,6 +17,7 @@ package org.scalawag.bateman.jsonapi.generic.encoding
 import cats.Traverse
 import cats.syntax.traverse._
 import cats.syntax.functor._
+import cats.syntax.either._
 import cats.syntax.parallel._
 import cats.syntax.foldable._
 import org.scalawag.bateman.json.Single
@@ -380,20 +381,20 @@ object HListResourceEncoderFactory {
                     // For any of the objects that don't have IDs, generate and insert one
                     rawEncodedHeads
                       .parTraverse { encodedHead =>
-                        import org.scalawag.bateman.jsonapi.lens._
-
-                        val f = encodedHead.root.asRootFocus
-                        // Decode the type and (optional) id from each encoded head. Generate an identifier for each.
-                        (f(resourceType).flatMap(_.decode[String]), f(id.?).flatMap(_.decode[String])).parMapN {
-                          case (rt, Some(id)) =>
+                        val ro = encodedHead.resourceObject
+                        ro.id match {
+                          case Some(idVal) if !ro.localId =>
                             // If there's an ID, just include this object as-is. Use its ID to reference it.
-                            val ri = JObject("type" -> rt.toJAny, "id" -> id.toJAny)
-                            ri -> encodedHead
-                          case (rt, None) =>
+                            val ri = JObject("type" -> ro.resourceType.toJAny, "id" -> idVal.toJAny)
+                            (ri -> encodedHead).rightNec
+                          case _ =>
                             // No ID, add a lid that we can use to refer to the included object.
                             val lid = params.lidGenerator()
-                            val ri = JObject("type" -> rt.toJAny, "lid" -> lid.toJAny)
-                            ri -> encodedHead.copy(root = f.asObject.flatMap(_.encodeTo("lid", lid, overwrite = true)).getOrThrow.value)
+                            val ri = JObject("type" -> ro.resourceType.toJAny, "lid" -> lid.toJAny)
+                            val f = encodedHead.root.asRootFocus
+                            val updatedRoot = f.asObject.flatMap(_.encodeTo("lid", lid, overwrite = true)).getOrThrow.value
+                            val updatedRo = ro.copy(id = Some(lid), localId = true)
+                            (ri -> encodedHead.copy(root = updatedRoot, resourceObject = updatedRo)).rightNec
                         }
                       }
                       .map(_.unzip)
@@ -401,8 +402,7 @@ object HListResourceEncoderFactory {
                         case (encodedHeadIds, encodedHeadObjects) =>
                           encodedTail
                             .addRelationship(jsonFieldName, JObject("data" -> relationshipData(encodedHeadIds)))
-                            .addInclusions(encodedHeadObjects.map(_.root).toList)
-                            .addInclusions(encodedHeadObjects.map(_.inclusions).combineAll)
+                            .addInclusions(encodedHeadObjects.toList)
                       }
                       .getOrThrow // Any errors detected here are programmer errors.
                   else

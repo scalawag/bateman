@@ -18,7 +18,6 @@ import cats.syntax.foldable.*
 import org.scalawag.bateman.json.*
 import org.scalawag.bateman.json.syntax.*
 import org.scalawag.bateman.json.generic.{CaseClassInfo, Config, Source}
-import org.scalawag.bateman.json.generic.encoding.DiscriminatorMerge
 import org.scalawag.bateman.jsonapi.encoding.FieldsSpec
 import org.scalawag.bateman.jsonapi.encoding.FieldsSpec.Fields
 import org.scalawag.bateman.jsonapi.encoding.FieldsSpec.Fields.Explicit
@@ -224,11 +223,10 @@ object CaseClassResourceEncoderFactory:
 
             val finalPartial = (invalidFieldErrors ++ invalidIncludePathErrors).foldLeft(state.partial)(_.addError(_))
 
-            val result = finalPartial.toEncoded
-            if (discriminators.fieldList.nonEmpty)
-              result.map(_.map(root => DiscriminatorMerge.mergeDiscriminators(discriminators, root)))
-            else
-              result
+            val finalPartialWithDisc =
+              if (discriminators.fieldList.nonEmpty) finalPartial.withDiscriminators(discriminators)
+              else finalPartial
+            finalPartialWithDisc.toEncoded
 
         new ResourceEncoderImpl(info, encoders, resourceType, params)
 
@@ -430,23 +428,23 @@ object CaseClassResourceEncoderFactory:
       jsonFieldName: String,
       params: Params
   ): PartialResource =
-    import org.scalawag.bateman.jsonapi.{lens => japiLens}
     import org.scalawag.bateman.json.lens.{CreatableJLensOps, stringToLens}
     import org.scalawag.bateman.json.RichJResult
-    import cats.syntax.parallel.*
+    import cats.syntax.either.*
 
     def processEncoded(encoded: ResourceEncoder.Encoded): JResult[(JObject, ResourceEncoder.Encoded)] =
-      val f = encoded.root.asRootFocus
-      (f(japiLens.resourceType).flatMap(_.decode[String]), f(japiLens.id.?).flatMap(_.decode[String])).parMapN {
-        case (rt, Some(idVal)) =>
-          val ri = JObject("type" -> rt.toJAny, "id" -> idVal.toJAny)
-          ri -> encoded
-        case (rt, None) =>
+      val ro = encoded.resourceObject
+      ro.id match
+        case Some(idVal) if !ro.localId =>
+          val ri = JObject("type" -> ro.resourceType.toJAny, "id" -> idVal.toJAny)
+          (ri -> encoded).rightNec
+        case _ =>
           val lid = params.lidGenerator()
-          val ri = JObject("type" -> rt.toJAny, "lid" -> lid.toJAny)
+          val ri = JObject("type" -> ro.resourceType.toJAny, "lid" -> lid.toJAny)
+          val f = encoded.root.asRootFocus
           val updatedRoot = f.asObject.flatMap(_.encodeTo("lid", lid, overwrite = true)).getOrThrow.value
-          ri -> encoded.copy(root = updatedRoot)
-      }
+          val updatedRo = ro.copy(id = Some(lid), localId = true)
+          (ri -> encoded.copy(root = updatedRoot, resourceObject = updatedRo)).rightNec
 
     import cats.syntax.traverse.*
 
@@ -456,8 +454,7 @@ object CaseClassResourceEncoderFactory:
         processEncoded(e).map { case (ri, enc) =>
           partial
             .addRelationship(jsonFieldName, JObject("data" -> ri))
-            .addInclusions(List(enc.root))
-            .addInclusions(enc.inclusions)
+            .addInclusions(List(enc))
         }.getOrThrow
       case list: List[ResourceEncoder.Encoded @unchecked] =>
         list.map(processEncoded).sequence
@@ -465,16 +462,14 @@ object CaseClassResourceEncoderFactory:
           .map { case (ids, encodedObjects) =>
             partial
               .addRelationship(jsonFieldName, JObject("data" -> JArray(ids*)))
-              .addInclusions(encodedObjects.map(_.root))
-              .addInclusions(encodedObjects.map(_.inclusions).combineAll)
+              .addInclusions(encodedObjects)
           }
           .getOrThrow
       case e: ResourceEncoder.Encoded =>
         processEncoded(e).map { case (ri, enc) =>
           partial
             .addRelationship(jsonFieldName, JObject("data" -> ri))
-            .addInclusions(List(enc.root))
-            .addInclusions(enc.inclusions)
+            .addInclusions(List(enc))
         }.getOrThrow
       case _ =>
         partial

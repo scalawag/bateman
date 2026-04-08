@@ -19,7 +19,7 @@ import cats.syntax.parallel._
 import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.lens._
 import org.scalawag.bateman.jsonapi.lens._
-import org.scalawag.bateman.json.{JErrors, JObject, ProgrammerError}
+import org.scalawag.bateman.json.{JErrors, JObject, JObjectEncoder, ProgrammerError}
 import org.scalawag.bateman.jsonapi.encoding.Inclusions.Key
 import cats.syntax.either._
 import org.scalawag.bateman.json.focus.JFocus
@@ -30,21 +30,22 @@ import scala.collection.immutable.TreeMap
   * because this is a programming error and should never occur if the system is behaving properly. Automatically sorts
   * the included objects by type and then id.
   */
-case class Inclusions private (private val objectMap: TreeMap[Key, JObject] = TreeMap.empty) {
-  def +(other: JObject): Inclusions = {
-    val key = Key(other.asRootFocus)
-    val stripped = other.stripLocation
+case class Inclusions private (private val objectMap: TreeMap[Key, ResourceObject] = TreeMap.empty) {
+  def +(other: ResourceObject): Inclusions = {
+    val key = Key(other.resourceType, other.id.getOrElse(""), other.localId)
     objectMap.get(key) match {
-      case Some(existing) if existing != stripped =>
-        throw ProgrammerError(s"inconsistent duplicate resource objects:\n${existing.spaces2}\n${other.spaces2}")
+      case Some(existing) if existing != other =>
+        val existingJson = JObjectEncoder[ResourceObject].encode(existing)
+        val otherJson = JObjectEncoder[ResourceObject].encode(other)
+        throw ProgrammerError(s"inconsistent duplicate resource objects:\n${existingJson.spaces2}\n${otherJson.spaces2}")
       case Some(_) =>
         this
       case None =>
-        Inclusions(objectMap.updated(key, stripped))
+        Inclusions(objectMap.updated(key, other))
     }
   }
 
-  def objects: Iterable[JObject] = objectMap.values
+  def objects: Iterable[ResourceObject] = objectMap.values
 }
 
 object Inclusions {
@@ -55,7 +56,7 @@ object Inclusions {
     override def combine(x: Inclusions, y: Inclusions): Inclusions = y.objects.foldLeft(x)(_ + _)
   }
 
-  def apply(objects: JObject*): Inclusions = objects.foldLeft(Inclusions.empty)(_ + _)
+  def apply(objects: ResourceObject*): Inclusions = objects.foldLeft(Inclusions.empty)(_ + _)
 
   case class Key(resourceType: String, id: String, local: Boolean) {
     override val toString: String = s"""(type="$resourceType", ${if (local) "lid" else "id"}="${id}")"""

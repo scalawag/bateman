@@ -16,60 +16,63 @@ package test.jsonapi.encoding
 
 import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.literal._
-import org.scalawag.bateman.jsonapi.encoding.Inclusions
+import org.scalawag.bateman.json.syntax._
+import org.scalawag.bateman.jsonapi.encoding.{Inclusions, ResourceObject}
 import org.scalawag.bateman.jsonapi.encoding.Inclusions.Key
 import test.json.BatemanTestBase
 
 class InclusionsTest extends BatemanTestBase {
+  private def keyOf(ro: ResourceObject): Key = Key(ro.resourceType, ro.id.getOrElse(""), ro.localId)
+  private def encode(ro: ResourceObject): JObject = JObjectEncoder[ResourceObject].encode(ro)
+
 
   describe("Inclusions") {
 
     describe("adding objects") {
 
       it("should add a new object") {
-        val obj: JObject = json"""{"type": "article", "id": "1"}"""
+        val obj = ResourceObject("article", "1")
         val inc = Inclusions.empty + obj
-        val keys = inc.objects.map(o => Key(o.asRootFocus)).toList
+        val keys = inc.objects.map(keyOf).toList
         keys shouldBe List(Key("article", "1", local = false))
       }
 
       it("should add multiple objects with different keys") {
-        val obj1: JObject = json"""{"type": "article", "id": "1"}"""
-        val obj2: JObject = json"""{"type": "author", "id": "2"}"""
+        val obj1 = ResourceObject("article", "1")
+        val obj2 = ResourceObject("author", "2")
         val inc = Inclusions.empty + obj1 + obj2
-        val keys = inc.objects.map(o => Key(o.asRootFocus)).toSet
+        val keys = inc.objects.map(keyOf).toSet
         keys shouldBe Set(Key("article", "1", local = false), Key("author", "2", local = false))
       }
 
       it("should deduplicate identical objects") {
-        val obj1: JObject = json"""{"type": "article", "id": "1"}""".stripLocation
-        val obj2: JObject = json"""{"type": "article", "id": "1"}""".stripLocation
+        val obj1 = ResourceObject("article", "1")
+        val obj2 = ResourceObject("article", "1")
         val inc = Inclusions.empty + obj1 + obj2
-        val keys = inc.objects.map(o => Key(o.asRootFocus)).toList
+        val keys = inc.objects.map(keyOf).toList
         keys shouldBe List(Key("article", "1", local = false))
       }
 
       it("should throw ProgrammerError on inconsistent duplicate") {
-        val obj1: JObject = json"""{"type": "article", "id": "1", "attributes": {"v": 1}}"""
-        val obj2: JObject = json"""{"type": "article", "id": "1", "attributes": {"v": 2}}"""
+        val obj1 = ResourceObject("article", "1").withAttribute("v", 1.toJAny)
+        val obj2 = ResourceObject("article", "1").withAttribute("v", 2.toJAny)
         a[ProgrammerError] should be thrownBy {
           Inclusions.empty + obj1 + obj2
         }
       }
 
-      it("should strip location from added objects") {
-        val obj: JObject = json"""{"type": "article", "id": "1"}"""
-        obj.location shouldBe defined
+      it("should store ResourceObject correctly") {
+        val obj = ResourceObject("article", "1")
         val inc = Inclusions.empty + obj
-        inc.objects.head.location shouldBe None
+        inc.objects.head shouldBe obj
       }
 
       it("should maintain objects in sorted order by type then id") {
-        val obj1: JObject = json"""{"type": "zebra", "id": "1"}"""
-        val obj2: JObject = json"""{"type": "aardvark", "id": "2"}"""
-        val obj3: JObject = json"""{"type": "aardvark", "id": "1"}"""
+        val obj1 = ResourceObject("zebra", "1")
+        val obj2 = ResourceObject("aardvark", "2")
+        val obj3 = ResourceObject("aardvark", "1")
         val inc = Inclusions.empty + obj1 + obj2 + obj3
-        val keys = inc.objects.map(o => Key(o.asRootFocus)).toList
+        val keys = inc.objects.map(keyOf).toList
         keys shouldBe List(
           Key("aardvark", "1", local = false),
           Key("aardvark", "2", local = false),
@@ -81,27 +84,27 @@ class InclusionsTest extends BatemanTestBase {
     describe("Monoid") {
 
       it("should have empty as left identity") {
-        val obj: JObject = json"""{"type": "article", "id": "1"}"""
+        val obj = ResourceObject("article", "1")
         val inc = Inclusions(obj)
         import cats.syntax.monoid._
         val combined = Inclusions.empty |+| inc
-        combined.objects.toList.map(_.render) shouldBe inc.objects.toList.map(_.render)
+        combined.objects.toList.map(encode(_).render) shouldBe inc.objects.toList.map(encode(_).render)
       }
 
       it("should have empty as right identity") {
-        val obj: JObject = json"""{"type": "article", "id": "1"}"""
+        val obj = ResourceObject("article", "1")
         val inc = Inclusions(obj)
         import cats.syntax.monoid._
         val combined = inc |+| Inclusions.empty
-        combined.objects.toList.map(_.render) shouldBe inc.objects.toList.map(_.render)
+        combined.objects.toList.map(encode(_).render) shouldBe inc.objects.toList.map(encode(_).render)
       }
 
       it("should combine two Inclusions") {
-        val obj1: JObject = json"""{"type": "article", "id": "1"}"""
-        val obj2: JObject = json"""{"type": "author", "id": "2"}"""
+        val obj1 = ResourceObject("article", "1")
+        val obj2 = ResourceObject("author", "2")
         import cats.syntax.monoid._
         val combined = Inclusions(obj1) |+| Inclusions(obj2)
-        val keys = combined.objects.map(o => Key(o.asRootFocus)).toSet
+        val keys = combined.objects.map(keyOf).toSet
         keys shouldBe Set(Key("article", "1", local = false), Key("author", "2", local = false))
       }
     }
@@ -109,10 +112,10 @@ class InclusionsTest extends BatemanTestBase {
     describe("varargs constructor") {
 
       it("should create Inclusions from multiple objects") {
-        val obj1: JObject = json"""{"type": "article", "id": "1"}"""
-        val obj2: JObject = json"""{"type": "author", "id": "2"}"""
+        val obj1 = ResourceObject("article", "1")
+        val obj2 = ResourceObject("author", "2")
         val inc = Inclusions(obj1, obj2)
-        val keys = inc.objects.map(o => Key(o.asRootFocus)).toSet
+        val keys = inc.objects.map(keyOf).toSet
         keys shouldBe Set(Key("article", "1", local = false), Key("author", "2", local = false))
       }
     }

@@ -118,7 +118,7 @@ final case class DataDocument(
 
   /** Adds the specified resource objects to the included array of this document. */
   def withIncluded(resources: ResourceObject*): DataDocument =
-    this.copy(included = Some(this.included.getOrElse(Nil) ++ resources.map(JObjectEncoder[ResourceObject].encode(_))))
+    this.copy(included = Some(this.included.getOrElse(Nil) ++ resources))
 }
 
 object DataDocument {
