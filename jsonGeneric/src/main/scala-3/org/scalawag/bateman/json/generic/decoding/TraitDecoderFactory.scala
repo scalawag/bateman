@@ -27,38 +27,62 @@ trait TraitDecoderFactory[To]:
   def apply(params: TraitDeriverParams[JObjectDecoder]): JObjectDecoder[To]
 
 object TraitDecoderFactory:
-  inline def summonDecoders[T <: Tuple]: List[JObjectDecoder[?]] =
+  /** Recursively flatten a tuple of subtypes, expanding any element that is itself a sealed trait
+    * into its (transitive) leaf subtypes. The encoder writes the leaf type's discriminator value
+    * at encode time (via overwrite semantics in `addDiscriminator`), so the decoder must be able
+    * to match against those leaf values — hence the flattening at derivation time.
+    */
+  inline def summonFlattenedDecoders[T <: Tuple]: List[JObjectDecoder[?]] =
     inline erasedValue[T] match
       case _: EmptyTuple => Nil
-      case _: (t *: ts) => summonInline[JObjectDecoder[t]] :: summonDecoders[ts]
+      case _: (t *: ts) => summonFlattenedDecoder[t] ++ summonFlattenedDecoders[ts]
 
-  inline def summonClassTags[T <: Tuple]: List[ClassTag[?]] =
+  inline def summonFlattenedDecoder[T]: List[JObjectDecoder[?]] =
+    summonFrom {
+      case innerM: Mirror.SumOf[T] => summonFlattenedDecoders[innerM.MirroredElemTypes]
+      case _                       => List(summonInline[JObjectDecoder[T]])
+    }
+
+  inline def summonFlattenedClassTags[T <: Tuple]: List[ClassTag[?]] =
     inline erasedValue[T] match
       case _: EmptyTuple => Nil
-      case _: (t *: ts) => summonInline[ClassTag[t]] :: summonClassTags[ts]
+      case _: (t *: ts) => summonFlattenedClassTag[t] ++ summonFlattenedClassTags[ts]
+
+  inline def summonFlattenedClassTag[T]: List[ClassTag[?]] =
+    summonFrom {
+      case innerM: Mirror.SumOf[T] => summonFlattenedClassTags[innerM.MirroredElemTypes]
+      case _                       => List(summonInline[ClassTag[T]])
+    }
 
   inline given derived[T](using m: Mirror.SumOf[T]): TraitDecoderFactory[T] =
-    val decoders = summonDecoders[m.MirroredElemTypes]
-    val labels = constValueTuple[m.MirroredElemLabels].toArray.map(_.toString).toList
-    val classTags = summonClassTags[m.MirroredElemTypes]
+    val decoders = summonFlattenedDecoders[m.MirroredElemTypes]
+    val classTags = summonFlattenedClassTags[m.MirroredElemTypes]
 
     class TraitDecoderFactoryImpl(
         decoders: List[JObjectDecoder[?]],
-        labels: List[String],
         classTags: List[ClassTag[?]]
     ) extends TraitDecoderFactory[T]:
       def apply(params: TraitDeriverParams[JObjectDecoder]): JObjectDecoder[T] =
-        // Pre-compute discriminator mappings for each concrete type
+        // Pre-compute discriminator mappings for each leaf type
         val mappings = classTags.zip(decoders).map { case (ct, dec) =>
           params.discriminator(using ct.asInstanceOf[ClassTag[Any]], params.config, dec.asInstanceOf[JObjectDecoder[Any]])
         }
 
-        // Check for duplicate discriminator values if required
+        // Check for duplicate discriminator values if required. Because the hierarchy is flattened,
+        // multiple leaves may share a value legitimately when `CustomDiscriminator` routes them
+        // through a common explicit decoder (e.g., `forType[IntermediateTrait]("value")` matching
+        // all of its leaves via isAssignableFrom). Treat those as a single logical mapping.
         if params.discriminator.duplicateValuesForbidden then
-          val discriminatorValues = mappings.zip(classTags).map { case (m, ct) =>
-            m.value -> List(ct)
-          }.groupMapReduce(_._1)(_._2)(_ ++ _)
-          DiscriminatorCollision.detect(discriminatorValues)
+          val conflicts = mappings.zip(classTags)
+            .groupBy(_._1.value)
+            .filter { (_, entries) =>
+              entries.size > 1 && {
+                val explicits = entries.map(_._1.explicit)
+                explicits.exists(_.isEmpty) || explicits.map(System.identityHashCode).distinct.size > 1
+              }
+            }
+            .map { (value, entries) => value -> entries.map(_._2) }
+          if conflicts.nonEmpty then throw DiscriminatorCollision(conflicts)
 
         class JObjectDecoderImpl(
             decoders: List[JObjectDecoder[?]],
@@ -84,4 +108,4 @@ object TraitDecoderFactory:
 
         new JObjectDecoderImpl(decoders, mappings.asInstanceOf[List[Discriminators.DiscriminatorMapping[JObjectDecoder, Any]]], params)
 
-    new TraitDecoderFactoryImpl(decoders, labels, classTags)
+    new TraitDecoderFactoryImpl(decoders, classTags)

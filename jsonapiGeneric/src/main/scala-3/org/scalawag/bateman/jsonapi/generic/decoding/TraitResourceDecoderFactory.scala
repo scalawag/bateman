@@ -27,47 +27,74 @@ trait TraitResourceDecoderFactory[To]:
   def apply(params: TraitDeriverParams[JObjectDecoder]): JObjectDecoder[To]
 
 object TraitResourceDecoderFactory:
-  inline def summonDecoders[T <: Tuple]: List[JObjectDecoder[?]] =
+  /** Recursively flatten a tuple of subtypes, expanding any element that is itself a sealed trait
+    * into its (transitive) leaf subtypes. The encoder writes the leaf type's discriminator value
+    * at encode time (via overwrite semantics in `addDiscriminator`), so the decoder must be able
+    * to match against those leaf values — hence the flattening at derivation time.
+    */
+  inline def summonFlattenedDecoders[T <: Tuple]: List[JObjectDecoder[?]] =
     inline erasedValue[T] match
       case _: EmptyTuple => Nil
-      case _: (t *: ts)  => summonInline[JObjectDecoder[t]] :: summonDecoders[ts]
+      case _: (t *: ts)  => summonFlattenedDecoder[t] ++ summonFlattenedDecoders[ts]
 
-  inline def summonClassTags[T <: Tuple]: List[ClassTag[?]] =
+  inline def summonFlattenedDecoder[T]: List[JObjectDecoder[?]] =
+    summonFrom {
+      case innerM: Mirror.SumOf[T] => summonFlattenedDecoders[innerM.MirroredElemTypes]
+      case _                       => List(summonInline[JObjectDecoder[T]])
+    }
+
+  inline def summonFlattenedClassTags[T <: Tuple]: List[ClassTag[?]] =
     inline erasedValue[T] match
       case _: EmptyTuple => Nil
-      case _: (t *: ts)  => summonInline[ClassTag[t]] :: summonClassTags[ts]
+      case _: (t *: ts)  => summonFlattenedClassTag[t] ++ summonFlattenedClassTags[ts]
+
+  inline def summonFlattenedClassTag[T]: List[ClassTag[?]] =
+    summonFrom {
+      case innerM: Mirror.SumOf[T] => summonFlattenedClassTags[innerM.MirroredElemTypes]
+      case _                       => List(summonInline[ClassTag[T]])
+    }
 
   inline given derived[T](using m: Mirror.SumOf[T]): TraitResourceDecoderFactory[T] =
-    val labels = constValueTuple[m.MirroredElemLabels].toArray.map(_.toString).toList
-    val decoders = summonDecoders[m.MirroredElemTypes]
-    val classTags = summonClassTags[m.MirroredElemTypes]
+    val decoders = summonFlattenedDecoders[m.MirroredElemTypes]
+    val classTags = summonFlattenedClassTags[m.MirroredElemTypes]
 
     // Use a named class to prevent duplication at each inline call site.
     class TraitResourceDecoderFactoryImpl(
-        labels: List[String],
         decoders: List[JObjectDecoder[?]],
         classTags: List[ClassTag[?]]
     ) extends TraitResourceDecoderFactory[T]:
       def apply(params: TraitDeriverParams[JObjectDecoder]): JObjectDecoder[T] =
         import params.implicitConfig
 
-        // Build discriminator mappings for each variant
-        val discriminatorMappings: List[(JAny, JObjectDecoder[Any])] = labels.zip(decoders).zip(classTags).map {
-          case ((label, decoder), ct) =>
+        // Build discriminator mappings for each leaf type. Retain the `explicit` marker so the
+        // duplicate-value check below can distinguish legitimate shared routing (layered
+        // discriminators via `forType[IntermediateTrait]`) from actual collisions.
+        val mappings: List[(JAny, JObjectDecoder[Any], Option[JObjectDecoder[Any]])] =
+          decoders.zip(classTags).map { case (decoder, ct) =>
             given ClassTag[Any] = ct.asInstanceOf[ClassTag[Any]]
             given JObjectDecoder[Any] = decoder.asInstanceOf[JObjectDecoder[Any]]
             val disc = params.discriminator[Any]
             val effectiveDecoder = disc.explicit.getOrElse(decoder).asInstanceOf[JObjectDecoder[Any]]
-            (disc.value, effectiveDecoder)
-        }
+            (disc.value, effectiveDecoder, disc.explicit.map(_.asInstanceOf[JObjectDecoder[Any]]))
+          }
 
-        // Check for duplicate discriminator values
-        val discriminatorValues: Map[JAny, List[ClassTag[?]]] =
-          discriminatorMappings.zip(classTags).map { case ((v, _), ct) => (v, List(ct)) }
-            .groupMapReduce(_._1)(_._2)(_ ++ _)
-
+        // Check for duplicate discriminator values if required. Because the hierarchy is flattened,
+        // multiple leaves may share a value legitimately when `CustomDiscriminator` routes them
+        // through a common explicit decoder (e.g., `forType[IntermediateTrait]("value")` matching
+        // all of its leaves via isAssignableFrom). Treat those as a single logical mapping.
         if params.discriminator.duplicateValuesForbidden then
-          DiscriminatorCollision.detect(discriminatorValues)
+          val conflicts = mappings.zip(classTags)
+            .groupBy(_._1._1)
+            .filter { (_, entries) =>
+              entries.size > 1 && {
+                val explicits = entries.map(_._1._3)
+                explicits.exists(_.isEmpty) || explicits.map(System.identityHashCode).distinct.size > 1
+              }
+            }
+            .map { (value, entries) => value -> entries.map(_._2) }
+          if conflicts.nonEmpty then throw DiscriminatorCollision(conflicts)
+
+        val discriminatorMappings: List[(JAny, JObjectDecoder[Any])] = mappings.map { case (v, d, _) => (v, d) }
 
         // Use a named class to prevent duplication when the factory's apply is called at multiple sites.
         class JObjectDecoderImpl(
@@ -90,4 +117,4 @@ object TraitResourceDecoderFactory:
 
         new JObjectDecoderImpl(discriminatorMappings, params)
 
-    new TraitResourceDecoderFactoryImpl(labels, decoders, classTags)
+    new TraitResourceDecoderFactoryImpl(decoders, classTags)
