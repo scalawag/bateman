@@ -16,7 +16,7 @@ package test.json.parser.tokenizer
 
 import cats.syntax.either._
 import org.scalawag.bateman.json.JLocation
-import org.scalawag.bateman.json.parser.{SyntaxError, UnexpectedChars}
+import org.scalawag.bateman.json.parser.UnexpectedChars
 import org.scalawag.bateman.json.parser.tokenizer._
 import test.json.BatemanTestBase
 

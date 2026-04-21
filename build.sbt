@@ -271,6 +271,7 @@ val enumeratum = projectMatrix
 
 val docs = project
   .in(file("docs"))
+  .settings(scalaVersion := Versions.scala212)
   .settings(commonSettings)
   // This is needed to build the doc examples with mdoc
   .dependsOn(

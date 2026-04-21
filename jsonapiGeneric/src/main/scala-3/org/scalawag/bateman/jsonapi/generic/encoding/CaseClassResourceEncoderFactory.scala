@@ -14,7 +14,6 @@
 
 package org.scalawag.bateman.jsonapi.generic.encoding
 
-import cats.syntax.foldable.*
 import org.scalawag.bateman.json.*
 import org.scalawag.bateman.json.syntax.*
 import org.scalawag.bateman.json.generic.{CaseClassInfo, Config, Source}
@@ -428,7 +427,7 @@ object CaseClassResourceEncoderFactory:
       jsonFieldName: String,
       params: Params
   ): PartialResource =
-    import org.scalawag.bateman.json.lens.{CreatableJLensOps, stringToLens}
+    import org.scalawag.bateman.json.lens.stringToLens
     import org.scalawag.bateman.json.RichJResult
     import cats.syntax.either.*
 

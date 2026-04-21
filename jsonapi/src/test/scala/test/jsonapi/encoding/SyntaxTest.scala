@@ -20,7 +20,7 @@ import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.syntax._
 import org.scalawag.bateman.json.literal._
 import org.scalawag.bateman.jsonapi.syntax._
-import org.scalawag.bateman.jsonapi.encoding.{Document, EncodeResult, FieldsSpec, IncludeSpec, Inclusions, ResourceEncoder, ResourceObject}
+import org.scalawag.bateman.jsonapi.encoding.{EncodeResult, FieldsSpec, IncludeSpec, Inclusions, ResourceEncoder, ResourceObject}
 import test.json.BatemanTestBase
 import test.jsonapi.encoding.SyntaxTest._
 

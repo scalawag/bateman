@@ -25,7 +25,7 @@ import org.scalawag.bateman.json.generic.{
 }
 import org.scalawag.bateman.json.literal._
 import org.scalawag.bateman.json.syntax._
-import org.scalawag.bateman.json.{JBoolean, JNumber, JObjectDecoder, JString, MissingField}
+import org.scalawag.bateman.json.{JBoolean, JNumber, JObjectDecoder, MissingField}
 import org.scalawag.bateman.json.lens.stringToLens
 import org.scalawag.bateman.json.generic.semiauto._
 

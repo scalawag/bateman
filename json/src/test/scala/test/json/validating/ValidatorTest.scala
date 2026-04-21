@@ -19,7 +19,7 @@ import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.{EitherValues, Inside}
 import org.scalawag.bateman.json.validating.{ValidationFailure, Validator}
-import org.scalawag.bateman.json.{Decoder, InvalidValue, JString, JStringDecoder}
+import org.scalawag.bateman.json.{InvalidValue, JString, JStringDecoder}
 
 class ValidatorTest extends AnyFunSpec with Matchers with EitherValues with Inside {
   case class String16(s: String)

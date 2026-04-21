@@ -42,7 +42,7 @@ class JFocusJArrayOpsTest extends BatemanTestBase {
         val ff = f.items
         ff.map(_.value) shouldBe f.value.items
         ff.map(_.value) shouldBe f.value.items
-        ff.map(_.pointer) shouldBe Stream.from(0).take(f.value.items.length).map(f.pointer.item(_))
+        ff.map(_.pointer) shouldBe (0 until f.value.items.length).map(f.pointer.item(_))
         ff.map(_.root) shouldBe f.value.items.map(_ => f.root)
       }
     }

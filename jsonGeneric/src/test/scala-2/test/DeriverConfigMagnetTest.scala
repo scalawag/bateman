@@ -18,7 +18,7 @@ import org.scalacheck.Gen
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalawag.bateman.json.generic.Config
 import org.scalawag.bateman.json.generic.naming.{CamelCase, KebabCase, PascalCase, SnakeCase}
-import org.scalawag.bateman.json.generic.{Defer, DeriverConfigMagnet, Replace, Transform}
+import org.scalawag.bateman.json.generic.{Defer, Replace, Transform}
 import test.json.BatemanTestBase
 
 class DeriverConfigMagnetTest extends BatemanTestBase {

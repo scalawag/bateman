@@ -16,7 +16,6 @@ package test.json.generic.encoding
 
 import cats.syntax.functor._
 import org.scalawag.bateman.json.literal.JsonStringContext
-import org.scalawag.bateman.json.syntax._
 import org.scalawag.bateman.json.{Decoder, JAnyEncoder, JNumber, JNumberDecoder}
 import test.json.BatemanTestBase
 

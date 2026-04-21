@@ -19,7 +19,6 @@ import org.scalawag.bateman.json._
 import org.scalawag.bateman.json.JType.Summoner
 
 import scala.annotation.tailrec
-import scala.language.implicitConversions
 import scala.reflect.ClassTag
 
 //======================================================================================================================
