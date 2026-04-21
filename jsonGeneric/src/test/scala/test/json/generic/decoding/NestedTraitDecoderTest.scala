@@ -32,6 +32,11 @@ object NestedTraitDecoderTest {
 
   sealed trait Deeper extends Mid
   final case class DeepestLeaf(c: Boolean) extends Deeper
+
+  // Diamond: a concrete type that extends multiple sealed traits, each a (transitive) child of Top.
+  sealed trait LeftBranch extends Top
+  sealed trait RightBranch extends Top
+  final case class Diamond(d: Int) extends LeftBranch with RightBranch
 }
 
 class NestedTraitDecoderTest extends BatemanTestBase {
@@ -50,5 +55,9 @@ class NestedTraitDecoderTest extends BatemanTestBase {
 
   it("should decode a leaf nested two levels deep") {
     json"""{"type":"DeepestLeaf","c":true}""".asRootFocus.decode[Top].shouldSucceed shouldBe DeepestLeaf(true)
+  }
+
+  it("should decode a leaf reachable via multiple sealed trait branches (diamond)") {
+    json"""{"type":"Diamond","d":7}""".asRootFocus.decode[Top].shouldSucceed shouldBe Diamond(7)
   }
 }

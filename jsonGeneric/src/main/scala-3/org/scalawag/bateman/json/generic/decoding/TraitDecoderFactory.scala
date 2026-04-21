@@ -48,7 +48,10 @@ object TraitDecoderFactory:
         }
 
   inline given derived[T](using m: Mirror.SumOf[T]): TraitDecoderFactory[T] =
-    val leaves = summonFlattenedLeaves[m.MirroredElemTypes]
+    // A concrete type that extends multiple sealed traits (each themselves a direct or transitive
+    // child of T) will be reached more than once by the flatten. Dedupe by runtime class — they're
+    // the same type and resolve to the same decoder and discriminator value.
+    val leaves = summonFlattenedLeaves[m.MirroredElemTypes].distinctBy(_._2.runtimeClass)
     val decoders = leaves.map(_._1)
     val classTags = leaves.map(_._2)
 
