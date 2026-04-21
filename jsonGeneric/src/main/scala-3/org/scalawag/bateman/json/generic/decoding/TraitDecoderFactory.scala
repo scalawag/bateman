@@ -31,32 +31,26 @@ object TraitDecoderFactory:
     * into its (transitive) leaf subtypes. The encoder writes the leaf type's discriminator value
     * at encode time (via overwrite semantics in `addDiscriminator`), so the decoder must be able
     * to match against those leaf values — hence the flattening at derivation time.
+    *
+    * Decoders and ClassTags are summoned together in a single recursive pass to keep the generated
+    * tree shallow enough for the JS compiler's default stack (which is smaller than on JVM).
     */
-  inline def summonFlattenedDecoders[T <: Tuple]: List[JObjectDecoder[?]] =
+  inline def summonFlattenedLeaves[T <: Tuple]: List[(JObjectDecoder[?], ClassTag[?])] =
     inline erasedValue[T] match
       case _: EmptyTuple => Nil
-      case _: (t *: ts) => summonFlattenedDecoder[t] ++ summonFlattenedDecoders[ts]
-
-  inline def summonFlattenedDecoder[T]: List[JObjectDecoder[?]] =
-    summonFrom {
-      case innerM: Mirror.SumOf[T] => summonFlattenedDecoders[innerM.MirroredElemTypes]
-      case _                       => List(summonInline[JObjectDecoder[T]])
-    }
-
-  inline def summonFlattenedClassTags[T <: Tuple]: List[ClassTag[?]] =
-    inline erasedValue[T] match
-      case _: EmptyTuple => Nil
-      case _: (t *: ts) => summonFlattenedClassTag[t] ++ summonFlattenedClassTags[ts]
-
-  inline def summonFlattenedClassTag[T]: List[ClassTag[?]] =
-    summonFrom {
-      case innerM: Mirror.SumOf[T] => summonFlattenedClassTags[innerM.MirroredElemTypes]
-      case _                       => List(summonInline[ClassTag[T]])
-    }
+      case _: (t *: ts) =>
+        val tail = summonFlattenedLeaves[ts]
+        summonFrom {
+          case innerM: Mirror.SumOf[`t`] =>
+            summonFlattenedLeaves[innerM.MirroredElemTypes] ::: tail
+          case _ =>
+            (summonInline[JObjectDecoder[t]], summonInline[ClassTag[t]]) :: tail
+        }
 
   inline given derived[T](using m: Mirror.SumOf[T]): TraitDecoderFactory[T] =
-    val decoders = summonFlattenedDecoders[m.MirroredElemTypes]
-    val classTags = summonFlattenedClassTags[m.MirroredElemTypes]
+    val leaves = summonFlattenedLeaves[m.MirroredElemTypes]
+    val decoders = leaves.map(_._1)
+    val classTags = leaves.map(_._2)
 
     class TraitDecoderFactoryImpl(
         decoders: List[JObjectDecoder[?]],
