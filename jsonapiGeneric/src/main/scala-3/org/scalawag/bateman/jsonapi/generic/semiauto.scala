@@ -109,7 +109,7 @@ object semiauto:
         )
       )
 
-    private class CodecToEncoderDiscriminator(in: Discriminator[ResourceCodec]) extends Discriminator[ResourceEncoder]:
+    class CodecToEncoderDiscriminator(in: Discriminator[ResourceCodec]) extends Discriminator[ResourceEncoder]:
       override def duplicateValuesForbidden: Boolean = in.duplicateValuesForbidden
       override def apply[B: ClassTag](using
           config: Config,
@@ -119,7 +119,7 @@ object semiauto:
         val d = in[B]
         d.copy(explicit = d.explicit.map(_.encoder))
 
-    private class CodecToDecoderDiscriminator(in: Discriminator[ResourceCodec]) extends Discriminator[JObjectDecoder]:
+    class CodecToDecoderDiscriminator(in: Discriminator[ResourceCodec]) extends Discriminator[JObjectDecoder]:
       override def duplicateValuesForbidden: Boolean = in.duplicateValuesForbidden
       override def apply[B: ClassTag](using
           config: Config,
