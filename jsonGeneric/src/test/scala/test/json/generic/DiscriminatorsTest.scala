@@ -19,7 +19,7 @@ import org.scalawag.bateman.json.generic.{Config, DiscriminatorCollision, Missin
 import org.scalawag.bateman.json.generic.Discriminators._
 import test.json.BatemanTestBase
 
-import scala.reflect.classTag
+import scala.reflect.{ClassTag, classTag}
 
 object DiscriminatorsTest {
   sealed trait Animal
@@ -122,8 +122,9 @@ class DiscriminatorsTest extends BatemanTestBase {
 
   describe("DiscriminatorCollision") {
     it("should detect duplicate discriminator values") {
-      val dups = Map(
-        JString("same").asInstanceOf[JAny] -> List(classTag[Dog], classTag[Cat])
+      val dups: List[DiscriminatorMapping[JAnyEncoder, _]] = List(
+        DiscriminatorMapping[JAnyEncoder, Dog](JString("same"), None),
+        DiscriminatorMapping[JAnyEncoder, Cat](JString("same"), None),
       )
       a[DiscriminatorCollision] shouldBe thrownBy {
         DiscriminatorCollision.detect(dups)
@@ -131,12 +132,45 @@ class DiscriminatorsTest extends BatemanTestBase {
     }
 
     it("should not throw when no duplicates") {
-      val noDups = Map(
-        JString("dog").asInstanceOf[JAny] -> List(classTag[Dog]),
-        JString("cat").asInstanceOf[JAny] -> List(classTag[Cat])
+      val noDups: List[DiscriminatorMapping[JAnyEncoder, _]] = List(
+        DiscriminatorMapping[JAnyEncoder, Dog](JString("dog"), None),
+        DiscriminatorMapping[JAnyEncoder, Cat](JString("cat"), None),
       )
       noException shouldBe thrownBy {
         DiscriminatorCollision.detect(noDups)
+      }
+    }
+
+    it("should not throw when mappings share a value but route through the same explicit instance") {
+      // Layered discriminators: a forType[IntermediateTrait](...) mapper matches every leaf
+      // under the intermediate, and all matches carry the same explicit encoder reference.
+      val sharedExplicit: JAnyEncoder[Animal] = (_: Animal) => JString("animal-encoded")
+      val layered: List[DiscriminatorMapping[JAnyEncoder, _]] = List(
+        DiscriminatorMapping[JAnyEncoder, Animal](JString("terminated"), Some(sharedExplicit)),
+        DiscriminatorMapping[JAnyEncoder, Animal](JString("terminated"), Some(sharedExplicit)),
+      )
+      noException shouldBe thrownBy {
+        DiscriminatorCollision.detect(layered)
+      }
+    }
+
+    it("should detect when mappings share a value but route through different explicit instances") {
+      val layered: List[DiscriminatorMapping[JAnyEncoder, _]] = List(
+        DiscriminatorMapping[JAnyEncoder, Dog](JString("same"), Some((_: Dog) => JString("a"))),
+        DiscriminatorMapping[JAnyEncoder, Cat](JString("same"), Some((_: Cat) => JString("b"))),
+      )
+      a[DiscriminatorCollision] shouldBe thrownBy {
+        DiscriminatorCollision.detect(layered)
+      }
+    }
+
+    it("should detect when mappings share a value and not all of them have explicit instances") {
+      val layered: List[DiscriminatorMapping[JAnyEncoder, _]] = List(
+        DiscriminatorMapping[JAnyEncoder, Dog](JString("same"), Some((_: Dog) => JString("a"))),
+        DiscriminatorMapping[JAnyEncoder, Cat](JString("same"), None),
+      )
+      a[DiscriminatorCollision] shouldBe thrownBy {
+        DiscriminatorCollision.detect(layered)
       }
     }
   }

@@ -41,7 +41,7 @@ object TraitEncoderFactory {
       val genericEncoder = genericEncoderFactory(params)
 
       if (params.discriminator.duplicateValuesForbidden)
-        DiscriminatorCollision.detect(genericEncoder.discriminatorValues)
+        DiscriminatorCollision.detect(genericEncoder.discriminatorMappings)
 
       (instance, discriminators) => {
         genericEncoder.encode(gen.to(instance), discriminators)

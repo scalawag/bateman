@@ -14,10 +14,10 @@
 
 package org.scalawag.bateman.jsonapi.generic.encoding
 
-import org.scalawag.bateman.json.JAny
-import org.scalawag.bateman.json.generic.TraitDeriverParams
+import org.scalawag.bateman.json.JObject
+import org.scalawag.bateman.json.generic.{DiscriminatorCollision, TraitDeriverParams, TraitUtils}
+import org.scalawag.bateman.json.generic.Discriminators
 import org.scalawag.bateman.jsonapi.encoding.ResourceEncoder
-import scala.compiletime.*
 import scala.deriving.Mirror
 import scala.reflect.ClassTag
 
@@ -25,60 +25,57 @@ trait TraitResourceEncoderFactory[In]:
   def apply(params: TraitDeriverParams[ResourceEncoder]): ResourceEncoder[In]
 
 object TraitResourceEncoderFactory:
-  inline def summonEncoders[T <: Tuple]: List[ResourceEncoder[?]] =
-    inline erasedValue[T] match
-      case _: EmptyTuple => Nil
-      case _: (t *: ts)  => summonInline[ResourceEncoder[t]] :: summonEncoders[ts]
-
-  inline def summonClassTags[T <: Tuple]: List[ClassTag[?]] =
-    inline erasedValue[T] match
-      case _: EmptyTuple => Nil
-      case _: (t *: ts)  => summonInline[ClassTag[t]] :: summonClassTags[ts]
-
   inline given derived[T](using m: Mirror.SumOf[T]): TraitResourceEncoderFactory[T] =
-    val labels = constValueTuple[m.MirroredElemLabels].toArray.map(_.toString).toList
-    val encoders = summonEncoders[m.MirroredElemTypes]
-    val classTags = summonClassTags[m.MirroredElemTypes]
+    // A concrete type that extends multiple sealed traits (each themselves a direct or transitive
+    // child of T) will be reached more than once by the flatten. Dedupe by runtime class — they're
+    // the same type and resolve to the same encoder and discriminator value.
+    val leaves = TraitUtils.summonConcretes[m.MirroredElemTypes, ResourceEncoder]
+    val encoders = leaves.map(_._1)
+    val classTags = leaves.map(_._2)
 
     // Use a named class to prevent duplication at each inline call site.
     class TraitResourceEncoderFactoryImpl(
-        labels: List[String],
         encoders: List[ResourceEncoder[?]],
-        classTags: List[ClassTag[?]],
-        ordinal: T => Int
+        classTags: List[ClassTag[?]]
     ) extends TraitResourceEncoderFactory[T]:
       def apply(params: TraitDeriverParams[ResourceEncoder]): ResourceEncoder[T] =
         import params.implicitConfig
 
-        // Build discriminator mappings for each variant
-        val discriminatorMappings = labels.zip(encoders).zip(classTags).map {
-          case ((label, encoder), ct) =>
+        // Pre-compute discriminator mappings for each leaf type
+        val mappings: List[Discriminators.DiscriminatorMapping[ResourceEncoder, Any]] =
+          classTags.zip(encoders).map { case (ct, enc) =>
             given ClassTag[Any] = ct.asInstanceOf[ClassTag[Any]]
-            given ResourceEncoder[Any] = encoder.asInstanceOf[ResourceEncoder[Any]]
-            val disc = params.discriminator[Any]
-            (disc.value, disc.explicit, encoder, ct)
-        }
+            given ResourceEncoder[Any] = enc.asInstanceOf[ResourceEncoder[Any]]
+            params.discriminator[Any]
+          }
+
+        if params.discriminator.duplicateValuesForbidden then
+          DiscriminatorCollision.detect(mappings)
+
+        // Build a class-keyed dispatch table. We dispatch by `value.getClass` rather than by
+        // `Mirror.SumOf.ordinal` because the mirror only sees direct subtypes, while the table
+        // needs to cover transitive leaves.
+        val byClass: Map[Class[?], (ResourceEncoder[Any], Discriminators.DiscriminatorMapping[ResourceEncoder, Any])] =
+          encoders.zip(classTags).zip(mappings).map { case ((enc, ct), mapping) =>
+            ct.runtimeClass -> (enc.asInstanceOf[ResourceEncoder[Any]], mapping)
+          }.toMap
 
         // Use a named class to prevent duplication when the factory's apply is called at multiple sites.
         class ResourceEncoderImpl(
-            ordinal: T => Int,
-            discriminatorMappings: List[(org.scalawag.bateman.json.JAny, Option[ResourceEncoder[Any]], ResourceEncoder[?], ClassTag[?])],
+            byClass: Map[Class[?], (ResourceEncoder[Any], Discriminators.DiscriminatorMapping[ResourceEncoder, Any])],
             params: TraitDeriverParams[ResourceEncoder]
         ) extends ResourceEncoder[T]:
           def encodeResource(
               in: T,
               includeSpec: org.scalawag.bateman.jsonapi.encoding.IncludeSpec,
               fieldsSpec: org.scalawag.bateman.jsonapi.encoding.FieldsSpec,
-              discriminators: org.scalawag.bateman.json.JObject
+              discriminators: JObject
           ): org.scalawag.bateman.jsonapi.encoding.EncodeResult[ResourceEncoder.Encoded] =
-            val ord = ordinal(in)
-            val (discValue, explicitEncoder, defaultEncoder, ct) = discriminatorMappings(ord)
-            val effectiveEncoder = explicitEncoder.getOrElse(defaultEncoder).asInstanceOf[ResourceEncoder[Any]]
-            val enrichedDiscriminators = params.addDiscriminator(discriminators, discValue)
+            val (defaultEncoder, mapping) = byClass(in.getClass)
+            val effectiveEncoder = mapping.explicit.getOrElse(defaultEncoder)
+            val enrichedDiscriminators = params.addDiscriminator(discriminators, mapping.value)
             effectiveEncoder.encodeResource(in, includeSpec, fieldsSpec, enrichedDiscriminators)
 
-        new ResourceEncoderImpl(ordinal, discriminatorMappings.map {
-          case (v, exp, enc, ct) => (v, exp.map(_.asInstanceOf[ResourceEncoder[Any]]), enc, ct)
-        }, params)
+        new ResourceEncoderImpl(byClass, params)
 
-    new TraitResourceEncoderFactoryImpl(labels, encoders, classTags, m.ordinal)
+    new TraitResourceEncoderFactoryImpl(encoders, classTags)

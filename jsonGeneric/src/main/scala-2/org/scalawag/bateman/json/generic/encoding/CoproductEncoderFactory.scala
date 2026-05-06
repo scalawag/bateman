@@ -14,13 +14,12 @@
 
 package org.scalawag.bateman.json.generic.encoding
 
-import cats.syntax.semigroup._
-import cats.instances.map._
-import org.scalawag.bateman.json.{JAny, JObject, JObjectEncoder}
+import org.scalawag.bateman.json.{JObject, JObjectEncoder}
 import org.scalawag.bateman.json.generic.TraitDeriverParams
+import org.scalawag.bateman.json.generic.Discriminators.DiscriminatorMapping
 import shapeless.{:+:, CNil, Coproduct, Inl, Inr, Lazy}
 
-import scala.reflect.{ClassTag, classTag}
+import scala.reflect.ClassTag
 
 trait CoproductEncoderFactory[In <: Coproduct] {
   def apply(params: TraitDeriverParams[JObjectEncoder]): CoproductEncoder[In]
@@ -30,7 +29,7 @@ object CoproductEncoderFactory {
   private val unreachableFactory = new CoproductEncoder[CNil] {
     // Nothing needs to be implemented here because this is only used in a branch that can't be reached (CNil).
     override def encode(input: CNil, discriminators: JObject): JObject = ???
-    override def discriminatorValues: Map[JAny, List[ClassTag[_]]] = Map.empty
+    override def discriminatorMappings: List[DiscriminatorMapping[JObjectEncoder, _]] = Nil
   }
 
   /** An encoder for CNil. In practice, this decoder is never used because it fails if there's not an encoder for
@@ -54,8 +53,6 @@ object CoproductEncoderFactory {
       tailEncoderFactory: CoproductEncoderFactory[Tail],
   ): CoproductEncoderFactory[Head :+: Tail] =
     params => {
-      val headClass = classTag[Head]
-
       import params.implicitConfig
       implicit val headEncoder = lazyHeadEncoder.value
       val disc = params.discriminator[Head]
@@ -77,10 +74,8 @@ object CoproductEncoderFactory {
               effectiveHeadEncoder.encode(h, enrichedDiscriminators)
           }
 
-        override def discriminatorValues: Map[JAny, List[ClassTag[_]]] = {
-          val tailDiscriminators = tailEncoder.discriminatorValues
-          Map[JAny, List[ClassTag[_]]](disc.value -> List(headClass)) combine tailDiscriminators
-        }
+        override def discriminatorMappings: List[DiscriminatorMapping[JObjectEncoder, _]] =
+          disc :: tailEncoder.discriminatorMappings
       }
     }
 }

@@ -14,16 +14,15 @@
 
 package org.scalawag.bateman.json.generic.decoding
 
-import cats.syntax.semigroup._
-import cats.instances.map._
 import cats.syntax.either._
 import org.scalawag.bateman.json.focus.JFocus
 import org.scalawag.bateman.json.{JAny, JObject, JObjectDecoder, JResult}
 import org.scalawag.bateman.json.generic.TraitDeriverParams
+import org.scalawag.bateman.json.generic.Discriminators.DiscriminatorMapping
 import org.scalawag.bateman.json.generic.decoding.CoproductDecoderFactory.Input
 import shapeless.{:+:, CNil, Coproduct, Inl, Inr, Lazy}
 
-import scala.reflect.{ClassTag, classTag}
+import scala.reflect.ClassTag
 
 /** Represents an automatically-derived [[Coproduct]] decoder. A [[CoproductDecoder]] is essentially a delegate
   * decoder (called the headDecoder) and a fallback decoder to try if the headDecoder is not appropriate, based
@@ -49,8 +48,12 @@ trait CoproductDecoder[A <: Coproduct] {
     */
   def decode(input: Input): JResult[A]
 
-  /** Returns a map of discriminator values to [[ClassTag]]s that can be decoded by this decoder. */
-  def discriminatorValues: Map[JAny, List[ClassTag[_]]]
+  /** One mapping per concrete leaf that this decoder can handle. Layered routing through an
+    * intermediate trait shows up here as multiple leaves carrying the same explicit decoder
+    * reference, which the collision check uses to recognize them as a single logical mapping
+    * rather than duplicates.
+    */
+  def discriminatorMappings: List[DiscriminatorMapping[JObjectDecoder, _]]
 }
 
 trait CoproductDecoderFactory[To <: Coproduct] {
@@ -100,7 +103,7 @@ object CoproductDecoderFactory {
       override def decode(input: Input): JResult[CNil] =
         InvalidDiscriminator(input.discriminatorFocus, input.discriminatorValuesHandled.toSet).leftNec
 
-      override def discriminatorValues: Map[JAny, List[ClassTag[_]]] = Map.empty
+      override def discriminatorMappings: List[DiscriminatorMapping[JObjectDecoder, _]] = Nil
     }
 
   /** Decodes the input JObject to an instance of type [[H]] if the discriminator value matches the one handled
@@ -117,8 +120,6 @@ object CoproductDecoderFactory {
       lazyHeadDecoder: Lazy[JObjectDecoder[H]],
       tailDecoderFactory: CoproductDecoderFactory[T],
   ): CoproductDecoderFactory[H :+: T] = {
-    val headClass = classTag[H]
-
     params => {
       // Just pull the config into implicit scope.
       import params.implicitConfig
@@ -145,11 +146,8 @@ object CoproductDecoderFactory {
               .map(Inr(_))
         }
 
-        override def discriminatorValues: Map[JAny, List[ClassTag[_]]] = {
-          // My discriminator map includes the value that I can handle, plus the values that tailDecoder can handle.
-          val tailDiscriminators = tailDecoder.discriminatorValues
-          Map[JAny, List[ClassTag[_]]](expectedDiscriminatorValue -> List(headClass)) combine tailDiscriminators
-        }
+        override def discriminatorMappings: List[DiscriminatorMapping[JObjectDecoder, _]] =
+          disc :: tailDecoder.discriminatorMappings
       }
     }
   }

@@ -14,11 +14,10 @@
 
 package org.scalawag.bateman.jsonapi.generic.decoding
 
-import org.scalawag.bateman.json.{JAny, JResult}
+import org.scalawag.bateman.json.{JObjectDecoder, JResult}
+import org.scalawag.bateman.json.generic.Discriminators.DiscriminatorMapping
 import org.scalawag.bateman.json.generic.decoding.CoproductDecoderFactory.Input
 import shapeless.Coproduct
-
-import scala.reflect.ClassTag
 
 /** Represents an automatically-derived [[Coproduct]] decoder. A [[CoproductResourceDecoder]] is essentially a delegate
   * decoder (called the headDecoder) and a fallback decoder to try if the headDecoder is not appropriate, based
@@ -44,6 +43,10 @@ trait CoproductResourceDecoder[A <: Coproduct] {
     */
   def decode(input: Input): JResult[A]
 
-  /** Returns a map of discriminator values to [[ClassTag]]s that can be decoded by this decoder. */
-  def discriminatorValues: Map[JAny, List[ClassTag[_]]]
+  /** One mapping per concrete leaf that this decoder can handle. Layered routing through an
+    * intermediate trait shows up here as multiple leaves carrying the same explicit decoder
+    * reference, which the collision check uses to recognize them as a single logical mapping
+    * rather than duplicates.
+    */
+  def discriminatorMappings: List[DiscriminatorMapping[JObjectDecoder, _]]
 }

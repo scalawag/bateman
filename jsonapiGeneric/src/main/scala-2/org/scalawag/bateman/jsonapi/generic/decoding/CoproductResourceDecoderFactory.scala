@@ -14,15 +14,14 @@
 
 package org.scalawag.bateman.jsonapi.generic.decoding
 
-import cats.syntax.semigroup._
-import cats.instances.map._
 import cats.syntax.either._
-import org.scalawag.bateman.json.{JAny, JObjectDecoder, JResult}
+import org.scalawag.bateman.json.{JObjectDecoder, JResult}
 import org.scalawag.bateman.json.generic.{TraitDeriverParams, decoding}
+import org.scalawag.bateman.json.generic.Discriminators.DiscriminatorMapping
 import org.scalawag.bateman.json.generic.decoding.CoproductDecoderFactory.Input
 import shapeless.{:+:, CNil, Coproduct, Inl, Inr, Lazy}
 
-import scala.reflect.{ClassTag, classTag}
+import scala.reflect.ClassTag
 
 trait CoproductResourceDecoderFactory[To <: Coproduct] {
 
@@ -49,7 +48,7 @@ object CoproductResourceDecoderFactory {
       override def decode(input: Input): JResult[CNil] =
         decoding.InvalidDiscriminator(input.discriminatorFocus, input.discriminatorValuesHandled.toSet).leftNec
 
-      override def discriminatorValues: Map[JAny, List[ClassTag[_]]] = Map.empty
+      override def discriminatorMappings: List[DiscriminatorMapping[JObjectDecoder, _]] = Nil
     }
 
   /** Decodes the input JObject to an instance of type [[H]] if the discriminator value matches the one handled
@@ -66,8 +65,6 @@ object CoproductResourceDecoderFactory {
       lazyHeadDecoder: Lazy[JObjectDecoder[H]],
       tailDecoderFactory: CoproductResourceDecoderFactory[T],
   ): CoproductResourceDecoderFactory[H :+: T] = {
-    val headClass = classTag[H]
-
     params => {
       // Just pull the config into implicit scope.
       import params.implicitConfig
@@ -94,11 +91,8 @@ object CoproductResourceDecoderFactory {
               .map(Inr(_))
         }
 
-        override def discriminatorValues: Map[JAny, List[ClassTag[_]]] = {
-          // My discriminator map includes the value that I can handle, plus the values that tailDecoder can handle.
-          val tailDiscriminators = tailDecoder.discriminatorValues
-          Map[JAny, List[ClassTag[_]]](expectedDiscriminatorValue -> List(headClass)) combine tailDiscriminators
-        }
+        override def discriminatorMappings: List[DiscriminatorMapping[JObjectDecoder, _]] =
+          disc :: tailDecoder.discriminatorMappings
       }
     }
   }

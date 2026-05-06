@@ -15,9 +15,8 @@
 package org.scalawag.bateman.json.generic.encoding
 
 import org.scalawag.bateman.json.*
-import org.scalawag.bateman.json.generic.{DiscriminatorCollision, TraitDeriverParams}
+import org.scalawag.bateman.json.generic.{DiscriminatorCollision, TraitDeriverParams, TraitUtils}
 import org.scalawag.bateman.json.generic.Discriminators
-import scala.compiletime.*
 import scala.deriving.Mirror
 import scala.reflect.ClassTag
 
@@ -25,58 +24,48 @@ trait TraitEncoderFactory[From]:
   def apply(params: TraitDeriverParams[JObjectEncoder]): JObjectEncoder[From]
 
 object TraitEncoderFactory:
-  inline def summonEncoders[T <: Tuple]: List[JObjectEncoder[?]] =
-    inline erasedValue[T] match
-      case _: EmptyTuple => Nil
-      case _: (t *: ts) => summonInline[JObjectEncoder[t]] :: summonEncoders[ts]
-
-  inline def summonClassTags[T <: Tuple]: List[ClassTag[?]] =
-    inline erasedValue[T] match
-      case _: EmptyTuple => Nil
-      case _: (t *: ts) => summonInline[ClassTag[t]] :: summonClassTags[ts]
-
   inline given derived[T](using m: Mirror.SumOf[T]): TraitEncoderFactory[T] =
-    val labels = constValueTuple[m.MirroredElemLabels].toArray.map(_.toString).toList
-    val encoders = summonEncoders[m.MirroredElemTypes]
-    val classTags = summonClassTags[m.MirroredElemTypes]
+    // A concrete type that extends multiple sealed traits (each themselves a direct or transitive
+    // child of T) will be reached more than once by the flatten. Dedupe by runtime class — they're
+    // the same type and resolve to the same encoder and discriminator value.
+    val leaves = TraitUtils.summonConcretes[m.MirroredElemTypes, JObjectEncoder]
+    val encoders = leaves.map(_._1)
+    val classTags = leaves.map(_._2)
 
+    // Use a named class to prevent duplication at each inline call site.
     class TraitEncoderFactoryImpl(
-        labels: List[String],
         encoders: List[JObjectEncoder[?]],
-        classTags: List[ClassTag[?]],
-        ordinal: T => Int
+        classTags: List[ClassTag[?]]
     ) extends TraitEncoderFactory[T]:
       def apply(params: TraitDeriverParams[JObjectEncoder]): JObjectEncoder[T] =
-        // Pre-compute discriminator mappings for each concrete type
-        val mappings = classTags.zip(encoders).map { case (ct, enc) =>
-          params.discriminator(using ct.asInstanceOf[ClassTag[Any]], params.config, enc.asInstanceOf[JObjectEncoder[Any]])
-        }
+        // Pre-compute discriminator mappings for each leaf type
+        val mappings: List[Discriminators.DiscriminatorMapping[JObjectEncoder, Any]] =
+          classTags.zip(encoders).map { case (ct, enc) =>
+            params.discriminator(using ct.asInstanceOf[ClassTag[Any]], params.config, enc.asInstanceOf[JObjectEncoder[Any]])
+          }
 
-        // Check for duplicate discriminator values if required
         if params.discriminator.duplicateValuesForbidden then
-          val discriminatorValues = mappings.zip(classTags).map { case (m, ct) =>
-            m.value -> List(ct)
-          }.groupMapReduce(_._1)(_._2)(_ ++ _)
-          DiscriminatorCollision.detect(discriminatorValues)
+          DiscriminatorCollision.detect(mappings)
 
+        // Build a class-keyed dispatch table. We dispatch by `value.getClass` rather than by
+        // `Mirror.SumOf.ordinal` because the mirror only sees direct subtypes, while the table
+        // needs to cover transitive leaves.
+        val byClass: Map[Class[?], (JObjectEncoder[Any], Discriminators.DiscriminatorMapping[JObjectEncoder, Any])] =
+          encoders.zip(classTags).zip(mappings).map { case ((enc, ct), mapping) =>
+            ct.runtimeClass -> (enc.asInstanceOf[JObjectEncoder[Any]], mapping)
+          }.toMap
+
+        // Use a named class to prevent duplication when the factory's apply is called at multiple sites.
         class JObjectEncoderImpl(
-            encoders: List[JObjectEncoder[?]],
-            mappings: List[Discriminators.DiscriminatorMapping[JObjectEncoder, Any]],
-            ordinal: T => Int,
+            byClass: Map[Class[?], (JObjectEncoder[Any], Discriminators.DiscriminatorMapping[JObjectEncoder, Any])],
             params: TraitDeriverParams[JObjectEncoder]
         ) extends JObjectEncoder[T]:
           def encode(value: T, discriminators: JObject): JObject =
-            val ord = ordinal(value)
-            val defaultEncoder = encoders(ord).asInstanceOf[JObjectEncoder[Any]]
-            val mapping = mappings(ord)
-
-            // Use explicit encoder if provided (e.g., for layered discriminators)
-            val effectiveEncoder = mapping.explicit.getOrElse(defaultEncoder).asInstanceOf[JObjectEncoder[Any]]
-
-            // Accumulate this level's discriminator into the discriminators JObject.
+            val (defaultEncoder, mapping) = byClass(value.getClass)
+            val effectiveEncoder = mapping.explicit.getOrElse(defaultEncoder)
             val newDiscriminators = params.addDiscriminator(discriminators, mapping.value)
             effectiveEncoder.encode(value, newDiscriminators)
 
-        new JObjectEncoderImpl(encoders, mappings.asInstanceOf[List[Discriminators.DiscriminatorMapping[JObjectEncoder, Any]]], ordinal, params)
+        new JObjectEncoderImpl(byClass, params)
 
-    new TraitEncoderFactoryImpl(labels, encoders, classTags, m.ordinal)
+    new TraitEncoderFactoryImpl(encoders, classTags)

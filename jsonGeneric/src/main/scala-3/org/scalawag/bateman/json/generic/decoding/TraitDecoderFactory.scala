@@ -17,9 +17,8 @@ package org.scalawag.bateman.json.generic.decoding
 import cats.data.NonEmptyChain
 import org.scalawag.bateman.json.*
 import org.scalawag.bateman.json.focus.JFocus
-import org.scalawag.bateman.json.generic.{DiscriminatorCollision, TraitDeriverParams}
+import org.scalawag.bateman.json.generic.{DiscriminatorCollision, TraitDeriverParams, TraitUtils}
 import org.scalawag.bateman.json.generic.Discriminators
-import scala.compiletime.*
 import scala.deriving.Mirror
 import scala.reflect.ClassTag
 
@@ -27,31 +26,11 @@ trait TraitDecoderFactory[To]:
   def apply(params: TraitDeriverParams[JObjectDecoder]): JObjectDecoder[To]
 
 object TraitDecoderFactory:
-  /** Recursively flatten a tuple of subtypes, expanding any element that is itself a sealed trait
-    * into its (transitive) leaf subtypes. The encoder writes the leaf type's discriminator value
-    * at encode time (via overwrite semantics in `addDiscriminator`), so the decoder must be able
-    * to match against those leaf values — hence the flattening at derivation time.
-    *
-    * Decoders and ClassTags are summoned together in a single recursive pass to keep the generated
-    * tree shallow enough for the JS compiler's default stack (which is smaller than on JVM).
-    */
-  inline def summonFlattenedLeaves[T <: Tuple]: List[(JObjectDecoder[?], ClassTag[?])] =
-    inline erasedValue[T] match
-      case _: EmptyTuple => Nil
-      case _: (t *: ts) =>
-        val tail = summonFlattenedLeaves[ts]
-        summonFrom {
-          case innerM: Mirror.SumOf[`t`] =>
-            summonFlattenedLeaves[innerM.MirroredElemTypes] ::: tail
-          case _ =>
-            (summonInline[JObjectDecoder[t]], summonInline[ClassTag[t]]) :: tail
-        }
-
   inline given derived[T](using m: Mirror.SumOf[T]): TraitDecoderFactory[T] =
     // A concrete type that extends multiple sealed traits (each themselves a direct or transitive
     // child of T) will be reached more than once by the flatten. Dedupe by runtime class — they're
     // the same type and resolve to the same decoder and discriminator value.
-    val leaves = summonFlattenedLeaves[m.MirroredElemTypes].distinctBy(_._2.runtimeClass)
+    val leaves = TraitUtils.summonConcretes[m.MirroredElemTypes, JObjectDecoder]
     val decoders = leaves.map(_._1)
     val classTags = leaves.map(_._2)
 
@@ -61,25 +40,13 @@ object TraitDecoderFactory:
     ) extends TraitDecoderFactory[T]:
       def apply(params: TraitDeriverParams[JObjectDecoder]): JObjectDecoder[T] =
         // Pre-compute discriminator mappings for each leaf type
-        val mappings = classTags.zip(decoders).map { case (ct, dec) =>
-          params.discriminator(using ct.asInstanceOf[ClassTag[Any]], params.config, dec.asInstanceOf[JObjectDecoder[Any]])
-        }
+        val mappings: List[Discriminators.DiscriminatorMapping[JObjectDecoder, Any]] =
+          classTags.zip(decoders).map { case (ct, dec) =>
+            params.discriminator(using ct.asInstanceOf[ClassTag[Any]], params.config, dec.asInstanceOf[JObjectDecoder[Any]])
+          }
 
-        // Check for duplicate discriminator values if required. Because the hierarchy is flattened,
-        // multiple leaves may share a value legitimately when `CustomDiscriminator` routes them
-        // through a common explicit decoder (e.g., `forType[IntermediateTrait]("value")` matching
-        // all of its leaves via isAssignableFrom). Treat those as a single logical mapping.
         if params.discriminator.duplicateValuesForbidden then
-          val conflicts = mappings.zip(classTags)
-            .groupBy(_._1.value)
-            .filter { (_, entries) =>
-              entries.size > 1 && {
-                val explicits = entries.map(_._1.explicit)
-                explicits.exists(_.isEmpty) || explicits.map(System.identityHashCode).distinct.size > 1
-              }
-            }
-            .map { (value, entries) => value -> entries.map(_._2) }
-          if conflicts.nonEmpty then throw DiscriminatorCollision(conflicts)
+          DiscriminatorCollision.detect(mappings)
 
         class JObjectDecoderImpl(
             decoders: List[JObjectDecoder[?]],
@@ -103,6 +70,6 @@ object TraitDecoderFactory:
                   Left(NonEmptyChain.one(InvalidDiscriminator(disc, valids)))
             }
 
-        new JObjectDecoderImpl(decoders, mappings.asInstanceOf[List[Discriminators.DiscriminatorMapping[JObjectDecoder, Any]]], params)
+        new JObjectDecoderImpl(decoders, mappings, params)
 
     new TraitDecoderFactoryImpl(decoders, classTags)

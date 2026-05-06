@@ -14,12 +14,17 @@
 
 package org.scalawag.bateman.json.generic.encoding
 
-import org.scalawag.bateman.json.{JAny, JObject}
+import org.scalawag.bateman.json.{JObject, JObjectEncoder}
+import org.scalawag.bateman.json.generic.Discriminators.DiscriminatorMapping
 import shapeless.Coproduct
-
-import scala.reflect.ClassTag
 
 trait CoproductEncoder[In <: Coproduct] {
   def encode(input: In, discriminators: JObject): JObject
-  def discriminatorValues: Map[JAny, List[ClassTag[_]]]
+
+  /** One mapping per concrete leaf that this encoder can dispatch to. Layered routing through an
+    * intermediate trait shows up here as multiple leaves carrying the same explicit encoder
+    * reference, which the collision check uses to recognize them as a single logical mapping
+    * rather than duplicates.
+    */
+  def discriminatorMappings: List[DiscriminatorMapping[JObjectEncoder, _]]
 }

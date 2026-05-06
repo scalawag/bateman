@@ -29,7 +29,9 @@ object Discriminators {
     * @tparam F the type class (encoder/decoder/codec) being targeted
     * @tparam A the type for which to find the mapping
     */
-  case class DiscriminatorMapping[F[_], A](value: JAny, explicit: Option[F[A]])
+  case class DiscriminatorMapping[F[_], A: ClassTag](value: JAny, explicit: Option[F[A]]) {
+    val classTag: ClassTag[A] = implicitly
+  }
 
   /** Determines the appropriate mapping (discriminator value + instance) to be used for a specified data type.
     *
@@ -154,12 +156,35 @@ case class DiscriminatorCollision(discriminators: Map[JAny, List[ClassTag[_]]])
     })
 
 object DiscriminatorCollision {
-  // This function is executed purely for the side effect of throwing a ProgrammerError, if appropriate.
-  def detect(discriminators: Map[JAny, List[ClassTag[_]]]): Unit = {
-    val dups = discriminators.filter(_._2.size > 1)
-    if (dups.nonEmpty)
-      throw DiscriminatorCollision(dups)
-    else
-      ()
+  import Discriminators.DiscriminatorMapping
+
+  /** Throws [[DiscriminatorCollision]] when two or more mappings share a discriminator value
+    * unless every mapping sharing that value has the *same* explicit type class instance.
+    *
+    * The exception is how layered discriminators work: a single `forType[IntermediateTrait](...)`
+    * mapper matches every concrete leaf under the intermediate via `isAssignableFrom`, and each
+    * match returns a [[DiscriminatorMapping]] wrapping the same explicit encoder/decoder. Those
+    * mappings are a single logical mapping, not a collision.
+    */
+  def detect[F[_]](mappings: List[DiscriminatorMapping[F, _]]): Unit = {
+    // Project to a stable tuple form before chaining; Scala 2.12's existential type inference is
+    // shaky on `List[DiscriminatorMapping[F, _]]` once it hits groupBy/filter/map.
+    val projected: List[(JAny, ClassTag[_], Option[Any])] =
+      mappings.map(m => (m.value, m.classTag, m.explicit))
+    val conflicts = projected
+      .groupBy(_._1)
+      .filter { case (_, group) =>
+        group.size > 1 && {
+          val explicits = group.map(_._3)
+          // Dedupe by reference identity, not equals: two distinct explicit instances that
+          // happen to be structurally equal (e.g., the F[_] type overrides equals) should still
+          // be treated as a collision.
+          explicits.exists(_.isEmpty) ||
+            explicits.flatten.map(System.identityHashCode).distinct.size > 1
+        }
+      }
+      .map { case (value, group) => value -> group.map(_._2) }
+    if (conflicts.nonEmpty)
+      throw DiscriminatorCollision(conflicts)
   }
 }

@@ -51,7 +51,7 @@ object TraitDecoderFactory {
     {
       val genericDecoder = decoderFactory(params)
       if (params.discriminator.duplicateValuesForbidden)
-        DiscriminatorCollision.detect(genericDecoder.discriminatorValues)
+        DiscriminatorCollision.detect(genericDecoder.discriminatorMappings)
 
       (in, discriminatorFields) =>
         in(params.discriminatorLens).flatMap { disc =>
