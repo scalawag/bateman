@@ -84,7 +84,7 @@ object JCursor {
         case Some(r) =>
           val parents = me.foci.map {
             case f: JChildFocus[_, _] => f.parent
-            case _: JRootFocus[_] => throw new IllegalStateException("unexpected root focus")
+            case _: JRootFocus[_]     => throw new IllegalStateException("unexpected root focus")
           }
           val distinctParents = implicitly[Distinct[F]].distinct(parents)
           JCursor(distinctParents.map(f => f.replicate(r)))

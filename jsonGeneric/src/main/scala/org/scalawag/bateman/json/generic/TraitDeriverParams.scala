@@ -18,8 +18,6 @@ import org.scalawag.bateman.json.{JAny, JObject, ProgrammerError, RichJResult}
 import org.scalawag.bateman.json.lens.{CreatableJLens, CreatableJLensOps}
 import org.scalawag.bateman.json.generic.Discriminators.Discriminator
 
-
-
 /** Contains all the arguments provided to a trait's encoder/decoder deriver at creation time.
   *
   * @param config the configuration to be used for this codec factory

@@ -59,9 +59,10 @@ object ResourceEncoder {
     val inclusions: Inclusions
   }
 
-  case class Encoded(root: JObject, resourceObject: ResourceObject, inclusions: Inclusions = Inclusions.empty) extends EncodedLike {
+  case class Encoded(root: JObject, resourceObject: ResourceObject, inclusions: Inclusions = Inclusions.empty)
+      extends EncodedLike {
     val included = inclusions.objects.toList match {
-      case Nil => None
+      case Nil  => None
       case objs => Some(objs)
     }
     def toDocument: Document = DataDocument(data = root, included = included)

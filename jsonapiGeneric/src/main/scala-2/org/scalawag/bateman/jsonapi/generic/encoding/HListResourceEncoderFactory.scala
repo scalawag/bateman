@@ -392,7 +392,8 @@ object HListResourceEncoderFactory {
                             val lid = params.lidGenerator()
                             val ri = JObject("type" -> ro.resourceType.toJAny, "lid" -> lid.toJAny)
                             val f = encodedHead.root.asRootFocus
-                            val updatedRoot = f.asObject.flatMap(_.encodeTo("lid", lid, overwrite = true)).getOrThrow.value
+                            val updatedRoot =
+                              f.asObject.flatMap(_.encodeTo("lid", lid, overwrite = true)).getOrThrow.value
                             val updatedRo = ro.copy(id = Some(lid), localId = true)
                             (ri -> encodedHead.copy(root = updatedRoot, resourceObject = updatedRo)).rightNec
                         }

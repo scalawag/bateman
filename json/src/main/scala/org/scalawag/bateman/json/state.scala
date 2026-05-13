@@ -75,12 +75,13 @@ package object state {
     apply((f: JFocus[JAny]) => f.narrow[B])
 
   /** Moves the focus up to the parent of the current focus. Fails if the focus is at the root. */
-  def up[A <: JAny]: IndexedState[A, JAny] = apply((f: JFocus[A]) =>
-    f.parentOption match {
-      case Some(p) => p.rightNec
-      case None    => NoParent(f).leftNec
-    }
-  )
+  def up[A <: JAny]: IndexedState[A, JAny] =
+    apply((f: JFocus[A]) =>
+      f.parentOption match {
+        case Some(p) => p.rightNec
+        case None    => NoParent(f).leftNec
+      }
+    )
 
   /** Transforms the value at the current focus using a pure function on the value.
     * The result is encoded to JSON via the implicit [[Encoder]].

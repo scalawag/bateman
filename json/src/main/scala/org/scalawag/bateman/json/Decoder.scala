@@ -278,13 +278,15 @@ trait DecoderLowP extends DecoderLowLowP {
     * decoder available. It will fail with a JsonTypeMismatch if it is not the correct JSON type. If it is the correct
     * JSON type, it will defer to the underlying decoder.
     */
-  implicit def widenJBooleanDecoder[A](implicit dec: JBooleanDecoder[A]): JAnyDecoder[A] = widenDecoder(_.narrow[JBoolean])
+  implicit def widenJBooleanDecoder[A](implicit dec: JBooleanDecoder[A]): JAnyDecoder[A] =
+    widenDecoder(_.narrow[JBoolean])
 
   /** Creates a decoder that will attempt to narrow a [[JAny]] to a [[JObject]] where there is no specific [[JAny]]
     * decoder available. It will fail with a JsonTypeMismatch if it is not the correct JSON type. If it is the correct
     * JSON type, it will defer to the underlying decoder.
     */
-  implicit def widenJObjectDecoder[A](implicit dec: Decoder[JObject, A]): JAnyDecoder[A] = widenDecoder(_.narrow[JObject])
+  implicit def widenJObjectDecoder[A](implicit dec: Decoder[JObject, A]): JAnyDecoder[A] =
+    widenDecoder(_.narrow[JObject])
 
   /** Creates a decoder that will attempt to narrow a [[JAny]] to a [[JArray]] where there is no specific [[JAny]]
     * decoder available. It will fail with a JsonTypeMismatch if it is not the correct JSON type. If it is the correct

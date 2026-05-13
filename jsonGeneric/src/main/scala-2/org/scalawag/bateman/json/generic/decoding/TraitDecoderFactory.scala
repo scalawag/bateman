@@ -15,10 +15,7 @@
 package org.scalawag.bateman.json.generic.decoding
 
 import org.scalawag.bateman.json._
-import org.scalawag.bateman.json.generic.{
-  DiscriminatorCollision,
-  TraitDeriverParams
-}
+import org.scalawag.bateman.json.generic.{DiscriminatorCollision, TraitDeriverParams}
 import shapeless.{Coproduct, Generic}
 
 trait TraitDecoderFactory[To] {

@@ -65,7 +65,8 @@ sealed trait JFocus[+A <: JAny] {
   def asBoolean: JResult[Refocused[JBoolean]] = narrow[JBoolean]
 
   /** Returns a decoded representation of value in focus. */
-  def decode[B](implicit dec: Decoder[A @scala.annotation.unchecked.uncheckedVariance, B]): JResult[B] = dec.decode(this)
+  def decode[B](implicit dec: Decoder[A @scala.annotation.unchecked.uncheckedVariance, B]): JResult[B] =
+    dec.decode(this)
 
   def navigate(pointer: JPointer): JResult[JFocus[JAny]] = {
     @tailrec

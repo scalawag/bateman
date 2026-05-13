@@ -330,7 +330,8 @@ package object lens {
   def fields(name: String): ListJLens[JAny, JAny] = FieldAllJLens(name)
 
   case class FieldAllJLens(name: String) extends ListJLens[JAny, JAny] {
-    override def apply(in: JFocus[JAny]): JResult[JCursor[List, JAny]] = in.narrow[JObject].map(_.fields(name)).map(JCursor(_))
+    override def apply(in: JFocus[JAny]): JResult[JCursor[List, JAny]] =
+      in.narrow[JObject].map(_.fields(name)).map(JCursor(_))
     override lazy val toString: String = s""""$name".**"""
   }
 
@@ -404,7 +405,8 @@ package object lens {
   val ** : ListJLens[JAny, JAny] = fields
 
   case object AllFieldsJLens extends ListJLens[JAny, JAny] {
-    override def apply(in: JFocus[JAny]): JResult[JCursor[List, JAny]] = in.narrow[JObject].map(_.fields).map(JCursor(_))
+    override def apply(in: JFocus[JAny]): JResult[JCursor[List, JAny]] =
+      in.narrow[JObject].map(_.fields).map(JCursor(_))
     override val toString: String = "**"
   }
 }

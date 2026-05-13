@@ -173,15 +173,16 @@ object DiscriminatorCollision {
       mappings.map(m => (m.value, m.classTag, m.explicit))
     val conflicts = projected
       .groupBy(_._1)
-      .filter { case (_, group) =>
-        group.size > 1 && {
-          val explicits = group.map(_._3)
-          // Dedupe by reference identity, not equals: two distinct explicit instances that
-          // happen to be structurally equal (e.g., the F[_] type overrides equals) should still
-          // be treated as a collision.
-          explicits.exists(_.isEmpty) ||
+      .filter {
+        case (_, group) =>
+          group.size > 1 && {
+            val explicits = group.map(_._3)
+            // Dedupe by reference identity, not equals: two distinct explicit instances that
+            // happen to be structurally equal (e.g., the F[_] type overrides equals) should still
+            // be treated as a collision.
+            explicits.exists(_.isEmpty) ||
             explicits.flatten.map(System.identityHashCode).distinct.size > 1
-        }
+          }
       }
       .map { case (value, group) => value -> group.map(_._2) }
     if (conflicts.nonEmpty)

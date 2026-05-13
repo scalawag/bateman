@@ -137,6 +137,7 @@ class JFocusOps[A <: JAny](me: JFocus[A]) {
 }
 
 object JFocusOps {
+
   /** Helper class to allow `decodeFrom[B](cursorLens)` to infer `F` from the lens while `B` is explicitly provided. */
   class DecodeFromCursor[A <: JAny, B](me: JFocus[A]) {
     def apply[F[+_]](op: JCursorLens[F, A, JAny])(implicit dec: JAnyDecoder[B], T: cats.Traverse[F]): JResult[F[B]] = {

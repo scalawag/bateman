@@ -37,7 +37,9 @@ case class Inclusions private (private val objectMap: TreeMap[Key, ResourceObjec
       case Some(existing) if existing != other =>
         val existingJson = JObjectEncoder[ResourceObject].encode(existing)
         val otherJson = JObjectEncoder[ResourceObject].encode(other)
-        throw ProgrammerError(s"inconsistent duplicate resource objects:\n${existingJson.spaces2}\n${otherJson.spaces2}")
+        throw ProgrammerError(
+          s"inconsistent duplicate resource objects:\n${existingJson.spaces2}\n${otherJson.spaces2}"
+        )
       case Some(_) =>
         this
       case None =>

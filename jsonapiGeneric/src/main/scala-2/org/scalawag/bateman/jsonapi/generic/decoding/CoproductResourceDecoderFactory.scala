@@ -64,8 +64,8 @@ object CoproductResourceDecoderFactory {
   implicit def forCCons[H: ClassTag, T <: Coproduct](implicit
       lazyHeadDecoder: Lazy[JObjectDecoder[H]],
       tailDecoderFactory: CoproductResourceDecoderFactory[T],
-  ): CoproductResourceDecoderFactory[H :+: T] = {
-    params => {
+  ): CoproductResourceDecoderFactory[H :+: T] = { params =>
+    {
       // Just pull the config into implicit scope.
       import params.implicitConfig
       // Build the tail decoder that will be used if headDecoder is not appropriate (based on the discriminator).

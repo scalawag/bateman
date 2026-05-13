@@ -91,25 +91,27 @@ final case class PartialResource(
     // Extract additional meta fields from discriminators (e.g., meta("status") discriminator path)
     val discMetas: List[(String, JAny)] = discriminators.fieldList.toList.flatMap { f =>
       f.name.value match {
-        case "meta" => f.value match {
-          case obj: JObject => obj.fieldList.map(mf => mf.name.value -> mf.value).toList
-          case _ => Nil
-        }
+        case "meta" =>
+          f.value match {
+            case obj: JObject => obj.fieldList.map(mf => mf.name.value -> mf.value).toList
+            case _            => Nil
+          }
         case _ => Nil
       }
     }
     val allMetas = discMetas ::: metas
 
     // Convert relationship JAny values (JObject with "data" field) to Relationship objects
-    val rels: List[(String, Relationship)] = relationships.map { case (name, value) =>
-      val rel = value match {
-        case obj: JObject =>
-          val dataField = obj.fieldList.find(_.name.value == "data").map(_.value)
-          new Relationship(data = dataField)
-        case other =>
-          new Relationship(data = Some(other))
-      }
-      name -> rel
+    val rels: List[(String, Relationship)] = relationships.map {
+      case (name, value) =>
+        val rel = value match {
+          case obj: JObject =>
+            val dataField = obj.fieldList.find(_.name.value == "data").map(_.value)
+            new Relationship(data = dataField)
+          case other =>
+            new Relationship(data = Some(other))
+        }
+        name -> rel
     }
 
     ResourceObject(

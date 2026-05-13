@@ -114,8 +114,10 @@ class JFocusJObjectOps[A <: JFocus[JObject]](me: A) {
   )(implicit enc: Encoder[D, E], replacer: ValueReplacer.Aux[JObject, A, A]): JResult[A] =
     new JFocusOps(JRootFocus(me.value))
       .encodeTo(lens, value, prepend, overwrite)
-      .map(fb => fb.root.value match {
-        case o: JObject => replacer(o, me)
-        case other => throw new IllegalStateException(s"expected JObject but got ${other.jType}")
-      })
+      .map(fb =>
+        fb.root.value match {
+          case o: JObject => replacer(o, me)
+          case other      => throw new IllegalStateException(s"expected JObject but got ${other.jType}")
+        }
+      )
 }
