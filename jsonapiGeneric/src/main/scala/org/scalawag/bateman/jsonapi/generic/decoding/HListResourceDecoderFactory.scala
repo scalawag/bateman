@@ -17,19 +17,24 @@ package org.scalawag.bateman.jsonapi.generic.decoding
 import cats.syntax.parallel._
 import cats.syntax.either._
 import cats.Functor
+import cats.data.NonEmptyChain
 import org.scalawag.bateman.json.lens._
 import org.scalawag.bateman.json.focus.weak._
 import org.scalawag.bateman.jsonapi.lens._
+import org.scalawag.bateman.jsonapi.MissingIncludedResourceObject
 import org.scalawag.bateman.json.generic.{CaseClassInfo, Config, Source}
 import org.scalawag.bateman.json.{
   Decoder,
   JAny,
   JAnyDecoder,
+  JError,
   JObject,
   JObjectDecoder,
   JResult,
   JString,
   JStringDecoder,
+  MissingValue,
+  NotNull,
   Nullable,
   UnexpectedValue,
   rightIfEmpty
@@ -54,6 +59,37 @@ object HListResourceDecoderFactory {
   }
 
   final case class Output[Out <: HList](out: Out, fieldSources: Map[String, JFocus[JAny]])
+
+  /** Resolves the resource object referred to by a relationship datum (a resource identifier) and decodes it. If the
+    * referenced object is absent from the document's `included` array, it may still be unnecessary: a related type
+    * that requires no fields of its own can be reconstructed from the resource identifier alone. In that case we
+    * decode directly from the identifier. Only if a required field is genuinely missing below the identifier do we
+    * report the original [[MissingIncludedResourceObject]] error. (Restores the behavior of commit dfe1496d, which
+    * was lost in the lens-based rewrite.)
+    */
+  private def includedOrStub[A](datum: JFocus[JObject], decoder: JObjectDecoder[A]): JResult[A] =
+    datum(includedRef).flatMap(_.decode(decoder)) match {
+      case Left(errors) if errors.forall(_.isInstanceOf[MissingIncludedResourceObject]) =>
+        datum.decode(decoder) match {
+          case Left(stubErrors) if stubErrors.forall(missingValueBelow(datum)) => errors.asLeft
+          case decoded                                                         => decoded
+        }
+      case decoded => decoded
+    }
+
+  /** Same as [[includedOrStub]] but yields a [[Nullable]], deferring to [[nullableIncludedRef]] (so a null datum
+    * decodes to `Null`) and only applying the stub fallback when the datum is an object.
+    */
+  private def nullableIncludedOrStub[H](rel: JFocus[JObject], decoder: JObjectDecoder[H]): JResult[Nullable[H]] =
+    rel(data ~> narrow[JObject]) match {
+      case Right(datum) => includedOrStub(datum, decoder).map(h => NotNull(h): Nullable[H])
+      case Left(_) =>
+        rel(data ~> nullableIncludedRef).flatMap(_.decode(nullableDecoder(widenJObjectDecoder(decoder))))
+    }
+
+  /** True if the error indicates a value that was simply absent (rather than malformed) at or below the given focus. */
+  private def missingValueBelow(here: JFocus[JObject])(error: JError): Boolean =
+    error.isInstanceOf[MissingValue] && error.pointer.tokens.startsWith(here.pointer.tokens)
 
   implicit def forHNil: HListResourceDecoderFactory[HNil, HNil, HNil] =
     (_, params) => {
@@ -274,7 +310,7 @@ object HListResourceDecoderFactory {
   ] =
     headDecoderFactory[Single, JObject, H, T, DT, IncludedRelationship, AT](
       relationship,
-      _(data ~> includedRef).flatMap(_.decode(headDecoder.value))
+      _(data ~> narrow[JObject]).flatMap(includedOrStub(_, headDecoder.value))
     )
 
   implicit def forOptionIncludedRelationshipHCons[H, T <: HList, DT <: HList, AT <: HList](implicit
@@ -287,7 +323,7 @@ object HListResourceDecoderFactory {
   ] =
     optionHeadDecoderFactory[Single, JObject, H, T, DT, IncludedRelationship, AT](
       relationship,
-      _(data ~> includedRef).flatMap(_.decode(headDecoder.value))
+      _(data ~> narrow[JObject]).flatMap(includedOrStub(_, headDecoder.value))
     )
 
   implicit def forNullableIncludedRelationshipHCons[H, T <: HList, DT <: HList, AT <: HList](implicit
@@ -300,7 +336,7 @@ object HListResourceDecoderFactory {
   ] =
     headDecoderFactory[Single, JObject, Nullable[H], T, DT, IncludedRelationship, AT](
       relationship,
-      _(data ~> nullableIncludedRef).flatMap(_.decode(nullableDecoder(widenJObjectDecoder(headDecoder.value))))
+      nullableIncludedOrStub(_, headDecoder.value)
     )
 
   implicit def forOptionNullableIncludedRelationshipHCons[H, T <: HList, DT <: HList, AT <: HList](implicit
@@ -313,7 +349,7 @@ object HListResourceDecoderFactory {
   ] =
     optionHeadDecoderFactory[Single, JObject, Nullable[H], T, DT, IncludedRelationship, AT](
       relationship,
-      _(data ~> nullableIncludedRef).flatMap(_.decode(nullableDecoder(widenJObjectDecoder(headDecoder.value))))
+      nullableIncludedOrStub(_, headDecoder.value)
     )
 
   implicit def forListIncludedRelationshipHCons[H, T <: HList, DT <: HList, AT <: HList](implicit
