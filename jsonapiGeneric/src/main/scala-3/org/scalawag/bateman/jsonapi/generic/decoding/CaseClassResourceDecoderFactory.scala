@@ -22,7 +22,7 @@ import org.scalawag.bateman.json.lens.*
 import org.scalawag.bateman.json.generic.{CaseClassInfo, Config, Source}
 import org.scalawag.bateman.json.generic.decoding.JSource
 import org.scalawag.bateman.json.generic.defaults.DefaultsMacro
-import org.scalawag.bateman.jsonapi.{JsonApiTypeMismatch, lens as japiLens}
+import org.scalawag.bateman.jsonapi.{JsonApiTypeMismatch, MissingIncludedResourceObject, lens as japiLens}
 import org.scalawag.bateman.jsonapi.generic.Annotations.*
 import shapeless3.deriving.AllAnnotations
 import scala.compiletime.*
@@ -322,15 +322,13 @@ object CaseClassResourceDecoderFactory:
           fieldSources(scalaFieldName) = relFocus.asInstanceOf[JFocus[JAny]]
           fieldInfo.cardinalityShape match
             case CardinalityShape.Direct =>
-              relFocus(japiLens.data ~> japiLens.includedRef).flatMap(_.decode(dec))
+              relFocus(japiLens.data ~> narrowTo[JObject]).flatMap(includedOrStub(_, dec))
             case CardinalityShape.OptionDirect =>
-              relFocus(japiLens.data ~> japiLens.includedRef).flatMap(_.decode(dec)).map(Some(_))
+              relFocus(japiLens.data ~> narrowTo[JObject]).flatMap(includedOrStub(_, dec)).map(Some(_))
             case CardinalityShape.DirectNullable =>
-              val nullableDec: JAnyDecoder[Nullable[Any]] = Decoder.nullableDecoder(Decoder.widenJObjectDecoder(dec))
-              relFocus(japiLens.data ~> japiLens.nullableIncludedRef).flatMap(_.decode(nullableDec))
+              nullableIncludedOrStub(relFocus, dec)
             case CardinalityShape.OptionNullable =>
-              val nullableDec: JAnyDecoder[Nullable[Any]] = Decoder.nullableDecoder(Decoder.widenJObjectDecoder(dec))
-              relFocus(japiLens.data ~> japiLens.nullableIncludedRef).flatMap(_.decode(nullableDec)).map(Some(_))
+              nullableIncludedOrStub(relFocus, dec).map(Some(_))
             case CardinalityShape.DirectList =>
               relFocus(japiLens.data ~> * ~> japiLens.includedRef).flatMap(_.decode(dec))
             case CardinalityShape.OptionList =>
@@ -340,3 +338,32 @@ object CaseClassResourceDecoderFactory:
           else if config.useDefaultsForMissingFields && defaultOpt.isDefined then defaultOpt.get.rightNec
           else jobjFocus(relLens).flatMap(_ => MissingField(jobjFocus, jsonFieldName).leftNec)
     }
+
+  /** Resolves the resource object referred to by a relationship datum (a resource identifier) and decodes it. If the
+    * referenced object is absent from the document's `included` array, it may still be unnecessary: a related type
+    * that requires no fields of its own can be reconstructed from the resource identifier alone. In that case we
+    * decode directly from the identifier. Only if a required field is genuinely missing below the identifier do we
+    * report the original [[MissingIncludedResourceObject]] error. (Restores the behavior of commit dfe1496d, which
+    * was lost in the lens-based rewrite.)
+    */
+  private def includedOrStub(datum: JFocus[JObject], decoder: JObjectDecoder[Any]): JResult[Any] =
+    datum(japiLens.includedRef).flatMap(_.decode(decoder)) match
+      case Left(errors) if errors.forall(_.isInstanceOf[MissingIncludedResourceObject]) =>
+        datum.decode(decoder) match
+          case Left(stubErrors) if stubErrors.forall(missingValueBelow(datum)) => errors.asLeft
+          case decoded                                                         => decoded
+      case decoded => decoded
+
+  /** Same as [[includedOrStub]] but yields a [[Nullable]], deferring to `nullableIncludedRef` (so a null datum
+    * decodes to `Null`) and only applying the stub fallback when the datum is an object.
+    */
+  private def nullableIncludedOrStub(relFocus: JFocus[JObject], decoder: JObjectDecoder[Any]): JResult[Nullable[Any]] =
+    relFocus(japiLens.data ~> narrowTo[JObject]) match
+      case Right(datum) => includedOrStub(datum, decoder).map(h => NotNull(h): Nullable[Any])
+      case Left(_) =>
+        val nullableDec: JAnyDecoder[Nullable[Any]] = Decoder.nullableDecoder(Decoder.widenJObjectDecoder(decoder))
+        relFocus(japiLens.data ~> japiLens.nullableIncludedRef).flatMap(_.decode(nullableDec))
+
+  /** True if the error indicates a value that was simply absent (rather than malformed) at or below the given focus. */
+  private def missingValueBelow(here: JFocus[JObject])(error: JError): Boolean =
+    error.isInstanceOf[MissingValue] && error.pointer.tokens.startsWith(here.pointer.tokens)
