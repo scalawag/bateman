@@ -99,8 +99,10 @@ object HListResourceDecoderFactory {
         if (params.config.allowUnknownFields)
           output.rightNec
         else {
-          // The set of all fields that have been "consumed" by handlers.
-          val consumed = input.fieldSources.values.toSet
+          // The pointers of all fields that have been "consumed" by handlers. Compare by pointer: these foci all point
+          // into one document, and hashing a focus hashes the whole document.
+          val consumed = input.fieldSources.values.map(_.pointer).toSet
+          val discriminators = input.discriminatorFields.map(_.pointer)
 
           // These are fields that may appear in the top-level of the resource object that are not problems.
           val topLevelWhiteList = Set("type", "meta", "links", "attributes", "relationships")
@@ -109,8 +111,8 @@ object HListResourceDecoderFactory {
           val unknownTopLevelFoci = input.in.value.fieldList.map(_.name.value).zip(input.in.fields).collect {
             case (name, focus)
                 if !topLevelWhiteList.contains(name) &&
-                  !input.discriminatorFields.contains(focus) &&
-                  !consumed.contains(focus) =>
+                  !discriminators.contains(focus.pointer) &&
+                  !consumed.contains(focus.pointer) =>
               focus
           }
 
@@ -120,7 +122,7 @@ object HListResourceDecoderFactory {
             input.in(relationships.? ~> **).map(_.foci),
           ).parFlatSequence.flatMap { containerValues =>
             // Fields within known JSON:API container objects that have not been consumed.
-            val unconsumedInContainers = containerValues.filterNot(consumed)
+            val unconsumedInContainers = containerValues.filterNot(f => consumed(f.pointer))
             rightIfEmpty((unknownTopLevelFoci ++ unconsumedInContainers).map(UnexpectedValue(_)), output)
           }
         }

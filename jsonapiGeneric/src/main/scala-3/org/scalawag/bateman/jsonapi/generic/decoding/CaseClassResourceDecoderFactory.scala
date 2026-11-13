@@ -192,14 +192,17 @@ object CaseClassResourceDecoderFactory:
               if config.allowUnknownFields then
                 ().rightNec
               else
-                val consumed = fieldSources.values.toSet
+                // Compare by pointer: these foci all point into one document, and hashing a focus hashes the whole
+                // document.
+                val consumed = fieldSources.values.map(_.pointer).toSet
+                val discriminators = discriminatorFieldFocuses.map(_.pointer)
 
                 val topLevelWhiteList = Set("type", "meta", "links", "attributes", "relationships")
                 val unknownTopLevelFoci = jobjFocus.value.fieldList.map(_.name.value).zip(jobjFocus.fields)
                   .filter { (name, focus) =>
                     !topLevelWhiteList.contains(name) &&
-                      !discriminatorFieldFocuses.contains(focus) &&
-                      !consumed.contains(focus)
+                      !discriminators.contains(focus.pointer) &&
+                      !consumed.contains(focus.pointer)
                   }
                   .map(_(1))
 
@@ -208,7 +211,7 @@ object CaseClassResourceDecoderFactory:
                   jobjFocus(japiLens.attributes.? ~> **).map(_.foci),
                   jobjFocus(japiLens.relationships.? ~> **).map(_.foci),
                 ).parFlatSequence.flatMap { containerValues =>
-                  val unconsumedInContainers = containerValues.filterNot(consumed)
+                  val unconsumedInContainers = containerValues.filterNot(f => consumed(f.pointer))
                   rightIfEmpty((unknownTopLevelFoci ++ unconsumedInContainers).map(UnexpectedValue(_)), ())
                 }
 
