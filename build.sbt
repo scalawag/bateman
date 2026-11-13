@@ -320,6 +320,19 @@ val docs = project
     libraryDependencies += "org.scalawag.sarong" %% "sarong" % "0.1.1"
   )
 
+// JMH benchmarks, JVM and Scala 2.13 only. Not aggregated or published. Run with, for example:
+//   sbt "benchmarks/Jmh/run -p size=100,1000,4000 JCursorBenchmark"
+val benchmarks = project
+  .in(file("benchmarks"))
+  .dependsOn(json.jvm(Versions.scala213))
+  .enablePlugins(JmhPlugin)
+  .settings(
+    name := s"$projectBaseName-benchmarks",
+    scalaVersion := Versions.scala213,
+    publish / skip := true,
+    mimaPreviousArtifacts := Set.empty,
+  )
+
 val root = project
   .in(file("."))
   .aggregate(docs)
