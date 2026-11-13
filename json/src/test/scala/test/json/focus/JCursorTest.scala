@@ -14,9 +14,8 @@
 
 package test.json.focus
 
-
 import org.scalawag.bateman.json._
-import org.scalawag.bateman.json.focus.{JCursor, JFocus}
+import org.scalawag.bateman.json.focus.{JCursor, JFocus, JRootFocus}
 import org.scalawag.bateman.json.lens._
 import test.json.BatemanTestBase
 
@@ -147,6 +146,9 @@ class JCursorTest extends BatemanTestBase {
       root("deep" ~> * ~> * ~> "a".**).shouldSucceed.foci shouldBe empty
       // But the containing objects should still exist
       root("deep" ~> * ~> *).shouldSucceed.foci should have size 6
+      // The result focuses each parent once
+      val parents = for (i <- List(0, 1); j <- List(0, 1, 2)) yield JPointer.Root / "deep" / i / j
+      deleted.foci.map(_.pointer) shouldBe parents
     }
 
     it("should delete array items and shrink the arrays") {
@@ -157,6 +159,8 @@ class JCursorTest extends BatemanTestBase {
       // After deleting all items, the parent array should be empty
       val root = deleted.root.get
       root("g" ~> narrowTo[JArray]).shouldSucceed.value.items shouldBe empty
+      // The three items share one parent, which the result focuses once
+      deleted.foci.map(_.pointer) shouldBe List(JPointer.Root / "g")
     }
 
     it("should succeed with no changes for empty cursor") {
@@ -270,6 +274,41 @@ class JCursorTest extends BatemanTestBase {
       val lens: JCursorLens[Option, JAny, JAny] = "nonexistent".?
       val cursor: JCursor[Option, JAny] = json(lens).shouldSucceed
       cursor.foci shouldBe None
+    }
+  }
+
+  describe("long lists") {
+    // Shaped like a JSON:API to-many relationship, e.g. an order's items.
+    def relationship(size: Int): JRootFocus[JObject] =
+      parseAs[JObject](
+        (1 to size).map(n => s"""{"type":"item","id":"item-$n"}""").mkString("""{"data":[""", ",", "]}")
+      )
+
+    def seconds[A](block: => A): (A, Double) = {
+      val start = System.nanoTime()
+      val result = block
+      (result, (System.nanoTime() - start) / 1e9)
+    }
+
+    it("should decode 4000 items without hashing the document per item") {
+      // The root check in JCursor used to hash the whole document once per focus, so this took about 6 seconds on a
+      // laptop JVM. It now takes a few milliseconds; the limit only has to catch the quadratic version.
+      val doc = relationship(4000)
+      val (decoded, elapsed) = seconds(doc("data" ~> * ~> "id" ~> narrowTo[JString]).shouldSucceed.decode[String])
+      decoded.shouldSucceed should have size 4000
+      elapsed should be < 2.0
+    }
+
+    it("should modify a long list without overflowing the stack") {
+      val modified = relationship(3000)("data" ~> *).shouldSucceed.modify(_ => JNull)
+      modified.foci should have size 3000
+      modified.root.get("data" ~> *).shouldSucceed.values.toSet shouldBe Set(JNull)
+    }
+
+    it("should delete a long list without overflowing the stack") {
+      val deleted = relationship(3000)("data" ~> *).shouldSucceed.delete().shouldSucceed
+      deleted.foci.map(_.pointer) shouldBe List(JPointer.Root / "data")
+      deleted.root.get("data" ~> narrowTo[JArray]).shouldSucceed.value.items shouldBe empty
     }
   }
 

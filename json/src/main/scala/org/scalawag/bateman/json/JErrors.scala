@@ -23,5 +23,6 @@ object JErrors {
 
   /** Creates a human-readable, sorted, deduplicated list of error messages. */
   def formatErrorReport(errors: NonEmptyChain[JError]): String =
-    JErrorFormatters.maybeBullets(errors.toChain.toList.sorted.distinct.map(_.fullDescription))
+    // Dedupe the descriptions, not the errors: an error's hash covers its focus, whose hash covers the whole document.
+    JErrorFormatters.maybeBullets(errors.toChain.toList.sorted.map(_.fullDescription).distinct)
 }

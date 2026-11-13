@@ -70,10 +70,11 @@ object HListDecoderFactory {
       if (config.allowUnknownFields)
         output.rightNec[JError]
       else {
-        val validKeys = input.fieldSources.values.toSet ++ input.discriminatorFields
+        // Compare by pointer. These foci all point into one document, and hashing a focus hashes the whole document.
+        val validKeys = (input.fieldSources.values ++ input.discriminatorFields).map(_.pointer).toSet
         rightIfEmpty(
           input.in.fields
-            .filterNot(validKeys)
+            .filterNot(f => validKeys(f.pointer))
             .map(UnexpectedValue),
           output
         )

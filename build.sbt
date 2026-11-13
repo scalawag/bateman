@@ -320,6 +320,42 @@ val docs = project
     libraryDependencies += "org.scalawag.sarong" %% "sarong" % "0.1.1"
   )
 
+// JMH benchmarks, JVM only, not aggregated or published. benchmarks builds them for Scala 2.13 and benchmarks3 builds
+// the same sources for Scala 3. Run with, for example:
+//   sbt "benchmarks/Jmh/run -p size=100,1000,4000 JCursorBenchmark"
+//   sbt "benchmarks3/Jmh/run -p size=100,1000,4000 StateDecoderBenchmark"
+val benchmarkSettings = Seq(
+  publish / skip := true,
+  mimaPreviousArtifacts := Set.empty,
+  scalacOptions ++= {
+    CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((3, _)) => Seq("-Xmax-inlines", "64")
+      case _            => Nil
+    }
+  },
+)
+
+val benchmarks = project
+  .in(file("benchmarks"))
+  .dependsOn(json.jvm(Versions.scala213), jsonGeneric.jvm(Versions.scala213))
+  .enablePlugins(JmhPlugin)
+  .settings(benchmarkSettings)
+  .settings(
+    name := s"$projectBaseName-benchmarks",
+    scalaVersion := Versions.scala213,
+  )
+
+val benchmarks3 = project
+  .in(file("benchmarks/scala3"))
+  .dependsOn(json.jvm(Versions.scala3), jsonGeneric.jvm(Versions.scala3))
+  .enablePlugins(JmhPlugin)
+  .settings(benchmarkSettings)
+  .settings(
+    name := s"$projectBaseName-benchmarks3",
+    scalaVersion := Versions.scala3,
+    Compile / scalaSource := (benchmarks / Compile / scalaSource).value,
+  )
+
 val root = project
   .in(file("."))
   .aggregate(docs)
